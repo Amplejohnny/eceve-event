@@ -1,0 +1,251 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  role          Role      @default(USER)
+  emailVerified DateTime?
+  image         String?
+  bio           String?
+  location      String?
+  website       String?
+  twitter       String?
+  instagram     String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  events    Event[]
+  tickets   Ticket[]
+  favorites EventFavorite[]
+  accounts  Account[]
+  sessions  Session[]
+  payouts   Payout[]
+
+  @@map("users")
+}
+
+model Event {
+  id           String      @id @default(cuid())
+  title        String
+  description  String      @db.Text
+  eventType    EventType
+  date         DateTime
+  endDate      DateTime?
+  location     String
+  venue        String?
+  address      String?
+  latitude     Float?
+  longitude    Float?
+  tags         String[]
+  category     String?
+  imageUrl     String?
+  ticketTypes  Json // [{name: "Standard", price: 5000, available: 100, sold: 0}]
+  maxAttendees Int?
+  isPublic     Boolean     @default(true)
+  status       EventStatus @default(ACTIVE)
+  slug         String      @unique
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Relations
+  organizerId String
+  organizer   User   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  tickets   Ticket[]
+  favorites EventFavorite[]
+  payments  Payment[]
+
+  @@map("events")
+}
+
+model Ticket {
+  id             String       @id @default(cuid())
+  ticketType     String // "Standard", "VIP", "Premium", etc.
+  price          Int // in kobo for Paystack (0 for free tickets)
+  quantity       Int          @default(1)
+  attendeeName   String
+  attendeeEmail  String
+  attendeePhone  String?
+  confirmationId String       @unique
+  qrCode         String?
+  notes          String?
+  status         TicketStatus @default(ACTIVE)
+  usedAt         DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  paymentId String?
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  @@map("tickets")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  paystackRef     String        @unique
+  amount          Int // total amount in kobo
+  currency        String        @default("NGN")
+  status          PaymentStatus @default(PENDING)
+  platformFee     Int // 20% commission in kobo
+  organizerAmount Int // 80% to organizer in kobo
+  paymentMethod   String?
+  customerEmail   String
+  metadata        Json?
+  webhookData     Json?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
+
+  tickets Ticket[]
+
+  @@map("payments")
+}
+
+model EventFavorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Relations
+  userId  String
+  eventId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("event_favorites")
+}
+
+model Payout {
+  id            String       @id @default(cuid())
+  amount        Int // amount in kobo
+  status        PayoutStatus @default(PENDING)
+  paystackRef   String?      @unique
+  bankAccount   String?
+  bankCode      String?
+  accountName   String?
+  reason        String?
+  transferCode  String?
+  processedAt   DateTime?
+  failureReason String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  organizerId String
+  organizer   User   @relation(fields: [organizerId], references: [id])
+
+  @@map("payouts")
+}
+
+// NextAuth required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Enums
+enum Role {
+  VISITOR
+  USER
+  ORGANIZER
+  ADMIN
+}
+
+enum EventType {
+  FREE
+  PAID
+}
+
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  CANCELLED
+  COMPLETED
+  SUSPENDED
+}
+
+enum TicketStatus {
+  ACTIVE
+  CANCELLED
+  USED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
