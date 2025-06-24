@@ -1,3 +1,4 @@
+import { SendVerificationRequestParams } from "next-auth/providers/email";
 import { createTransport, Transporter } from "nodemailer";
 
 const currentYear = new Date().getFullYear();
@@ -291,17 +292,11 @@ const emailTemplates = {
 };
 
 // NextAuth email verification function
-export async function sendVerificationRequest(params: {
-  identifier: string;
-  url: string;
-  expires: Date;
-  provider: Record<string, unknown>;
-  token: string;
-  theme: Record<string, unknown>;
-}) {
+export async function sendVerificationRequest(
+  params: SendVerificationRequestParams
+) {
   const { identifier: email, url } = params;
   const { subject, html, text } = emailTemplates.verification(url, email);
-
   try {
     const transporter = getTransporter();
 

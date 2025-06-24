@@ -4,6 +4,11 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Validate required environment variable
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
@@ -45,7 +50,7 @@ export async function createUser(data: {
   email: string;
   password?: string;
   name?: string;
-  role?: "USER" | "ORGANIZER" | "ADMIN";
+  role?: "USER" | "ORGANIZER";
   emailVerified?: Date;
   image?: string;
 }) {
@@ -63,7 +68,7 @@ export async function updateUser(
     name: string;
     password: string;
     email: string;
-    role: "USER" | "ORGANIZER" | "ADMIN";
+    role: "USER" | "ORGANIZER";
     emailVerified: Date;
     image: string;
     bio: string;

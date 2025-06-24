@@ -16,21 +16,23 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  password      String?
-  emailVerified DateTime? @db.Timestamptz(6)
-  role          Role      @default(USER)
-  image         String?
-  bio           String?
-  location      String?
-  website       String?
-  twitter       String?
-  instagram     String?
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  email            String    @unique
+  name             String?
+  password         String?
+  emailVerified    DateTime? @db.Timestamptz(6)
+  role             Role      @default(USER)
+  image            String?
+  bio              String?
+  location         String?
+  website          String?
+  twitter          String?
+  instagram        String?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  resetToken       String?
+  resetTokenExpiry DateTime? @db.Timestamptz(6)
 
   // Relations
   events    Event[]
@@ -40,6 +42,12 @@ model User {
   sessions  Session[]
   payouts   Payout[]
 
+  @@index([role])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([resetToken])
+  @@index([resetTokenExpiry])
+  @@index([role, isActive])
   @@map("users")
 }
 
@@ -74,6 +82,12 @@ model Event {
   favorites EventFavorite[]
   payments  Payment[]
 
+  @@index([organizerId])
+  @@index([status])
+  @@index([date])
+  @@index([eventType])
+  @@index([isPublic])
+  @@index([status, isPublic]) // Composite for "active public events"s
   @@map("events")
 }
 
@@ -103,6 +117,11 @@ model Ticket {
   paymentId String?
   payment   Payment? @relation(fields: [paymentId], references: [id])
 
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+  @@index([attendeeEmail])
+  @@index([eventId, status]) // Composite for "active tickets for event"
   @@map("tickets")
 }
 
