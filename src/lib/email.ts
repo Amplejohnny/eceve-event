@@ -130,7 +130,7 @@ const emailTemplates = {
           </div>
           
           <div class="content">
-            <h2>Hello ${name}!</h2>
+            <h2>Hello ${name}</h2>
             <p>Congratulations! Your email address has been verified and your Eceve account is now fully activated.</p>
             
             <div class="feature-box">
