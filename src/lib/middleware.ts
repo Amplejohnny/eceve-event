@@ -116,7 +116,7 @@ export default withAuth(
     if (isAuthRoute(pathname)) {
       if (token) {
         // Redirect authenticated users away from auth pages
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        return NextResponse.redirect(new URL("/homepage", req.url));
       }
       return NextResponse.next();
     }
@@ -145,14 +145,14 @@ export default withAuth(
     // Admin routes - only ADMIN role
     if (isAdminRoute(pathname) || isAdminApiRoute(pathname)) {
       if (userRole !== "ADMIN") {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        return NextResponse.redirect(new URL("/homepage", req.url));
       }
     }
 
     // Organizer routes - ORGANIZER or ADMIN roles
     if (isOrganizerRoute(pathname) || isOrganizerApiRoute(pathname)) {
       if (!["ORGANIZER", "ADMIN"].includes(userRole)) {
-        return NextResponse.redirect(new URL("/dashboard", req.url));
+        return NextResponse.redirect(new URL("/homepage", req.url));
       }
     }
 

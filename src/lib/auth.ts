@@ -271,7 +271,7 @@ export const authOptions: NextAuthOptions = {
     async redirect({ url, baseUrl }) {
       // Handle email verification callback
       if (url.includes("/api/auth/callback/email")) {
-        return baseUrl;
+        return `${baseUrl}/auth/email-verified`;
       }
 
       // Handle sign-in redirects
@@ -497,6 +497,47 @@ export async function registerUser(
   }
 
   return newUser;
+}
+
+//login function for existing users
+export async function loginUser(email: string, password: string) {
+
+  const user = await db.user.findUnique({
+    where: { email: email.toLowerCase() },
+  });
+
+  if (!user || !user.isActive) {
+    throw new Error("User not found or inactive");
+  }
+
+  if (!user.password) {
+    throw new Error("User not found or inactive");
+  }
+
+  const isValidPassword = await verifyPassword(password, user.password);
+
+  if (!isValidPassword) {
+    throw new Error("Invalid password");
+  }
+
+  if (!user.emailVerified) {
+    // Automatically send a new verification email
+    try {
+      await resendVerificationEmail(user.email);
+      console.log(`Verification email resent to ${user.email}`);
+    } catch (error) {
+      console.error("Failed to resend verification email:", error);
+    }
+    throw new Error("Email not verified. A verification email has been sent.");
+  }
+
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role,
+    emailVerified: user.emailVerified,
+  };
 }
 
 // Function to resend verification email to existing users

@@ -263,11 +263,6 @@ const LoginForm = () => {
           setTimeout(() => {
             window.location.href = data.redirectTo;
           }, 1000);
-        } else {
-          // Default redirect to homepage
-          setTimeout(() => {
-            window.location.href = "/homepage";
-          }, 1000);
         }
       } else {
         handleApiError(data, response);
@@ -300,7 +295,7 @@ const LoginForm = () => {
   const handleForgotPassword = () => {
     logClientInfo("Forgot password clicked");
     // Redirect to forgot password page
-    window.location.href = "/auth/forgot-password";
+    window.location.href = "/auth/reset-password";
   };
 
   const toggleDarkMode = () => {
