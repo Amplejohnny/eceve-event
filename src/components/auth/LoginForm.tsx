@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Eye, EyeOff, Moon, Sun, Check, X, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Moon, Sun, AlertCircle } from "lucide-react";
 import Link from "next/link";
 
 // Client-side logging utility
@@ -20,7 +20,7 @@ const logClientError = (
     url: window.location.href,
   };
 
-  console.error(`[SIGNUP_CLIENT_ERROR] ${context}:`, logData);
+  console.error(`[LOGIN_CLIENT_ERROR] ${context}:`, logData);
 
   // In production, send to logging service
   // sendToClientLoggingService(logData);
@@ -28,32 +28,27 @@ const logClientError = (
 
 const logClientInfo = (message: string, metadata?: Record<string, any>) => {
   console.log(
-    `[SIGNUP_CLIENT_INFO] ${new Date().toISOString()}: ${message}`,
+    `[LOGIN_CLIENT_INFO] ${new Date().toISOString()}: ${message}`,
     metadata || {}
   );
 };
 
-const SignupForm = () => {
+const LoginForm = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [submitAttempts, setSubmitAttempts] = useState(0);
 
   type FormData = {
-    name: string;
     email: string;
     password: string;
-    confirmPassword: string;
   };
 
   type Errors = Partial<Record<keyof FormData, string>>;
 
   const [formData, setFormData] = useState<FormData>({
-    name: "",
     email: "",
     password: "",
-    confirmPassword: "",
   });
   const [errors, setErrors] = useState<Errors>({});
   const [message, setMessage] = useState("");
@@ -61,21 +56,9 @@ const SignupForm = () => {
 
   // Validation states
   const [emailValid, setEmailValid] = useState<boolean | null>(null);
-  const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
-  const [passwordStrength, setPasswordStrength] = useState({
-    score: 0,
-    criteria: {
-      length: false,
-      lowercase: false,
-      uppercase: false,
-      number: false,
-      special: false,
-    },
-  });
 
   // Character limits
   const limits = {
-    name: 100,
     email: 255,
     password: 128,
   };
@@ -95,37 +78,9 @@ const SignupForm = () => {
     return isValid;
   };
 
-  // Enhanced password strength calculation
-  const calculatePasswordStrength = (password: string) => {
-    const criteria = {
-      length: password.length >= 8,
-      lowercase: /[a-z]/.test(password),
-      uppercase: /[A-Z]/.test(password),
-      number: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    };
-
-    const score = Object.values(criteria).filter(Boolean).length;
-
-    logClientInfo("Password strength calculated", {
-      score,
-      passwordLength: password.length,
-      criteriaCount: score,
-    });
-
-    return { score, criteria };
-  };
-
   // Client-side form validation
   const validateForm = (): { isValid: boolean; errors: Errors } => {
     const newErrors: Errors = {};
-
-    // Name validation
-    if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
-    } else if (formData.name.trim().length > limits.name) {
-      newErrors.name = `Name must be less than ${limits.name} characters`;
-    }
 
     // Email validation
     if (!formData.email.trim()) {
@@ -139,20 +94,8 @@ const SignupForm = () => {
     // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters long";
     } else if (formData.password.length > limits.password) {
       newErrors.password = `Password must be less than ${limits.password} characters`;
-    } else if (passwordStrength.score < 3) {
-      newErrors.password =
-        "Password is too weak. Please meet more requirements.";
-    }
-
-    // Confirm password validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords don't match";
     }
 
     const isValid = Object.keys(newErrors).length === 0;
@@ -169,12 +112,9 @@ const SignupForm = () => {
   // Check if form is valid for submission
   const isFormValid = (): boolean => {
     return (
-      formData.name.trim() !== "" &&
       formData.email.trim() !== "" &&
       emailValid === true &&
-      formData.password !== "" &&
-      passwordStrength.score >= 3 &&
-      passwordsMatch === true
+      formData.password !== ""
     );
   };
 
@@ -186,44 +126,6 @@ const SignupForm = () => {
       setEmailValid(null);
     }
   }, [formData.email]);
-
-  useEffect(() => {
-    if (formData.password) {
-      setPasswordStrength(calculatePasswordStrength(formData.password));
-    }
-  }, [formData.password]);
-
-  useEffect(() => {
-    if (formData.password && formData.confirmPassword) {
-      setPasswordsMatch(formData.password === formData.confirmPassword);
-    } else {
-      setPasswordsMatch(null);
-    }
-  }, [formData.password, formData.confirmPassword]);
-
-  const getPasswordStrengthText = (score: number): string => {
-    const strengthMap = {
-      0: "Very Weak",
-      1: "Very Weak",
-      2: "Weak",
-      3: "Fair",
-      4: "Good",
-      5: "Strong",
-    };
-    return strengthMap[score as keyof typeof strengthMap] || "Very Weak";
-  };
-
-  const getPasswordStrengthColor = (score: number): string => {
-    const colorMap = {
-      0: "bg-red-500",
-      1: "bg-red-500",
-      2: "bg-orange-500",
-      3: "bg-yellow-500",
-      4: "bg-blue-500",
-      5: "bg-green-500",
-    };
-    return colorMap[score as keyof typeof colorMap] || "bg-gray-300";
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -284,11 +186,14 @@ const SignupForm = () => {
         case "RATE_LIMITED":
           logClientInfo("Rate limited", { retryAfter: data.retryAfter });
           break;
-        case "USER_EXISTS":
-          logClientInfo("User already exists");
+        case "INVALID_CREDENTIALS":
+          logClientInfo("Invalid credentials");
           break;
-        case "EMAIL_SEND_FAILED":
-          logClientInfo("Email send failed");
+        case "ACCOUNT_LOCKED":
+          logClientInfo("Account locked");
+          break;
+        case "ACCOUNT_NOT_VERIFIED":
+          logClientInfo("Account not verified");
           break;
         default:
           logClientInfo("Generic API error", { code: data.code });
@@ -305,7 +210,7 @@ const SignupForm = () => {
     logClientInfo("Form submission started", {
       attempt: attemptNumber,
       formValid: isFormValid(),
-      hasName: !!formData.name.trim(),
+      hasEmail: !!formData.email.trim(),
     });
 
     // Client-side validation
@@ -326,7 +231,7 @@ const SignupForm = () => {
     const requestStart = Date.now();
 
     try {
-      const response = await fetch("/api/auth/register", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -345,27 +250,24 @@ const SignupForm = () => {
       const data = await response.json();
 
       if (response.ok) {
-        logClientInfo("Registration successful", {
+        logClientInfo("Login successful", {
           userId: data.user?.id,
           requestTime,
           attempt: attemptNumber,
         });
 
-        setMessage(data.message);
-
-        // Clear form on success
-        setFormData({
-          name: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-        });
+        setMessage(data.message || "Login successful!");
 
         // Optional: Redirect after success
         if (data.redirectTo) {
           setTimeout(() => {
             window.location.href = data.redirectTo;
-          }, 2000);
+          }, 1000);
+        } else {
+          // Default redirect to homepage
+          setTimeout(() => {
+            window.location.href = "/homepage";
+          }, 1000);
         }
       } else {
         handleApiError(data, response);
@@ -393,6 +295,12 @@ const SignupForm = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    logClientInfo("Forgot password clicked");
+    // Redirect to forgot password page
+    window.location.href = "/auth/forgot-password";
   };
 
   const toggleDarkMode = () => {
@@ -438,7 +346,7 @@ const SignupForm = () => {
               Discover tailored events.
             </h1>
             <p className="text-gray-300 text-lg mb-6">
-              Sign up for personalized recommendations today!
+              Sign in for personalized recommendations today!
             </p>
           </div>
         </div>
@@ -481,12 +389,12 @@ const SignupForm = () => {
                   isDarkMode ? "text-white" : "text-gray-900"
                 }`}
               >
-                Create Account
+                Login
               </h1>
               <p
                 className={`${isDarkMode ? "text-gray-300" : "text-gray-600"}`}
               >
-                Join us for personalized event recommendations
+                Welcome back! Please sign in to your account
               </p>
             </div>
 
@@ -497,12 +405,12 @@ const SignupForm = () => {
                   isDarkMode ? "text-white" : "text-gray-900"
                 }`}
               >
-                Create Account
+                Login
               </h1>
               <p
                 className={`${isDarkMode ? "text-gray-300" : "text-gray-600"}`}
               >
-                Get started with your free account
+                Welcome back! Please sign in to your account
               </p>
             </div>
 
@@ -510,8 +418,7 @@ const SignupForm = () => {
             {message && (
               <div
                 className={`mb-4 p-3 rounded-md text-sm ${
-                  message.includes("successfully") ||
-                  message.includes("created")
+                  message.includes("successful") || message.includes("Welcome")
                     ? isDarkMode
                       ? "bg-green-900 text-green-200 border border-green-700"
                       : "bg-green-50 text-green-700 border border-green-200"
@@ -531,42 +438,6 @@ const SignupForm = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Name */}
-              <div>
-                <label
-                  htmlFor="name"
-                  className={`block text-sm font-medium mb-1 ${
-                    isDarkMode ? "text-gray-200" : "text-gray-700"
-                  }`}
-                >
-                  Name
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  maxLength={limits.name}
-                  className={`w-full px-3 py-2.5 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
-                    isDarkMode
-                      ? "bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-                      : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                  } ${errors.name ? "border-red-500" : ""}`}
-                  placeholder="Enter your name"
-                  aria-describedby={errors.name ? "name-error" : undefined}
-                />
-                {errors.name && (
-                  <p
-                    id="name-error"
-                    className="text-red-500 text-xs mt-1"
-                    role="alert"
-                  >
-                    {errors.name}
-                  </p>
-                )}
-              </div>
-
               {/* Email Address */}
               <div>
                 <label
@@ -602,22 +473,15 @@ const SignupForm = () => {
                     aria-describedby={
                       errors.email ? "email-error" : "email-validation"
                     }
+                    autoComplete="email"
                   />
-                  {formData.email && (
+                  {formData.email && emailValid === false && (
                     <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      {emailValid === true ? (
-                        <Check
-                          size={18}
-                          className="text-green-500"
-                          aria-label="Valid email format"
-                        />
-                      ) : emailValid === false ? (
-                        <AlertCircle
-                          size={18}
-                          className="text-orange-500"
-                          aria-label="Invalid email format"
-                        />
-                      ) : null}
+                      <AlertCircle
+                        size={18}
+                        className="text-orange-500"
+                        aria-label="Invalid email format"
+                      />
                     </div>
                   )}
                 </div>
@@ -664,8 +528,11 @@ const SignupForm = () => {
                         ? "bg-gray-800 border-gray-600 text-white placeholder-gray-400"
                         : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
                     } ${errors.password ? "border-red-500" : ""}`}
-                    placeholder="Create a password"
-                    aria-describedby="password-strength"
+                    placeholder="Enter your password"
+                    aria-describedby={
+                      errors.password ? "password-error" : undefined
+                    }
+                    autoComplete="current-password"
                   />
                   <button
                     type="button"
@@ -682,176 +549,26 @@ const SignupForm = () => {
                     {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                   </button>
                 </div>
-
-                {/* Password strength indicator */}
-                {formData.password && (
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <span
-                        id="password-strength"
-                        className={`text-xs font-medium ${
-                          isDarkMode ? "text-gray-300" : "text-gray-600"
-                        }`}
-                      >
-                        Password Strength:{" "}
-                        {getPasswordStrengthText(passwordStrength.score)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                      <div
-                        className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor(
-                          passwordStrength.score
-                        )} ${
-                          passwordStrength.score === 0
-                            ? "w-0"
-                            : passwordStrength.score === 1
-                            ? "w-1/5"
-                            : passwordStrength.score === 2
-                            ? "w-2/5"
-                            : passwordStrength.score === 3
-                            ? "w-3/5"
-                            : passwordStrength.score === 4
-                            ? "w-4/5"
-                            : "w-full"
-                        }`}
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div
-                      id="password-requirements"
-                      className="text-xs space-y-1"
-                    >
-                      {Object.entries(passwordStrength.criteria).map(
-                        ([key, met]) => (
-                          <div
-                            key={key}
-                            className="flex items-center space-x-2"
-                          >
-                            {met ? (
-                              <Check size={12} className="text-green-500" />
-                            ) : (
-                              <X size={12} className="text-red-500" />
-                            )}
-                            <span
-                              className={`${
-                                met
-                                  ? "text-green-500"
-                                  : isDarkMode
-                                  ? "text-gray-400"
-                                  : "text-gray-500"
-                              }`}
-                            >
-                              {key === "length" && "At least 8 characters"}
-                              {key === "lowercase" && "One lowercase letter"}
-                              {key === "uppercase" && "One uppercase letter"}
-                              {key === "number" && "One number"}
-                              {key === "special" && "One special character"}
-                            </span>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  </div>
-                )}
-
                 {errors.password && (
-                  <p className="text-red-500 text-xs mt-1" role="alert">
+                  <p
+                    id="password-error"
+                    className="text-red-500 text-xs mt-1"
+                    role="alert"
+                  >
                     {errors.password}
                   </p>
                 )}
               </div>
 
-              {/* Confirm Password */}
-              <div>
-                <label
-                  htmlFor="confirmPassword"
-                  className={`block text-sm font-medium mb-1 ${
-                    isDarkMode ? "text-gray-200" : "text-gray-700"
-                  }`}
+              {/* Forgot Password Link */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-sm text-blue-600 hover:text-blue-500 font-medium transition-colors duration-200"
                 >
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2.5 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
-                      isDarkMode
-                        ? "bg-gray-800 border-gray-600 text-white placeholder-gray-400"
-                        : "bg-white border-gray-300 text-gray-900 placeholder-gray-500"
-                    } ${
-                      errors.confirmPassword
-                        ? "border-red-500"
-                        : passwordsMatch === false
-                        ? "border-orange-500"
-                        : passwordsMatch === true
-                        ? "border-green-500"
-                        : ""
-                    }`}
-                    placeholder="Confirm your password"
-                    aria-describedby={
-                      errors.confirmPassword
-                        ? "confirm-password-error"
-                        : "confirm-password-match"
-                    }
-                  />
-                  <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
-                    {formData.confirmPassword &&
-                      passwordsMatch !== null &&
-                      (passwordsMatch ? (
-                        <Check
-                          size={18}
-                          className="text-green-500"
-                          aria-label="Passwords match"
-                        />
-                      ) : (
-                        <X
-                          size={18}
-                          className="text-red-500"
-                          aria-label="Passwords don't match"
-                        />
-                      ))}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
-                      isDarkMode
-                        ? "text-gray-400 hover:text-gray-300"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                    aria-label={
-                      showConfirmPassword
-                        ? "Hide confirm password"
-                        : "Show confirm password"
-                    }
-                  >
-                    {showConfirmPassword ? (
-                      <Eye size={18} />
-                    ) : (
-                      <EyeOff size={18} />
-                    )}
-                  </button>
-                </div>
-
-                {formData.confirmPassword && passwordsMatch === false && (
-                  <p
-                    id="confirm-password-match"
-                    className="text-orange-500 text-xs mt-1"
-                    role="alert"
-                  >
-                    Passwords don't match
-                  </p>
-                )}
-
-                {errors.confirmPassword && (
-                  <p className="text-red-500 text-xs mt-1" role="alert">
-                    {errors.confirmPassword}
-                  </p>
-                )}
+                  Forgot password?
+                </button>
               </div>
 
               {/* Submit Button */}
@@ -865,21 +582,21 @@ const SignupForm = () => {
                 }`}
                 aria-describedby="submit-status"
               >
-                {isLoading ? "Creating Account..." : "Create Account"}
+                {isLoading ? "Signing in..." : "Login"}
               </button>
 
-              {/* Sign In Link */}
+              {/* Sign Up Link */}
               <p
                 className={`text-center text-sm ${
                   isDarkMode ? "text-gray-300" : "text-gray-600"
                 }`}
               >
-                Already have an account?{" "}
+                Don't have an account?{" "}
                 <Link
                   href="/api/auth/login"
-                  className="text-blue-600 hover:text-blue-500 font-medium"
+                  className="text-blue-600 hover:text-blue-500 font-medium transition-colors duration-200"
                 >
-                  Sign in
+                  Sign up
                 </Link>
               </p>
             </form>
@@ -890,4 +607,4 @@ const SignupForm = () => {
   );
 };
 
-export default SignupForm;
+export default LoginForm;
