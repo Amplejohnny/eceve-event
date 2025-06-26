@@ -1,11 +1,43 @@
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, Moon, Sun, Check, X, AlertCircle } from "lucide-react";
 
+// Client-side logging utility
+const logClientError = (
+  error: any,
+  context: string,
+  metadata?: Record<string, any>
+) => {
+  const logData = {
+    timestamp: new Date().toISOString(),
+    context,
+    error: {
+      message: error.message || String(error),
+      name: error.name || "Unknown",
+    },
+    metadata,
+    userAgent: navigator.userAgent,
+    url: window.location.href,
+  };
+
+  console.error(`[SIGNUP_CLIENT_ERROR] ${context}:`, logData);
+
+  // In production, send to logging service
+  // sendToClientLoggingService(logData);
+};
+
+const logClientInfo = (message: string, metadata?: Record<string, any>) => {
+  console.log(
+    `[SIGNUP_CLIENT_INFO] ${new Date().toISOString()}: ${message}`,
+    metadata || {}
+  );
+};
+
 const SignupForm = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [submitAttempts, setSubmitAttempts] = useState(0);
 
   type FormData = {
     name: string;
@@ -24,6 +56,7 @@ const SignupForm = () => {
   });
   const [errors, setErrors] = useState<Errors>({});
   const [message, setMessage] = useState("");
+  const [networkError, setNetworkError] = useState(false);
 
   // Validation states
   const [emailValid, setEmailValid] = useState<boolean | null>(null);
@@ -39,20 +72,29 @@ const SignupForm = () => {
     },
   });
 
-  // Character limits (enforced but not shown in UI)
+  // Character limits
   const limits = {
     name: 100,
     email: 255,
     password: 128,
   };
 
-  // Email validation
-  const validateEmail = (email: string) => {
+  // Enhanced email validation
+  const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    const isValid = emailRegex.test(email) && email.length <= limits.email;
+
+    logClientInfo("Email validation", {
+      isValid,
+      emailLength: email.length,
+      hasAtSymbol: email.includes("@"),
+      hasDot: email.includes("."),
+    });
+
+    return isValid;
   };
 
-  // Password strength calculation
+  // Enhanced password strength calculation
   const calculatePasswordStrength = (password: string) => {
     const criteria = {
       length: password.length >= 8,
@@ -64,17 +106,73 @@ const SignupForm = () => {
 
     const score = Object.values(criteria).filter(Boolean).length;
 
+    logClientInfo("Password strength calculated", {
+      score,
+      passwordLength: password.length,
+      criteriaCount: score,
+    });
+
     return { score, criteria };
   };
 
+  // Client-side form validation
+  const validateForm = (): { isValid: boolean; errors: Errors } => {
+    const newErrors: Errors = {};
+
+    // Name validation
+    if (!formData.name.trim()) {
+      newErrors.name = "Name is required";
+    } else if (formData.name.trim().length > limits.name) {
+      newErrors.name = `Name must be less than ${limits.name} characters`;
+    }
+
+    // Email validation
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    } else if (formData.email.length > limits.email) {
+      newErrors.email = `Email must be less than ${limits.email} characters`;
+    }
+
+    // Password validation
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters long";
+    } else if (formData.password.length > limits.password) {
+      newErrors.password = `Password must be less than ${limits.password} characters`;
+    } else if (passwordStrength.score < 3) {
+      newErrors.password =
+        "Password is too weak. Please meet more requirements.";
+    }
+
+    // Confirm password validation
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords don't match";
+    }
+
+    const isValid = Object.keys(newErrors).length === 0;
+
+    logClientInfo("Client-side validation", {
+      isValid,
+      errorCount: Object.keys(newErrors).length,
+      errors: Object.keys(newErrors),
+    });
+
+    return { isValid, errors: newErrors };
+  };
+
   // Check if form is valid for submission
-  const isFormValid = () => {
+  const isFormValid = (): boolean => {
     return (
       formData.name.trim() !== "" &&
       formData.email.trim() !== "" &&
       emailValid === true &&
       formData.password !== "" &&
-      passwordStrength.score >= 3 && // At least "Fair" password strength
+      passwordStrength.score >= 3 &&
       passwordsMatch === true
     );
   };
@@ -102,40 +200,28 @@ const SignupForm = () => {
     }
   }, [formData.password, formData.confirmPassword]);
 
-  const getPasswordStrengthText = (score: number) => {
-    switch (score) {
-      case 0:
-      case 1:
-        return "Very Weak";
-      case 2:
-        return "Weak";
-      case 3:
-        return "Fair";
-      case 4:
-        return "Good";
-      case 5:
-        return "Strong";
-      default:
-        return "Very Weak";
-    }
+  const getPasswordStrengthText = (score: number): string => {
+    const strengthMap = {
+      0: "Very Weak",
+      1: "Very Weak",
+      2: "Weak",
+      3: "Fair",
+      4: "Good",
+      5: "Strong",
+    };
+    return strengthMap[score as keyof typeof strengthMap] || "Very Weak";
   };
 
-  const getPasswordStrengthColor = (score: number) => {
-    switch (score) {
-      case 0:
-      case 1:
-        return "bg-red-500";
-      case 2:
-        return "bg-orange-500";
-      case 3:
-        return "bg-yellow-500";
-      case 4:
-        return "bg-blue-500";
-      case 5:
-        return "bg-green-500";
-      default:
-        return "bg-gray-300";
-    }
+  const getPasswordStrengthColor = (score: number): string => {
+    const colorMap = {
+      0: "bg-red-500",
+      1: "bg-red-500",
+      2: "bg-orange-500",
+      3: "bg-yellow-500",
+      4: "bg-blue-500",
+      5: "bg-green-500",
+    };
+    return colorMap[score as keyof typeof colorMap] || "bg-gray-300";
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,13 +243,86 @@ const SignupForm = () => {
         [name]: "",
       }));
     }
+
+    // Clear general message when user modifies form
+    if (message) {
+      setMessage("");
+    }
+
+    // Clear network error flag
+    if (networkError) {
+      setNetworkError(false);
+    }
   };
 
-  const handleSubmit = async (e: { preventDefault: () => void }) => {
+  // Enhanced error handling
+  const handleApiError = (data: any, response: Response) => {
+    logClientError(
+      new Error(`API Error: ${response.status} ${response.statusText}`),
+      "API response error",
+      {
+        status: response.status,
+        statusText: response.statusText,
+        responseData: data,
+        submitAttempt: submitAttempts + 1,
+      }
+    );
+
+    if (data.fieldErrors) {
+      setErrors(data.fieldErrors);
+      logClientInfo("Server validation errors received", {
+        fieldErrors: Object.keys(data.fieldErrors),
+      });
+    } else {
+      const errorMessage =
+        data.error || "Something went wrong. Please try again.";
+      setMessage(errorMessage);
+
+      // Handle specific error codes
+      switch (data.code) {
+        case "RATE_LIMITED":
+          logClientInfo("Rate limited", { retryAfter: data.retryAfter });
+          break;
+        case "USER_EXISTS":
+          logClientInfo("User already exists");
+          break;
+        case "EMAIL_SEND_FAILED":
+          logClientInfo("Email send failed");
+          break;
+        default:
+          logClientInfo("Generic API error", { code: data.code });
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const attemptNumber = submitAttempts + 1;
+    setSubmitAttempts(attemptNumber);
+
+    logClientInfo("Form submission started", {
+      attempt: attemptNumber,
+      formValid: isFormValid(),
+      hasName: !!formData.name.trim(),
+    });
+
+    // Client-side validation
+    const validation = validateForm();
+    if (!validation.isValid) {
+      setErrors(validation.errors);
+      logClientInfo("Client-side validation failed", {
+        errors: Object.keys(validation.errors),
+      });
+      return;
+    }
+
     setIsLoading(true);
     setErrors({});
     setMessage("");
+    setNetworkError(false);
+
+    const requestStart = Date.now();
 
     try {
       const response = await fetch("/api/auth/register", {
@@ -174,26 +333,62 @@ const SignupForm = () => {
         body: JSON.stringify(formData),
       });
 
+      const requestTime = Date.now() - requestStart;
+
+      logClientInfo("API request completed", {
+        status: response.status,
+        requestTime,
+        attempt: attemptNumber,
+      });
+
       const data = await response.json();
 
       if (response.ok) {
+        logClientInfo("Registration successful", {
+          userId: data.user?.id,
+          requestTime,
+          attempt: attemptNumber,
+        });
+
         setMessage(data.message);
+
+        // Clear form on success
         setFormData({
           name: "",
           email: "",
           password: "",
           confirmPassword: "",
         });
-      } else {
-        if (data.fieldErrors) {
-          setErrors(data.fieldErrors);
-        } else {
-          setMessage(data.error || "Something went wrong. Please try again.");
+
+        // Optional: Redirect after success
+        if (data.redirectTo) {
+          setTimeout(() => {
+            window.location.href = data.redirectTo;
+          }, 2000);
         }
+      } else {
+        handleApiError(data, response);
       }
     } catch (error) {
-      console.error("Network error:", error);
-      setMessage("Network error. Please try again.");
+      const requestTime = Date.now() - requestStart;
+
+      logClientError(error, "Network request failed", {
+        requestTime,
+        attempt: attemptNumber,
+        isOnline: navigator.onLine,
+      });
+
+      setNetworkError(true);
+
+      if (!navigator.onLine) {
+        setMessage(
+          "You appear to be offline. Please check your internet connection and try again."
+        );
+      } else {
+        setMessage(
+          "Network error. Please check your connection and try again."
+        );
+      }
     } finally {
       setIsLoading(false);
     }
@@ -201,8 +396,10 @@ const SignupForm = () => {
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
+    logClientInfo("Dark mode toggled", { isDarkMode: !isDarkMode });
   };
 
+  // Component render starts here
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${
@@ -216,7 +413,6 @@ const SignupForm = () => {
             isDarkMode ? "bg-slate-800" : "bg-slate-900"
           }`}
         >
-          {/* Dark mode toggle button - now scrollable */}
           <button
             onClick={toggleDarkMode}
             className={`absolute top-8 right-8 p-2 rounded-full transition-colors duration-300 ${
@@ -252,7 +448,6 @@ const SignupForm = () => {
             isDarkMode ? "bg-gray-900" : "bg-white"
           }`}
         >
-          {/* Dark mode toggle for mobile/right side */}
           <button
             onClick={toggleDarkMode}
             className={`lg:hidden absolute top-6 right-6 p-2 rounded-full transition-colors duration-300 ${
@@ -319,6 +514,10 @@ const SignupForm = () => {
                     ? isDarkMode
                       ? "bg-green-900 text-green-200 border border-green-700"
                       : "bg-green-50 text-green-700 border border-green-200"
+                    : networkError
+                    ? isDarkMode
+                      ? "bg-orange-900 text-orange-200 border border-orange-700"
+                      : "bg-orange-50 text-orange-700 border border-orange-200"
                     : isDarkMode
                     ? "bg-red-900 text-red-200 border border-red-700"
                     : "bg-red-50 text-red-700 border border-red-200"
@@ -330,7 +529,7 @@ const SignupForm = () => {
               </div>
             )}
 
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name */}
               <div>
                 <label
@@ -479,7 +678,7 @@ const SignupForm = () => {
                       showPassword ? "Hide password" : "Show password"
                     }
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
                   </button>
                 </div>
 
@@ -501,7 +700,7 @@ const SignupForm = () => {
                       <div
                         className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor(
                           passwordStrength.score
-                        )}${
+                        )} ${
                           passwordStrength.score === 0
                             ? "w-0"
                             : passwordStrength.score === 1
@@ -630,9 +829,9 @@ const SignupForm = () => {
                     }
                   >
                     {showConfirmPassword ? (
-                      <EyeOff size={18} />
-                    ) : (
                       <Eye size={18} />
+                    ) : (
+                      <EyeOff size={18} />
                     )}
                   </button>
                 </div>
@@ -682,7 +881,7 @@ const SignupForm = () => {
                   Sign in
                 </a>
               </p>
-            </div>
+            </form>
           </div>
         </div>
       </div>
