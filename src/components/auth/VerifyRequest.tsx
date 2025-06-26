@@ -10,6 +10,37 @@ import {
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+// Client-side logging utility
+const logClientError = (
+  error: any,
+  context: string,
+  metadata?: Record<string, any>
+) => {
+  const logData = {
+    timestamp: new Date().toISOString(),
+    context,
+    error: {
+      message: error.message || String(error),
+      name: error.name || "Unknown",
+    },
+    metadata,
+    userAgent: navigator.userAgent,
+    url: window.location.href,
+  };
+
+  console.error(`[VERIFY_REQUEST_CLIENT_ERROR] ${context}:`, logData);
+
+  // In production, send to logging service
+  // sendToClientLoggingService(logData);
+};
+
+const logClientInfo = (message: string, metadata?: Record<string, any>) => {
+  console.log(
+    `[VERIFY_REQUEST_CLIENT_INFO] ${new Date().toISOString()}: ${message}`,
+    metadata || {}
+  );
+};
+
 const VerifyRequestPage = () => {
   const searchParams = useSearchParams();
   const emailParam = searchParams?.get("email") || "";
@@ -20,6 +51,46 @@ const VerifyRequestPage = () => {
   const [isResending, setIsResending] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
   const [resendCount, setResendCount] = useState(0);
+  const [resendAttempts, setResendAttempts] = useState(0);
+  const [networkError, setNetworkError] = useState(false);
+  const [emailValidationError, setEmailValidationError] = useState("");
+
+  // Enhanced email validation
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const isValid = emailRegex.test(email) && email.length <= 255;
+
+    logClientInfo("Email validation in verify request", {
+      isValid,
+      emailLength: email.length,
+      hasAtSymbol: email.includes("@"),
+      hasDot: email.includes("."),
+    });
+
+    return isValid;
+  };
+
+  // Log component initialization
+  useEffect(() => {
+    logClientInfo("VerifyRequest component initialized", {
+      hasEmailParam: !!emailParam,
+      emailSource: emailParam ? "url_param" : "manual_entry",
+      initialCountdown: countdown,
+    });
+
+    // Track user session start
+    const sessionStart = Date.now();
+
+    return () => {
+      const sessionDuration = Date.now() - sessionStart;
+      logClientInfo("VerifyRequest component unmounted", {
+        sessionDuration,
+        resendCount,
+        resendAttempts,
+        finalEmail: !!email,
+      });
+    };
+  }, []);
 
   // Mask email for privacy
   const maskEmail = (email: string): string => {
@@ -37,22 +108,124 @@ const VerifyRequestPage = () => {
     return `${visibleStart}${maskedMiddle}${visibleEnd}@${domain}`;
   };
 
-  // Countdown timer effect
+  // Enhanced countdown timer effect with logging
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     } else {
       setCanResend(true);
+      logClientInfo("Resend timer completed", {
+        resendCount,
+        totalWaitTime: 100,
+      });
     }
-  }, [countdown]);
+  }, [countdown, resendCount]);
 
-  // Handle resend verification email
+  // Enhanced error handling for API responses
+  const handleApiError = (data: any, response: Response) => {
+    logClientError(
+      new Error(`API Error: ${response.status} ${response.statusText}`),
+      "Resend verification API error",
+      {
+        status: response.status,
+        statusText: response.statusText,
+        responseData: data,
+        resendAttempt: resendAttempts + 1,
+        email: !!email,
+      }
+    );
+
+    if (data.fieldErrors) {
+      setEmailValidationError(data.fieldErrors.email || "");
+      logClientInfo("Server validation errors received", {
+        fieldErrors: Object.keys(data.fieldErrors),
+      });
+    } else {
+      const errorMessage =
+        data.error || "Failed to resend verification email. Please try again.";
+      setResendMessage(errorMessage);
+
+      // Handle specific error codes
+      switch (data.code) {
+        case "RATE_LIMITED":
+          logClientInfo("Rate limited during resend", {
+            retryAfter: data.retryAfter,
+            resetIn: data.resetIn,
+          });
+          if (data.resetIn) {
+            const resetTime = Math.min(data.resetIn, 300); // Max 5 minutes
+            setCountdown(resetTime);
+            setCanResend(false);
+          }
+          break;
+        case "EMAIL_NOT_FOUND":
+          logClientInfo("Email not found during resend");
+          break;
+        case "ALREADY_VERIFIED":
+          logClientInfo("Email already verified");
+          break;
+        case "EMAIL_SEND_FAILED":
+          logClientInfo("Email send failed during resend");
+          break;
+        case "INVALID_EMAIL":
+          logClientInfo("Invalid email format during resend");
+          setEmailValidationError("Please enter a valid email address");
+          break;
+        default:
+          logClientInfo("Generic resend API error", { code: data.code });
+      }
+    }
+  };
+
+  // Enhanced resend email handler with comprehensive logging
   const handleResendEmail = async () => {
-    if (!email || isResending || !canResend) return;
+    const attemptNumber = resendAttempts + 1;
+    setResendAttempts(attemptNumber);
+
+    logClientInfo("Resend verification email started", {
+      attempt: attemptNumber,
+      hasEmail: !!email,
+      emailValid: email ? validateEmail(email) : false,
+      resendCount,
+      timeSinceLastResend: canResend,
+    });
+
+    // Client-side validation
+    if (!email) {
+      const errorMsg = "Please enter your email address";
+      setEmailValidationError(errorMsg);
+      logClientInfo("Resend validation failed - no email", {
+        attempt: attemptNumber,
+      });
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      const errorMsg = "Please enter a valid email address";
+      setEmailValidationError(errorMsg);
+      logClientInfo("Resend validation failed - invalid email", {
+        attempt: attemptNumber,
+        emailLength: email.length,
+      });
+      return;
+    }
+
+    if (!canResend || isResending) {
+      logClientInfo("Resend blocked - not ready", {
+        canResend,
+        isResending,
+        countdown,
+      });
+      return;
+    }
 
     setIsResending(true);
     setResendMessage("");
+    setEmailValidationError("");
+    setNetworkError(false);
+
+    const requestStart = Date.now();
 
     try {
       const response = await fetch("/api/auth/resend-verification", {
@@ -63,44 +236,116 @@ const VerifyRequestPage = () => {
         body: JSON.stringify({ email }),
       });
 
+      const requestTime = Date.now() - requestStart;
+
+      logClientInfo("Resend API request completed", {
+        status: response.status,
+        requestTime,
+        attempt: attemptNumber,
+      });
+
       const data = await response.json();
 
       if (response.ok) {
-        setResendMessage("Verification email sent successfully!");
-        setCountdown(100);
+        logClientInfo("Resend verification successful", {
+          requestTime,
+          attempt: attemptNumber,
+          newResendCount: resendCount + 1,
+          resetCountdown: data.resetIn || 100,
+        });
+
+        setResendMessage(
+          data.message || "Verification email sent successfully!"
+        );
+        setCountdown(data.resetIn || 100);
         setCanResend(false);
         setResendCount((prev) => prev + 1);
-      } else {
-        if (data.code === "RATE_LIMITED") {
-          setResendMessage(
-            data.error ||
-              "You are sending requests too quickly. Please wait before trying again."
-          );
-          if (data.resetIn) {
-            setCountdown(Math.min(data.resetIn, 300)); // Max 5 minutes
-          }
-        } else {
-          setResendMessage(
-            data.error ||
-              "Failed to resend verification email. Please try again."
-          );
+
+        // Track successful resend patterns
+        if (resendCount >= 2) {
+          logClientInfo("Multiple resend attempts detected", {
+            totalResends: resendCount + 1,
+            userMayNeedHelp: true,
+          });
         }
+      } else {
+        handleApiError(data, response);
       }
     } catch (error) {
-      console.error("Resend email error:", error);
-      setResendMessage(
-        "Network error. Please check your connection and try again."
-      );
+      const requestTime = Date.now() - requestStart;
+
+      logClientError(error, "Resend verification network error", {
+        requestTime,
+        attempt: attemptNumber,
+        isOnline: navigator.onLine,
+        email: !!email,
+      });
+
+      setNetworkError(true);
+
+      if (!navigator.onLine) {
+        setResendMessage(
+          "You appear to be offline. Please check your internet connection and try again."
+        );
+      } else {
+        setResendMessage(
+          "Network error. Please check your connection and try again."
+        );
+      }
     } finally {
       setIsResending(false);
     }
   };
 
+  // Enhanced email input handler with validation
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newEmail = e.target.value.trim().slice(0, 255); // Enforce length limit
+    setEmail(newEmail);
+
+    // Clear validation errors when user starts typing
+    if (emailValidationError) {
+      setEmailValidationError("");
+    }
+    if (resendMessage) {
+      setResendMessage("");
+    }
+    if (networkError) {
+      setNetworkError(false);
+    }
+
+    logClientInfo("Email input changed", {
+      emailLength: newEmail.length,
+      isValid: newEmail ? validateEmail(newEmail) : null,
+    });
+  };
+
+  // Enhanced timer formatting
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
+  // Log component state changes
+  useEffect(() => {
+    logClientInfo("Component state update", {
+      canResend,
+      isResending,
+      hasResendMessage: !!resendMessage,
+      resendCount,
+      countdown,
+      hasEmail: !!email,
+      networkError,
+    });
+  }, [
+    canResend,
+    isResending,
+    resendMessage,
+    resendCount,
+    countdown,
+    email,
+    networkError,
+  ]);
 
   const maskedEmail = maskEmail(email);
 
@@ -141,7 +386,7 @@ const VerifyRequestPage = () => {
           <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
             <li>Open your email inbox and look for our verification email</li>
             <li>Click the "Verify Email Address" button in the email</li>
-            <li>You'll be automatically redirected...</li>
+            <li>You'll be automatically redirected to complete setup</li>
             <li>Start discovering amazing events!</li>
           </ol>
         </div>
@@ -154,7 +399,7 @@ const VerifyRequestPage = () => {
           </h3>
           <ul className="text-sm text-amber-800 space-y-1">
             <li>• Check your spam/junk folder</li>
-            <li>• Make sure {maskedEmail} is correct</li>
+            <li>• Make sure {maskedEmail || "your email"} is correct</li>
             <li>• Wait a few minutes for delivery</li>
             <li>• Request a new verification email below</li>
           </ul>
@@ -162,11 +407,15 @@ const VerifyRequestPage = () => {
 
         {/* Resend Section */}
         <div className="border-t pt-6">
+          {/* Success/Error Messages */}
           {resendMessage && (
             <div
               className={`mb-4 p-3 rounded-md text-sm ${
-                resendMessage.includes("successfully")
+                resendMessage.includes("successfully") ||
+                resendMessage.includes("sent")
                   ? "bg-green-50 text-green-700 border border-green-200"
+                  : networkError
+                  ? "bg-orange-50 text-orange-700 border border-orange-200"
                   : "bg-red-50 text-red-700 border border-red-200"
               }`}
               role="alert"
@@ -176,20 +425,64 @@ const VerifyRequestPage = () => {
             </div>
           )}
 
-          {!canResend ? (
+          {/* Email Validation Error */}
+          {emailValidationError && (
+            <div
+              className="mb-4 p-3 rounded-md text-sm bg-red-50 text-red-700 border border-red-200"
+              role="alert"
+              aria-live="polite"
+            >
+              {emailValidationError}
+            </div>
+          )}
+
+          {/* Countdown Timer */}
+          {!canResend && (
             <div className="flex items-center justify-center space-x-2 text-gray-500 mb-4">
               <Clock className="w-4 h-4" />
               <span className="text-sm">
                 Resend available in {formatTime(countdown)}
               </span>
             </div>
-          ) : null}
+          )}
 
+          {/* Email Input for Manual Entry */}
+          {!email && (
+            <div className="mb-4">
+              <label
+                htmlFor="manual-email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Enter your email address to resend verification:
+              </label>
+              <input
+                id="manual-email"
+                type="email"
+                value={email}
+                onChange={handleEmailChange}
+                placeholder="your@email.com"
+                maxLength={255}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                  emailValidationError ? "border-red-500" : "border-gray-300"
+                }`}
+                aria-label="Email address"
+                aria-describedby={
+                  emailValidationError ? "email-error" : undefined
+                }
+                autoComplete="email"
+                required
+              />
+            </div>
+          )}
+
+          {/* Resend Button */}
           <button
             onClick={handleResendEmail}
-            disabled={!canResend || isResending || !email}
+            disabled={
+              !canResend || isResending || !email || !!emailValidationError
+            }
             className={`w-full py-3 px-4 rounded-lg font-medium transition-colors duration-200 ${
-              canResend && !isResending && email
+              canResend && !isResending && email && !emailValidationError
                 ? "bg-blue-600 hover:bg-blue-700 text-white"
                 : "bg-gray-100 text-gray-400 cursor-not-allowed"
             } flex items-center justify-center space-x-2`}
@@ -215,12 +508,19 @@ const VerifyRequestPage = () => {
             )}
           </button>
 
+          {/* Support Message for Multiple Attempts */}
           {resendCount > 2 && (
             <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
               <p className="text-xs text-orange-800">
                 <strong>Still having trouble?</strong> Contact our support team
                 at{" "}
-                <a href="mailto:support@eventify.com" className="underline">
+                <a
+                  href="mailto:support@eventify.com"
+                  className="underline hover:text-orange-600"
+                  onClick={() =>
+                    logClientInfo("Support email clicked", { resendCount })
+                  }
+                >
                   support@eventify.com
                 </a>{" "}
                 for assistance.
@@ -238,33 +538,12 @@ const VerifyRequestPage = () => {
           <Link
             href="/"
             className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-500 font-medium transition-colors duration-200"
+            onClick={() => logClientInfo("Homepage navigation clicked")}
           >
             <Home className="w-4 h-4" />
             <span>Return to Homepage</span>
           </Link>
         </div>
-
-        {/* Email Input for Manual Entry */}
-        {!email && (
-          <div className="mt-6 pt-6 border-t">
-            <p className="text-sm text-gray-600 mb-3">
-              Enter your email address to resend verification:
-            </p>
-            <div className="flex space-x-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                aria-label="Email address"
-                aria-describedby="manual-email-label"
-                autoComplete="email"
-                required
-              />
-            </div>
-          </div>
-        )}
 
         {/* Footer */}
         <div className="mt-8 pt-4 border-t">
