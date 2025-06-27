@@ -38,6 +38,50 @@ declare module "next-auth/jwt" {
   }
 }
 
+class AuthError extends Error {
+  public code: string;
+
+  constructor(message: string, code: string) {
+    super(message);
+    this.code = code;
+    this.name = "AuthError";
+  }
+}
+
+// Enhanced rate limiting for NextAuth
+const loginAttempts = new Map<
+  string,
+  { count: number; resetTime: number; blocked: boolean }
+>();
+
+function checkRateLimit(email: string): {
+  allowed: boolean;
+  remaining: number;
+} {
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const maxAttempts = 5; // Stricter for NextAuth
+
+  const current = loginAttempts.get(email);
+
+  if (!current || now > current.resetTime) {
+    loginAttempts.set(email, {
+      count: 1,
+      resetTime: now + windowMs,
+      blocked: false,
+    });
+    return { allowed: true, remaining: maxAttempts - 1 };
+  }
+
+  if (current.count >= maxAttempts) {
+    current.blocked = true;
+    return { allowed: false, remaining: 0 };
+  }
+
+  current.count++;
+  return { allowed: true, remaining: maxAttempts - current.count };
+}
+
 // Add this near the top after imports
 const requiredEnvVars = {
   SMTP_HOST: process.env.SMTP_HOST,
@@ -78,17 +122,34 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new AuthError(
+            "Email and password are required",
+            "MISSING_CREDENTIALS"
+          );
+        }
+
+        const email = credentials.email.toLowerCase().trim();
+
+        // Rate limiting check
+        const rateLimit = checkRateLimit(email);
+        if (!rateLimit.allowed) {
+          throw new AuthError(
+            "Too many login attempts. Please try again later.",
+            "RATE_LIMITED"
+          );
         }
 
         try {
           // Find user by email
           const user = await db.user.findUnique({
-            where: { email: credentials.email.toLowerCase() },
+            where: { email },
           });
 
           if (!user || !user.isActive || !user.password) {
-            return null;
+            throw new AuthError(
+              "Invalid email or password",
+              "INVALID_CREDENTIALS"
+            );
           }
 
           // Verify password
@@ -98,7 +159,10 @@ export const authOptions: NextAuthOptions = {
           );
 
           if (!isValidPassword) {
-            return null;
+            throw new AuthError(
+              "Invalid email or password",
+              "INVALID_CREDENTIALS"
+            );
           }
 
           // Check if email is verified
@@ -112,8 +176,10 @@ export const authOptions: NextAuthOptions = {
               console.error("Failed to resend verification email:", error);
             }
 
-            // Return null to prevent login, but email has been sent
-            return null;
+            throw new AuthError(
+              "Please verify your email address before logging in. We've sent you a new verification link.",
+              "EMAIL_NOT_VERIFIED"
+            );
           }
 
           // Return user object (password excluded for security)
@@ -125,8 +191,20 @@ export const authOptions: NextAuthOptions = {
             emailVerified: user.emailVerified,
           };
         } catch (error) {
-          console.error("Credentials authorization error:", error);
-          return null;
+          // Re-throw AuthErrors to preserve error codes
+          if (error instanceof AuthError) {
+            throw error;
+          }
+
+          // Log unexpected errors
+          console.error(
+            "Unexpected error during credentials authorization:",
+            error
+          );
+          throw new AuthError(
+            "Authentication failed. Please try again.",
+            "AUTH_ERROR"
+          );
         }
       },
     }),
@@ -245,7 +323,7 @@ export const authOptions: NextAuthOptions = {
       // Handle session updates
       if (trigger === "update") {
         const dbUser = await db.user.findUnique({
-          where: { id: token.id },
+          where: { id: token.id as string },
         });
 
         if (dbUser) {
@@ -274,11 +352,17 @@ export const authOptions: NextAuthOptions = {
         return `${baseUrl}/auth/email-verified`;
       }
 
+      // Handle successful login redirects
+      if (url.includes("/api/auth/login") || url === "/auth/login") {
+        return `${baseUrl}/homepage`;
+      }
+
       // Handle sign-in redirects
       if (url.startsWith("/")) {
         return `${baseUrl}${url}`;
       }
 
+      // Handle same-origin URLs
       if (new URL(url).origin === baseUrl) {
         return url;
       }
@@ -295,9 +379,18 @@ export const authOptions: NextAuthOptions = {
     async createUser({ user }) {
       console.log(`User created: ${user.email}`);
     },
+    async signIn({ user, account }) {
+      console.log(`User signed in: ${user.email} via ${account?.provider}`);
+    },
+    async signOut({ token }) {
+      console.log(`User signed out: ${token?.email}`);
+    },
   },
   debug: process.env.NODE_ENV === "development",
 };
+
+// Export the enhanced error class for use in other parts of the app
+export { AuthError };
 
 // Password Reset Functions (integrated with sendPasswordResetEmail)
 export async function generatePasswordResetToken(): Promise<string> {
@@ -501,7 +594,6 @@ export async function registerUser(
 
 //login function for existing users
 export async function loginUser(email: string, password: string) {
-
   const user = await db.user.findUnique({
     where: { email: email.toLowerCase() },
   });

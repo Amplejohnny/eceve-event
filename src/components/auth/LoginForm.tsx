@@ -1,43 +1,14 @@
 import React, { useState, useEffect } from "react";
+import { signIn, getSession } from "next-auth/react";
 import { Eye, EyeOff, Moon, Sun, AlertCircle } from "lucide-react";
 import Link from "next/link";
-
-// Client-side logging utility
-const logClientError = (
-  error: any,
-  context: string,
-  metadata?: Record<string, any>
-) => {
-  const logData = {
-    timestamp: new Date().toISOString(),
-    context,
-    error: {
-      message: error.message || String(error),
-      name: error.name || "Unknown",
-    },
-    metadata,
-    userAgent: navigator.userAgent,
-    url: window.location.href,
-  };
-
-  console.error(`[LOGIN_CLIENT_ERROR] ${context}:`, logData);
-
-  // In production, send to logging service
-  // sendToClientLoggingService(logData);
-};
-
-const logClientInfo = (message: string, metadata?: Record<string, any>) => {
-  console.log(
-    `[LOGIN_CLIENT_INFO] ${new Date().toISOString()}: ${message}`,
-    metadata || {}
-  );
-};
+import { useRouter } from "next/navigation";
 
 const LoginForm = () => {
+  const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [submitAttempts, setSubmitAttempts] = useState(0);
 
   type FormData = {
     email: string;
@@ -52,7 +23,6 @@ const LoginForm = () => {
   });
   const [errors, setErrors] = useState<Errors>({});
   const [message, setMessage] = useState("");
-  const [networkError, setNetworkError] = useState(false);
 
   // Validation states
   const [emailValid, setEmailValid] = useState<boolean | null>(null);
@@ -66,47 +36,24 @@ const LoginForm = () => {
   // Enhanced email validation
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const isValid = emailRegex.test(email) && email.length <= limits.email;
-
-    logClientInfo("Email validation", {
-      isValid,
-      emailLength: email.length,
-      hasAtSymbol: email.includes("@"),
-      hasDot: email.includes("."),
-    });
-
-    return isValid;
+    return emailRegex.test(email) && email.length <= limits.email;
   };
 
   // Client-side form validation
   const validateForm = (): { isValid: boolean; errors: Errors } => {
     const newErrors: Errors = {};
 
-    // Email validation
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!validateEmail(formData.email)) {
       newErrors.email = "Please enter a valid email address";
-    } else if (formData.email.length > limits.email) {
-      newErrors.email = `Email must be less than ${limits.email} characters`;
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length > limits.password) {
-      newErrors.password = `Password must be less than ${limits.password} characters`;
     }
 
-    const isValid = Object.keys(newErrors).length === 0;
-
-    logClientInfo("Client-side validation", {
-      isValid,
-      errorCount: Object.keys(newErrors).length,
-      errors: Object.keys(newErrors),
-    });
-
-    return { isValid, errors: newErrors };
+    return { isValid: Object.keys(newErrors).length === 0, errors: newErrors };
   };
 
   // Check if form is valid for submission
@@ -129,8 +76,6 @@ const LoginForm = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-
-    // Enforce character limits silently
     const limit = limits[name as keyof typeof limits];
     const trimmedValue = limit ? value.slice(0, limit) : value;
 
@@ -139,171 +84,78 @@ const LoginForm = () => {
       [name]: trimmedValue,
     }));
 
-    // Clear error when user starts typing
+    // Clear errors and messages when user types
     if (errors[name as keyof FormData]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
-
-    // Clear general message when user modifies form
-    if (message) {
-      setMessage("");
-    }
-
-    // Clear network error flag
-    if (networkError) {
-      setNetworkError(false);
-    }
-  };
-
-  // Enhanced error handling
-  const handleApiError = (data: any, response: Response) => {
-    logClientError(
-      new Error(`API Error: ${response.status} ${response.statusText}`),
-      "API response error",
-      {
-        status: response.status,
-        statusText: response.statusText,
-        responseData: data,
-        submitAttempt: submitAttempts + 1,
-      }
-    );
-
-    if (data.fieldErrors) {
-      setErrors(data.fieldErrors);
-      logClientInfo("Server validation errors received", {
-        fieldErrors: Object.keys(data.fieldErrors),
-      });
-    } else {
-      const errorMessage =
-        data.error || "Something went wrong. Please try again.";
-      setMessage(errorMessage);
-
-      // Handle specific error codes
-      switch (data.code) {
-        case "RATE_LIMITED":
-          logClientInfo("Rate limited", { retryAfter: data.retryAfter });
-          break;
-        case "INVALID_CREDENTIALS":
-          logClientInfo("Invalid credentials");
-          break;
-        case "ACCOUNT_LOCKED":
-          logClientInfo("Account locked");
-          break;
-        case "ACCOUNT_NOT_VERIFIED":
-          logClientInfo("Account not verified");
-          break;
-        default:
-          logClientInfo("Generic API error", { code: data.code });
-      }
-    }
+    if (message) setMessage("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const attemptNumber = submitAttempts + 1;
-    setSubmitAttempts(attemptNumber);
-
-    logClientInfo("Form submission started", {
-      attempt: attemptNumber,
-      formValid: isFormValid(),
-      hasEmail: !!formData.email.trim(),
-    });
-
     // Client-side validation
     const validation = validateForm();
     if (!validation.isValid) {
       setErrors(validation.errors);
-      logClientInfo("Client-side validation failed", {
-        errors: Object.keys(validation.errors),
-      });
       return;
     }
 
     setIsLoading(true);
     setErrors({});
     setMessage("");
-    setNetworkError(false);
-
-    const requestStart = Date.now();
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
+      const result = await signIn("credentials", {
+        email: formData.email.toLowerCase().trim(),
+        password: formData.password,
+        redirect: false, // Handle redirect manually for better UX
       });
 
-      const requestTime = Date.now() - requestStart;
-
-      logClientInfo("API request completed", {
-        status: response.status,
-        requestTime,
-        attempt: attemptNumber,
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        logClientInfo("Login successful", {
-          userId: data.user?.id,
-          requestTime,
-          attempt: attemptNumber,
-        });
-
-        setMessage(data.message || "Login successful!");
-
-        // Optional: Redirect after success
-        if (data.redirectTo) {
+      if (result?.error) {
+        // Handle NextAuth errors
+        switch (result.error) {
+          case "CredentialsSignin":
+            setMessage("Invalid email or password. Please try again.");
+            break;
+          case "EmailNotVerified":
+            setMessage(
+              "Please verify your email address before logging in. Check your inbox for a verification link."
+            );
+            break;
+          case "AccountDeactivated":
+            setMessage(
+              "Your account has been deactivated. Please contact support."
+            );
+            break;
+          case "RateLimited":
+            setMessage("Too many login attempts. Please try again later.");
+            break;
+          default:
+            setMessage("Something went wrong. Please try again.");
+        }
+      } else if (result?.ok) {
+        // Success - get the session and redirect
+        const session = await getSession();
+        if (session) {
+          setMessage("Login successful! Redirecting...");
           setTimeout(() => {
-            window.location.href = data.redirectTo;
+            router.push("/homepage");
           }, 1000);
         }
-      } else {
-        handleApiError(data, response);
       }
     } catch (error) {
-      const requestTime = Date.now() - requestStart;
-
-      logClientError(error, "Network request failed", {
-        requestTime,
-        attempt: attemptNumber,
-        isOnline: navigator.onLine,
-      });
-
-      setNetworkError(true);
-
-      if (!navigator.onLine) {
-        setMessage(
-          "You appear to be offline. Please check your internet connection and try again."
-        );
-      } else {
-        setMessage(
-          "Network error. Please check your connection and try again."
-        );
-      }
+      console.error("Login error:", error);
+      setMessage("Network error. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleForgotPassword = () => {
-    logClientInfo("Forgot password clicked");
-    // Redirect to forgot password page
-    window.location.href = "/auth/reset-password";
-  };
-
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
-    logClientInfo("Dark mode toggled", { isDarkMode: !isDarkMode });
   };
 
-  // Component render starts here
   return (
     <div
       className={`min-h-screen transition-colors duration-300 ${
@@ -409,18 +261,14 @@ const LoginForm = () => {
               </p>
             </div>
 
-            {/* Success/Error Messages */}
+            {/* Messages */}
             {message && (
               <div
                 className={`mb-4 p-3 rounded-md text-sm ${
-                  message.includes("successful") || message.includes("Welcome")
+                  message.includes("successful")
                     ? isDarkMode
                       ? "bg-green-900 text-green-200 border border-green-700"
                       : "bg-green-50 text-green-700 border border-green-200"
-                    : networkError
-                    ? isDarkMode
-                      ? "bg-orange-900 text-orange-200 border border-orange-700"
-                      : "bg-orange-50 text-orange-700 border border-orange-200"
                     : isDarkMode
                     ? "bg-red-900 text-red-200 border border-red-700"
                     : "bg-red-50 text-red-700 border border-red-200"
@@ -481,11 +329,7 @@ const LoginForm = () => {
                   )}
                 </div>
                 {errors.email && (
-                  <p
-                    id="email-error"
-                    className="text-red-500 text-xs mt-1"
-                    role="alert"
-                  >
+                  <p className="text-red-500 text-xs mt-1" role="alert">
                     {errors.email}
                   </p>
                 )}
@@ -545,11 +389,7 @@ const LoginForm = () => {
                   </button>
                 </div>
                 {errors.password && (
-                  <p
-                    id="password-error"
-                    className="text-red-500 text-xs mt-1"
-                    role="alert"
-                  >
+                  <p className="text-red-500 text-xs mt-1" role="alert">
                     {errors.password}
                   </p>
                 )}
@@ -557,13 +397,12 @@ const LoginForm = () => {
 
               {/* Forgot Password Link */}
               <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
+                <Link
+                  href="/auth/reset-password"
                   className="text-sm text-blue-600 hover:text-blue-500 font-medium transition-colors duration-200"
                 >
                   Forgot password?
-                </button>
+                </Link>
               </div>
 
               {/* Submit Button */}
@@ -588,7 +427,7 @@ const LoginForm = () => {
               >
                 Don't have an account?{" "}
                 <Link
-                  href="/api/auth/login"
+                  href="/auth/signup"
                   className="text-blue-600 hover:text-blue-500 font-medium transition-colors duration-200"
                 >
                   Sign up
