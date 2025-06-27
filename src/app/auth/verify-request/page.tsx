@@ -2,12 +2,6 @@
 import { Suspense } from "react";
 import VerifyRequestPage from "@/components/auth/VerifyRequest";
 
-export const metadata = {
-  title: "Verify Your Email - Eventify",
-  description:
-    "Check your email and click the verification link to complete your account setup.",
-};
-
 export default function VerifyRequest() {
   return (
     <Suspense

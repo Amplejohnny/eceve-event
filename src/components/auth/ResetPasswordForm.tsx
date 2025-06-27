@@ -396,7 +396,7 @@ const ResetPasswordForm = () => {
                       } transition-colors duration-200`}
                       tabIndex={-1}
                     >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      {showPassword ? <Eye size={16} /> : <EyeOff size={16} />}
                     </button>
                   </div>
                   {errors.password && (
@@ -519,9 +519,9 @@ const ResetPasswordForm = () => {
                       tabIndex={-1}
                     >
                       {showConfirmPassword ? (
-                        <EyeOff size={16} />
-                      ) : (
                         <Eye size={16} />
+                      ) : (
+                        <EyeOff size={16} />
                       )}
                     </button>
                   </div>
