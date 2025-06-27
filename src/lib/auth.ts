@@ -592,46 +592,6 @@ export async function registerUser(
   return newUser;
 }
 
-//login function for existing users
-export async function loginUser(email: string, password: string) {
-  const user = await db.user.findUnique({
-    where: { email: email.toLowerCase() },
-  });
-
-  if (!user || !user.isActive) {
-    throw new Error("User not found or inactive");
-  }
-
-  if (!user.password) {
-    throw new Error("User not found or inactive");
-  }
-
-  const isValidPassword = await verifyPassword(password, user.password);
-
-  if (!isValidPassword) {
-    throw new Error("Invalid password");
-  }
-
-  if (!user.emailVerified) {
-    // Automatically send a new verification email
-    try {
-      await resendVerificationEmail(user.email);
-      console.log(`Verification email resent to ${user.email}`);
-    } catch (error) {
-      console.error("Failed to resend verification email:", error);
-    }
-    throw new Error("Email not verified. A verification email has been sent.");
-  }
-
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    emailVerified: user.emailVerified,
-  };
-}
-
 // Function to resend verification email to existing users
 export async function resendVerificationEmail(email: string): Promise<boolean> {
   try {
@@ -810,6 +770,28 @@ export async function verifyUserEmail(userId: string) {
       isActive: true,
     },
   });
+}
+
+//verify password reset token
+export async function verifyPasswordResetToken(
+  token: string
+): Promise<{ valid: boolean; userId?: string }> {
+  const user = await db.user.findFirst({
+    where: {
+      resetToken: token,
+      resetTokenExpiry: {
+        gt: new Date(), // Check if token is still valid
+      },
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  if (user) {
+    return { valid: true, userId: user.id };
+  }
+
+  return { valid: false };
 }
 
 export async function deactivateUser(userId: string) {
