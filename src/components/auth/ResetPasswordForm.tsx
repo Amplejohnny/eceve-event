@@ -12,7 +12,6 @@ const ResetPasswordForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isTokenValid, setIsTokenValid] = useState<boolean | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
   type FormData = {
@@ -43,6 +42,13 @@ const ResetPasswordForm = () => {
     password: 128,
     confirmPassword: 128,
   };
+
+  // Check if token exists on mount
+  useEffect(() => {
+    if (!token) {
+      setMessage("Invalid or missing reset token.");
+    }
+  }, [token]);
 
   // Password validation
   const validatePassword = (password: string) => {
@@ -85,41 +91,6 @@ const ResetPasswordForm = () => {
       formData.password === formData.confirmPassword
     );
   };
-
-  // Check token validity on component mount
-  useEffect(() => {
-    const checkToken = async () => {
-      if (!token) {
-        setIsTokenValid(false);
-        setMessage("Invalid or missing reset token.");
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/auth/verify-reset-token", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ token }),
-        });
-
-        if (response.ok) {
-          setIsTokenValid(true);
-        } else {
-          setIsTokenValid(false);
-          const data = await response.json();
-          setMessage(data.message || "Invalid or expired reset token.");
-        }
-      } catch (error) {
-        console.error("Token verification error:", error);
-        setIsTokenValid(false);
-        setMessage("Failed to verify reset token. Please try again.");
-      }
-    };
-
-    checkToken();
-  }, [token]);
 
   // Real-time validation effects
   useEffect(() => {
@@ -188,9 +159,16 @@ const ResetPasswordForm = () => {
           router.push("/auth/login");
         }, 3000);
       } else {
-        setMessage(
-          data.message || "Failed to reset password. Please try again."
-        );
+        // Handle different error scenarios
+        if (data.message?.includes("token")) {
+          setMessage(
+            "This reset link is invalid or has expired. Please request a new one."
+          );
+        } else {
+          setMessage(
+            data.message || "Failed to reset password. Please try again."
+          );
+        }
       }
     } catch (error) {
       console.error("Reset password error:", error);
@@ -213,25 +191,8 @@ const ResetPasswordForm = () => {
     setIsDarkMode(!isDarkMode);
   };
 
-  // Render different states based on token validity
-  if (isTokenValid === null) {
-    return (
-      <div
-        className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
-          isDarkMode ? "bg-gray-900" : "bg-gray-50"
-        }`}
-      >
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-            Verifying reset token...
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isTokenValid === false) {
+  // Show error state for missing token
+  if (!token) {
     return (
       <div
         className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
@@ -255,7 +216,7 @@ const ResetPasswordForm = () => {
                 isDarkMode ? "text-gray-300" : "text-gray-600"
               }`}
             >
-              {message || "This password reset link is invalid or has expired."}
+              This password reset link is missing or invalid.
             </p>
             <Link
               href="/auth/forgot-password"
