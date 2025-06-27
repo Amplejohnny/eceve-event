@@ -120,18 +120,37 @@ const LoginForm = () => {
             break;
           case "EmailNotVerified":
             setMessage(
-              "Please verify your email address before logging in. Check your inbox for a verification link."
+              "Please verify your email address before logging in. We've sent you a new verification link to your email."
             );
             break;
           case "AccountDeactivated":
             setMessage(
-              "Your account has been deactivated. Please contact support."
+              "Your account has been deactivated. Please contact support for assistance."
             );
             break;
           case "RateLimited":
-            setMessage("Too many login attempts. Please try again later.");
+          case "RATE_LIMITED":
+            setMessage(
+              "Too many login attempts. Please wait 15 minutes before trying again."
+            );
             break;
+
+          case "MISSING_CREDENTIALS":
+            setMessage("Please enter both email and password.");
+            break;
+
+          case "AUTH_ERROR":
+            setMessage(
+              "Authentication service error. Please try again in a moment."
+            );
+            break;
+
+          case "Callback":
+            setMessage("Authentication callback error. Please try again.");
+            break;
+
           default:
+            console.error("Unhandled auth error:", result.error);
             setMessage("Something went wrong. Please try again.");
         }
       } else if (result?.ok) {
@@ -140,13 +159,29 @@ const LoginForm = () => {
         if (session) {
           setMessage("Login successful! Redirecting...");
           setTimeout(() => {
-            router.push("/homepage");
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnTo = urlParams.get("callbackUrl") || "/homepage";
+            router.push(returnTo);
           }, 1000);
         }
+      } else {
+        setMessage("Session creation failed. Please try logging in again.");
       }
     } catch (error) {
       console.error("Login error:", error);
-      setMessage("Network error. Please check your connection and try again.");
+
+      // Check if it's a network error
+      if (error instanceof TypeError && error.message.includes("fetch")) {
+        setMessage(
+          "Network error. Please check your internet connection and try again."
+        );
+      } else if (error instanceof Error) {
+        setMessage(`Login failed: ${error.message}`);
+      } else {
+        setMessage(
+          "An unexpected error occurred. Please try again or contact support."
+        );
+      }
     } finally {
       setIsLoading(false);
     }
