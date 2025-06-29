@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
             name: existingSession.user.name,
             role: existingSession.user.role,
           },
-          redirectTo: "/homepage",
+          redirectTo: "/",
         },
         { status: 200 }
       );
@@ -425,7 +425,7 @@ export async function POST(request: NextRequest) {
           role: user.role,
           emailVerified: user.emailVerified,
         },
-        redirectTo: "/homepage",
+        redirectTo: "/",
       },
       {
         status: 200,

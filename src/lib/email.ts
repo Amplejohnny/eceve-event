@@ -24,7 +24,7 @@ function getTransporter(): Transporter {
 // Email templates
 const emailTemplates = {
   verification: (url: string, email: string) => ({
-    subject: "Verify your email address - Eceve",
+    subject: "Verify your email address - comforeve",
     html: `
       <!DOCTYPE html>
       <html lang="en">
@@ -45,14 +45,14 @@ const emailTemplates = {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎟️ Eceve</h1>
+            <h1>🎟️ comforeve</h1>
             <p>Your Event Ticketing Platform</p>
           </div>
           
           <div class="content">
             <h2>Verify Your Email Address</h2>
             <p>Hello,</p>
-            <p>Thank you for signing up for Eceve! To complete your registration and start exploring amazing events, please verify your email address by clicking the button below:</p>
+            <p>Thank you for signing up for comforeve! To complete your registration and start exploring amazing events, please verify your email address by clicking the button below:</p>
             
             <div style="text-align: center;">
               <a href="${url}" class="button">Verify Email Address</a>
@@ -75,11 +75,11 @@ const emailTemplates = {
             
             <p>If you didn't create an account with us, please ignore this email.</p>
             
-            <p>Best regards,<br>The Eceve Team</p>
+            <p>Best regards,<br>The comforeve Team</p>
           </div>
           
           <div class="footer">
-            <p>© ${currentYear} Eceve. All rights reserved.</p>
+            <p>© ${currentYear} comforeve. All rights reserved.</p>
             <p>This email was sent to ${email}</p>
           </div>
         </div>
@@ -87,12 +87,12 @@ const emailTemplates = {
       </html>
     `,
     text: `
-      Verify Your Email Address - Eceve
-      
+      Verify Your Email Address - comforeve
+
       Hello,
-      
-      Thank you for signing up for Eceve! To complete your registration, please verify your email address by clicking this link:
-      
+
+      Thank you for signing up for comforeve! To complete your registration, please verify your email address by clicking this link:
+
       ${url}
       
       This link will expire in 30 minutes.
@@ -100,19 +100,19 @@ const emailTemplates = {
       If you didn't create an account with us, please ignore this email.
       
       Best regards,
-      The Eceve Team
+      The comforeve Team
     `,
   }),
 
   welcomeAfterVerification: (name: string, email: string) => ({
-    subject: "Welcome to Eceve - You're all set!",
+    subject: "Welcome to comforeve - You're all set!",
     html: `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to Eceve</title>
+        <title>Welcome to comforeve</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -125,13 +125,13 @@ const emailTemplates = {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎉 Welcome to Eceve!</h1>
+            <h1>🎉 Welcome to comforeve!</h1>
             <p>Your email has been verified successfully</p>
           </div>
           
           <div class="content">
             <h2>Hello ${name}</h2>
-            <p>Congratulations! Your email address has been verified and your Eceve account is now fully activated.</p>
+            <p>Congratulations! Your email address has been verified and your comforeve account is now fully activated.</p>
             
             <div class="feature-box">
               <h3>🎟️ What you can do now:</h3>
@@ -149,11 +149,11 @@ const emailTemplates = {
             <p>If you have any questions or need support, don't hesitate to reach out to our team.</p>
             
             <p>Happy event hunting!</p>
-            <p>The Eceve Team</p>
+            <p>The comforeve Team</p>
           </div>
           
           <div class="footer">
-            <p>© ${currentYear} Eceve. All rights reserved.</p>
+            <p>© ${currentYear} comforeve. All rights reserved.</p>
             <p>This email was sent to ${email}</p>
           </div>
         </div>
@@ -163,7 +163,7 @@ const emailTemplates = {
   }),
 
   passwordReset: (resetUrl: string, email: string) => ({
-    subject: "Reset your Eceve password",
+    subject: "Reset your comforeve password",
     html: `
       <!DOCTYPE html>
       <html lang="en">
@@ -185,14 +185,14 @@ const emailTemplates = {
         <div class="container">
           <div class="header">
             <h1>🔒 Password Reset</h1>
-            <p>Reset your Eceve account password</p>
+            <p>Reset your comforeve account password</p>
           </div>
           
           <div class="content">
             <h2>Reset Your Password</h2>
             <p>Hello,</p>
-            <p>We received a request to reset the password for your Eceve account. Click the button below to create a new password:</p>
-            
+            <p>We received a request to reset the password for your comforeve account. Click the button below to create a new password:</p>
+
             <div style="text-align: center;">
               <a href="${resetUrl}" class="button">Reset Password</a>
             </div>
@@ -208,11 +208,11 @@ const emailTemplates = {
             
             <p>For security reasons, this link can only be used once.</p>
             
-            <p>Best regards,<br>The Eceve Team</p>
+            <p>Best regards,<br>The comforeve Team</p>
           </div>
           
           <div class="footer">
-            <p>© ${currentYear} Eceve. All rights reserved.</p>
+            <p>© ${currentYear} comforeve. All rights reserved.</p>
             <p>This email was sent to ${email}</p>
           </div>
         </div>
@@ -278,11 +278,11 @@ const emailTemplates = {
             <p>If you have any questions, please contact the event organizer or our support team.</p>
             
             <p>Enjoy the event!</p>
-            <p>The Eceve Team</p>
+            <p>The comforeve Team</p>
           </div>
           
           <div class="footer">
-            <p>© ${currentYear} Eceve. All rights reserved.</p>
+            <p>© ${currentYear} comforeve. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -436,7 +436,7 @@ export async function sendEventReminder(eventData: {
           
           <p>Don't forget to bring your confirmation ID with you!</p>
           <p>See you there!</p>
-          <p>The Eceve Team</p>
+          <p>The comforeve Team</p>
         </div>
       `,
     });
@@ -494,7 +494,7 @@ export async function sendOrganizerNotification(organizerData: {
           
           <p>You can view more details in your organizer dashboard.</p>
           <p>Keep up the great work!</p>
-          <p>The Eceve Team</p>
+          <p>The comforeve Team</p>
         </div>
       `,
     });

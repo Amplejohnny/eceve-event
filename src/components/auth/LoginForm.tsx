@@ -3,6 +3,7 @@ import { signIn, getSession } from "next-auth/react";
 import { Eye, EyeOff, Moon, Sun, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const LoginForm = () => {
   const router = useRouter();
@@ -160,7 +161,7 @@ const LoginForm = () => {
           setMessage("Login successful! Redirecting...");
           setTimeout(() => {
             const urlParams = new URLSearchParams(window.location.search);
-            const returnTo = urlParams.get("callbackUrl") || "/homepage";
+            const returnTo = urlParams.get("callbackUrl") || "/";
             router.push(returnTo);
           }, 1000);
         }
@@ -219,9 +220,15 @@ const LoginForm = () => {
           <div className="max-w-md">
             <div className="flex items-center mb-8">
               <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">E</span>
+                <Image
+                  src="/ticket.png"
+                  alt="Comforeve Logo"
+                  width={32}
+                  height={32}
+                  className="rounded-md"
+                />
               </div>
-              <span className="text-white text-xl font-semibold">Eventify</span>
+              <span className="text-white text-xl font-semibold">Comforeve</span>
             </div>
 
             <h1 className="text-white text-3xl lg:text-4xl font-bold mb-4 leading-tight">
@@ -256,14 +263,20 @@ const LoginForm = () => {
             <div className="lg:hidden mb-8 text-center">
               <div className="flex items-center justify-center mb-4">
                 <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
-                  <span className="text-white font-bold text-sm">E</span>
+                  <Image
+                    src="/ticket.png"
+                    alt="Comforeve Logo"
+                    width={32}
+                    height={32}
+                    className="rounded-md"
+                  />
                 </div>
                 <span
                   className={`text-xl font-semibold ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}
                 >
-                  Eventify
+                  Comforeve
                 </span>
               </div>
               <h1

@@ -354,7 +354,7 @@ export const authOptions: NextAuthOptions = {
 
       // Handle successful login redirects
       if (url.includes("/api/auth/login") || url === "/auth/login") {
-        return `${baseUrl}/homepage`;
+        return `${baseUrl}`;
       }
 
       // Handle sign-in redirects

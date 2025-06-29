@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, Moon, Sun, Check, X, AlertCircle } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 // Client-side logging utility
 const logClientError = (
@@ -429,9 +430,17 @@ const SignupForm = () => {
           <div className="max-w-md">
             <div className="flex items-center mb-8">
               <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
-                <span className="text-white font-bold text-sm">E</span>
+                <Image
+                  src="/ticket.png"
+                  alt="Comforeve Logo"
+                  width={32}
+                  height={32}
+                  className="rounded-md"
+                />
               </div>
-              <span className="text-white text-xl font-semibold">Eventify</span>
+              <span className="text-white text-xl font-semibold">
+                Comforeve
+              </span>
             </div>
 
             <h1 className="text-white text-3xl lg:text-4xl font-bold mb-4 leading-tight">
@@ -466,14 +475,20 @@ const SignupForm = () => {
             <div className="lg:hidden mb-8 text-center">
               <div className="flex items-center justify-center mb-4">
                 <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
-                  <span className="text-white font-bold text-sm">E</span>
+                  <Image
+                    src="/ticket.png"
+                    alt="Comforeve Logo"
+                    width={32}
+                    height={32}
+                    className="rounded-md"
+                  />
                 </div>
                 <span
                   className={`text-xl font-semibold ${
                     isDarkMode ? "text-white" : "text-gray-900"
                   }`}
                 >
-                  Eventify
+                  Comforeve
                 </span>
               </div>
               <h1
