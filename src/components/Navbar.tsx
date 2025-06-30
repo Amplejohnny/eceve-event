@@ -1,16 +1,19 @@
 import React, { useState } from "react";
 import { Menu, X, Ticket, Star, User, Settings, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 
-interface NavbarProps {
-  isLoggedIn?: boolean;
-}
-
-const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false }) => {
+const Navbar: React.FC = () => {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+
+  // Determine if user is logged in and email is verified
+  const isLoggedIn = status === "authenticated" && !!session?.user;
+  const isEmailVerified = session?.user?.emailVerified;
+  const userRole = session?.user?.role;
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -21,15 +24,34 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false }) => {
   };
 
   const handleHomeClick = () => {
-    // Navigate to homepage
     router.push("/");
     setIsMobileMenuOpen(false);
   };
 
   const handleNavClick = (path: string) => {
-    // Navigate to the specified path
     router.push(path);
     setIsMobileMenuOpen(false);
+    setIsProfileDropdownOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut({ callbackUrl: "/" });
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+    setIsMobileMenuOpen(false);
+    setIsProfileDropdownOpen(false);
+  };
+
+  // Helper function to get dashboard info based on user role
+  const getDashboardInfo = () => {
+    if (userRole === "ADMIN") {
+      return { path: "/admin", label: "Admin Panel" };
+    } else if (userRole === "ORGANIZER") {
+      return { path: "/organizer", label: "Dashboard" };
+    }
+    return null;
   };
 
   const NavLinks = () => (
@@ -62,6 +84,13 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false }) => {
       >
         Contact
       </a>
+      <a
+        href="#"
+        onClick={() => handleNavClick("/events/create")}
+        className="text-white hover:text-yellow-400 transition-colors duration-200 hover:border-b-2 hover:border-yellow-400 pb-1"
+      >
+        Create Event
+      </a>
     </>
   );
 
@@ -74,7 +103,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false }) => {
         Login
       </button>
       <button
-        onClick={() => handleNavClick("/auth/signup")}
+        onClick={() => handleNavClick("/auth/register")}
         className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-300 transition-colors duration-200 font-medium"
       >
         Sign Up
@@ -82,82 +111,173 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false }) => {
     </>
   );
 
-  const LoggedInActions = () => (
-    <>
-      <button
-        onClick={() => handleNavClick("/create-event")}
-        className="text-white hover:text-yellow-400 transition-colors duration-200"
-      >
-        Create Event
-      </button>
+  const EmailVerificationNotice = () => (
+    <div className="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md text-sm">
+      Email not verified
+    </div>
+  );
 
-      <div className="flex items-center space-x-4">
-        {/* Tickets */}
-        <div className="flex flex-col items-center group cursor-pointer">
-          <Ticket className="w-5 h-5 text-white group-hover:text-yellow-400 transition-colors duration-200" />
-          <span className="text-xs text-white group-hover:text-yellow-400 transition-colors duration-200">
-            Tickets
-          </span>
-        </div>
+  const LoggedInActions = () => {
+    const dashboardInfo = getDashboardInfo();
 
-        {/* Profile Dropdown */}
-        <div className="relative">
-          <div
-            className="flex flex-col items-center group cursor-pointer"
-            onClick={toggleProfileDropdown}
-          >
-            <User className="w-5 h-5 text-white group-hover:text-yellow-400 transition-colors duration-200" />
-            <span className="text-xs text-white group-hover:text-yellow-400 transition-colors duration-200">
-              Profile
-            </span>
-          </div>
+    return (
+      <>
+        {/* Show email verification notice if not verified */}
+        {!isEmailVerified && <EmailVerificationNotice />}
 
-          {/* Profile Dropdown Menu */}
-          {isProfileDropdownOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
-              <div className="px-4 py-2 text-gray-800 border-b border-gray-200">
-                <div className="flex items-center space-x-2 mb-2">
-                  <User className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm">Profile</span>
-                </div>
-                <div className="flex items-center space-x-2 mb-2">
-                  <User className="w-4 h-4 text-yellow-500" />
-                  <span className="text-sm text-yellow-600">Profile</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <User className="w-4 h-4 text-gray-600" />
-                  <span className="text-sm">Profile</span>
-                </div>
-              </div>
+        {/* Create Event - visible to all users */}
+        <button
+          onClick={() => handleNavClick("/events/create")}
+          className="text-white hover:text-yellow-400 transition-colors duration-200"
+        >
+          Create Event
+        </button>
 
-              <button
-                onClick={() => handleNavClick("/interests")}
-                className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200"
-              >
-                Interests
-              </button>
-
-              <button
-                onClick={() => handleNavClick("/settings")}
-                className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
-              >
-                <Settings className="w-4 h-4" />
-                <span>Account Settings</span>
-              </button>
-
-              <button
-                onClick={() => handleNavClick("/logout")}
-                className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Log Out</span>
-              </button>
+        <div className="flex items-center space-x-4">
+          {/* Tickets - only for verified users */}
+          {isEmailVerified && (
+            <div
+              className="flex flex-col items-center group cursor-pointer"
+              onClick={() => handleNavClick("/tickets")}
+            >
+              <Ticket className="w-5 h-5 text-white group-hover:text-yellow-400 transition-colors duration-200" />
+              <span className="text-xs text-white group-hover:text-yellow-400 transition-colors duration-200">
+                Tickets
+              </span>
             </div>
           )}
+
+          {/* Profile Dropdown */}
+          <div className="relative">
+            <div
+              className="flex flex-col items-center group cursor-pointer"
+              onClick={toggleProfileDropdown}
+            >
+              <User className="w-5 h-5 text-white group-hover:text-yellow-400 transition-colors duration-200" />
+              <span className="text-xs text-white group-hover:text-yellow-400 transition-colors duration-200">
+                Profile
+              </span>
+            </div>
+
+            {/* Profile Dropdown Menu */}
+            {isProfileDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
+                <div className="px-4 py-2 text-gray-800 border-b border-gray-200">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <User className="w-4 h-4 text-gray-600" />
+                    <span className="text-sm font-medium">
+                      {session?.user?.name || "User"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500 mb-1">
+                    {session?.user?.email}
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        isEmailVerified
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }`}
+                    >
+                      {isEmailVerified ? "Verified" : "Unverified"}
+                    </span>
+                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
+                      {userRole}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Profile Actions */}
+                {isEmailVerified ? (
+                  <>
+                    <button
+                      onClick={() => handleNavClick("/profile")}
+                      className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
+                    >
+                      <User className="w-4 h-4" />
+                      <span>My Profile</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleNavClick("/favorites")}
+                      className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
+                    >
+                      <Star className="w-4 h-4" />
+                      <span>Favorites</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleNavClick("/settings")}
+                      className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span>Account Settings</span>
+                    </button>
+
+                    {/* Dashboard - for ADMIN and ORGANIZER */}
+                    {dashboardInfo && (
+                      <button
+                        onClick={() => handleNavClick(dashboardInfo.path)}
+                        className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>{dashboardInfo.label}</span>
+                      </button>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={() => handleNavClick("/auth/verify-request")}
+                    className="w-full text-left px-4 py-2 text-yellow-600 hover:bg-yellow-50 transition-colors duration-200"
+                  >
+                    Verify Email
+                  </button>
+                )}
+
+                <div className="border-t border-gray-200 mt-2 pt-2">
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  };
+
+  // Show loading state while session is being fetched
+  if (status === "loading") {
+    return (
+      <nav className="bg-gray-800 border-b border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex items-center space-x-2">
+                <Image
+                  src="/ticket.png"
+                  alt="Comforeve Logo"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full"
+                />
+                <span className="text-white text-xl font-bold">Comforeve</span>
+              </div>
+            </div>
+            <div className="hidden md:block">
+              <div className="animate-pulse bg-gray-600 h-6 w-32 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-gray-800 border-b border-gray-700">
@@ -172,6 +292,8 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false }) => {
               <Image
                 src="/ticket.png"
                 alt="Comforeve Logo"
+                width={32}
+                height={32}
                 className="h-8 w-8 rounded-full"
               />
               <span className="text-white text-xl font-bold">Comforeve</span>
@@ -217,45 +339,94 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false }) => {
 
               {isLoggedIn ? (
                 <div className="flex flex-col space-y-3 pt-3 border-t border-gray-600">
+                  {/* Email verification notice for mobile */}
+                  {!isEmailVerified && (
+                    <div className="bg-yellow-500 text-gray-900 px-3 py-2 rounded-md text-sm text-center">
+                      Email not verified -{" "}
+                      <span
+                        className="underline cursor-pointer"
+                        onClick={() => handleNavClick("/auth/verify-request")}
+                      >
+                        Verify now
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Create Event - visible to all users, but only works for Admin/Organizers */}
                   <button
-                    onClick={() => handleNavClick("/create-event")}
+                    onClick={() => handleNavClick("/events/create")}
                     className="text-white hover:text-yellow-400 transition-colors duration-200 text-left"
                   >
                     Create Event
                   </button>
 
-                  <div className="flex items-center space-x-2">
-                    <Ticket className="w-5 h-5 text-white" />
-                    <span className="text-white">Tickets</span>
-                  </div>
+                  {/* Tickets - only for verified users */}
+                  {isEmailVerified && (
+                    <button
+                      onClick={() => handleNavClick("/tickets")}
+                      className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
+                    >
+                      <Ticket className="w-5 h-5" />
+                      <span>My Tickets</span>
+                    </button>
+                  )}
 
-                  <div className="flex items-center space-x-2">
-                    <User className="w-5 h-5 text-white" />
-                    <span className="text-white">Profile</span>
-                  </div>
+                  {/* Profile actions */}
+                  {isEmailVerified ? (
+                    <>
+                      <button
+                        onClick={() => handleNavClick("/profile")}
+                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
+                      >
+                        <User className="w-5 h-5" />
+                        <span>Profile</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleNavClick("/favorites")}
+                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
+                      >
+                        <Star className="w-4 h-4" />
+                        <span>Favorites</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleNavClick("/settings")}
+                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Account Settings</span>
+                      </button>
+
+                      {/* Dashboard - for ADMIN and ORGANIZER */}
+                      {(() => {
+                        const dashboardInfo = getDashboardInfo();
+                        return dashboardInfo ? (
+                          <button
+                            onClick={() => handleNavClick(dashboardInfo.path)}
+                            className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
+                          >
+                            <Settings className="w-4 h-4" />
+                            <span>{dashboardInfo.label}</span>
+                          </button>
+                        ) : null;
+                      })()}
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleNavClick("/auth/verify-request")}
+                      className="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 text-left"
+                    >
+                      Verify Email
+                    </button>
+                  )}
 
                   <button
-                    onClick={() => handleNavClick("/interests")}
-                    className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
-                  >
-                    <Star className="w-4 h-4" />
-                    Interests
-                  </button>
-
-                  <button
-                    onClick={() => handleNavClick("/settings")}
-                    className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span>Account Settings</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleNavClick("/logout")}
+                    onClick={handleSignOut}
                     className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
                   >
                     <LogOut className="w-4 h-4" />
-                    <span>Log Out</span>
+                    <span>Sign Out</span>
                   </button>
                 </div>
               ) : (
@@ -267,7 +438,7 @@ const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false }) => {
                     Login
                   </button>
                   <button
-                    onClick={() => handleNavClick("/auth/signup")}
+                    onClick={() => handleNavClick("/auth/register")}
                     className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-300 transition-colors duration-200 font-medium text-center"
                   >
                     Sign Up
