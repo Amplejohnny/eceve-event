@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState } from "react";
 import { Menu, X, Ticket, Star, User, Settings, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";

@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { Search, MapPin, Star, Calendar, Clock } from "lucide-react";
 import Image from "next/image";
@@ -237,7 +239,7 @@ const HomePage: React.FC = () => {
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-purple-600 to-pink-500 text-white py-24 overflow-hidden">
         <Image
-          src="/homepageHero.jpg" 
+          src="/homepageHero.jpg"
           alt="Hero background"
           fill
           className="object-cover -z-10"
@@ -320,11 +322,11 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Popular Events in Mumbai */}
+      {/* Popular Events Near You */}
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
-            Popular Events in Mumbai
+            Popular Events Near You
           </h2>
           <div className="flex flex-wrap gap-2">
             {filters.map((filter) => (

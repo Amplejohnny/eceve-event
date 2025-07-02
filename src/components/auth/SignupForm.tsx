@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { Eye, EyeOff, Moon, Sun, Check, X, AlertCircle } from "lucide-react";
 import Link from "next/link";
