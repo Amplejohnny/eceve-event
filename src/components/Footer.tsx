@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -102,48 +104,46 @@ const Footer = () => {
 
         {/* Download The App */}
         <div>
+          {/* Add label before both images */}
           <h4 className="font-semibold text-lg mb-4">Download The App</h4>
           <div className="space-y-4">
             <a
               href="#"
-              className="flex items-center bg-[#3B3950] px-4 py-3 rounded-md"
+              className="flex items-center px-4 py-1"
+              aria-label="Download on Google Play"
+              title="Download on Google Play"
             >
-              <Image
+              <img
                 src="/google-play.png"
                 alt="Google Play"
-                width={25}
-                height={25}
-                className="mr-3"
+                width={120}
+                height={40}
+                className="sm:mr-3"
               />
-              <div className="text-left text-sm">
-                <div className="text-gray-300">Get it on</div>
-                <div className="text-white font-medium">Google Play</div>
-              </div>
             </a>
             <a
               href="#"
-              className="flex items-center bg-[#3B3950] px-4 py-3 rounded-md"
+              className="flex items-center px-4 py-1"
+              aria-label="Download on App Store"
+              title="Download on App Store"
             >
               <Image
                 src="/app-store.png"
                 alt="App Store"
-                width={25}
-                height={25}
-                className="mr-3"
+                width={120}
+                height={40}
+                priority
+                className="sm:mr-3"
               />
-              <div className="text-left text-sm">
-                <div className="text-gray-300">Download on the</div>
-                <div className="text-white font-medium">App Store</div>
-              </div>
             </a>
           </div>
         </div>
       </div>
 
-      <hr className="my-8 border-gray-600" />
+      <hr className="my-6 border-gray-600" />
 
       <p className="text-center text-gray-400 text-sm">
-        ©2023 Eventify. All rights reserved.
+        © {new Date().getFullYear()} Comforeve. All rights reserved
       </p>
     </footer>
   );
