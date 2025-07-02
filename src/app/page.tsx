@@ -237,15 +237,20 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="relative text-white py-24 overflow-hidden">
-        <Image
-          src="/homepageHero.jpg"
-          alt="Hero background"
-          fill
-          className="object-cover -z-10"
-          priority
-        />
-
+      <div
+        className="relative text-white py-24 overflow-hidden"
+        style={{
+          backgroundImage: "url('/homepageHero.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "full",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
+        {/* Overlay for fade/dimming */}
+        <div
+          className="absolute inset-0 bg-black/60 pointer-events-none z-0"
+          aria-hidden="true"
+        ></div>
         {/* Rest of hero content */}
         <div className="container mx-auto px-4 text-center relative z-10">
           <h1 className="text-4xl md:text-6xl font-bold mb-4">
@@ -257,7 +262,7 @@ const HomePage: React.FC = () => {
 
           {/* Search Form */}
           <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-lg p-2 shadow-lg flex flex-col md:flex-row gap-2">
+            <div className="bg-white rounded-2xl p-2 shadow-lg flex flex-col md:flex-row gap-2">
               <div className="flex-1 relative">
                 <Search
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -271,23 +276,19 @@ const HomePage: React.FC = () => {
                   className="w-full pl-10 pr-4 py-3 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
-              <div className="relative">
+              <div className="relative w-full md:w-auto">
                 <MapPin
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   size={20}
                 />
-                <select
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="pl-10 pr-8 py-3 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none bg-white"
-                  aria-label="Select location"
-                >
-                  <option value="Lagos">Lagos</option>
-                  <option value="Abuja">Abuja</option>
-                  <option value="PH">PH</option>
-                  <option value="Benin">Benin</option>
-                </select>
+                <input
+                  type="text"
+                  value="Lagos"
+                  disabled
+                  className="pl-10 pr-4 py-3 text-gray-500 bg-gray-100 rounded-md w-full cursor-not-allowed"
+                />
               </div>
+
               <button
                 onClick={handleSearch}
                 className="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-700 transition-colors font-semibold"
@@ -389,56 +390,113 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Create Event Section */}
-      <div className="relative text-white py-16 overflow-hidden">
-        <Image
-          src="/create-event-background.jpg"
-          alt="Create event background"
-          fill
-          className="object-cover -z-10"
-        />
-
-        {/* Rest of create event content */}
+      <div
+        className="relative text-[#ffe047] py-6 overflow-hidden mb-5"
+        style={{
+          backgroundImage: "url('/create-event-background.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      >
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Create an event with Eventify
-            </h2>
-            <p className="text-lg mb-8 opacity-90">
-              Got a show, event, activity or a great experience? Partner with us
-              & get listed on Eventify
-            </p>
-            <button className="bg-[#ffe047] text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors">
-              Create Event
-            </button>
+          <div className="flex flex-col sm:flex-row items-center justify-between md:justify-end gap-4 md:gap-6 max-w-6xl mx-auto">
+            {/* Text Content */}
+            <div className="px-2 sm:px-20">
+              <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 md:mb-2">
+                Create an event with Conforeve
+              </h2>
+              <p className="text-xs sm:text-sm md:text-base lg:text-lg opacity-90 leading-relaxed">
+                Got a show, event, activity? Create your event with Conforeve to
+                reach a wider audience.
+              </p>
+            </div>
+
+            {/* Create Event Button */}
+            <div className="flex-shrink-0">
+              <button className="cursor-pointer bg-[#ffe047] text-black px-4 py-2 sm:px-6 sm:py-3 md:px-6 md:py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors text-xs sm:text-sm md:text-base whitespace-nowrap flex items-center gap-1 md:gap-2">
+                <Calendar size={16} />
+                Create Event
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Newsletter Section */}
-      <div className="bg-[#ffe047] py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              Subscribe to our Newsletter
-            </h3>
-            <p className="text-gray-700 mb-6">
-              Receive our weekly newsletter & updates with new events from your
-              favourite organisers & venues.
-            </p>
-            <div className="flex flex-col md:flex-row gap-3 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
+      {/* Trendy Events around the world */}
+      <div className="container mx-auto px-4 py-12">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
+            Trendy Events around the world
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {filters.map((filter) => (
               <button
-                onClick={handleSubscribe}
-                className="bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors font-semibold"
+                key={filter.key}
+                onClick={() => setActiveFilter(filter.key)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                  activeFilter === filter.key
+                    ? "bg-purple-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
               >
-                Subscribe
+                {filter.label}
               </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {displayedLocalEvents.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))}
+        </div>
+
+        {!showMoreLocal && localEvents.length > 6 && (
+          <div className="text-center">
+            <button
+              onClick={() => setShowMoreLocal(true)}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              See More
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Newsletter Section */}
+      <div className="bg-[#FFE047] py-6">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Text Section - 2/3 */}
+            <div className="md:w-2/3">
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                Subscribe to our Newsletter
+              </h3>
+              <p className="text-gray-800 text-sm">
+                Receive our weekly newsletter & updates with new events from
+                your favourite organisers & venues.
+              </p>
+            </div>
+
+            {/* Form Section - 1/3 */}
+            <div className="md:w-1/3 w-full">
+              <div className="flex flex-nowrap items-stretch gap-0">
+                <input
+                  type="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 px-3 py-3 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white min-w-0"
+                />
+                <button
+                  onClick={handleSubscribe}
+                  className="bg-gray-900 text-white px-4 py-3 rounded-r-md hover:bg-gray-800 transition-colors font-medium whitespace-nowrap min-w-[100px]"
+                  style={{ flexShrink: 0 }}
+                >
+                  Subscribe
+                </button>
+              </div>
             </div>
           </div>
         </div>
