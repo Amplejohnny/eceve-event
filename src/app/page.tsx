@@ -237,7 +237,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-purple-600 to-pink-500 text-white py-24 overflow-hidden">
+      <div className="relative text-white py-24 overflow-hidden">
         <Image
           src="/homepageHero.jpg"
           alt="Hero background"
@@ -245,7 +245,6 @@ const HomePage: React.FC = () => {
           className="object-cover -z-10"
           priority
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/80 to-pink-500/80 -z-10" />
 
         {/* Rest of hero content */}
         <div className="container mx-auto px-4 text-center relative z-10">
@@ -390,14 +389,13 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Create Event Section */}
-      <div className="relative bg-gradient-to-r from-gray-900 to-gray-700 text-white py-16 overflow-hidden">
+      <div className="relative text-white py-16 overflow-hidden">
         <Image
           src="/create-event-background.jpg"
           alt="Create event background"
           fill
           className="object-cover -z-10"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/80 to-gray-700/80 -z-10" />
 
         {/* Rest of create event content */}
         <div className="container mx-auto px-4 relative z-10">
@@ -409,7 +407,7 @@ const HomePage: React.FC = () => {
               Got a show, event, activity or a great experience? Partner with us
               & get listed on Eventify
             </p>
-            <button className="bg-yellow-500 text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors">
+            <button className="bg-[#ffe047] text-black px-8 py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors">
               Create Event
             </button>
           </div>
@@ -417,7 +415,7 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Newsletter Section */}
-      <div className="bg-yellow-400 py-12">
+      <div className="bg-[#ffe047] py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto text-center">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">

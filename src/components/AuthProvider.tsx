@@ -8,7 +8,11 @@ interface AuthProviderProps {
 }
 
 export default function AuthProvider({ children }: AuthProviderProps) {
-  return <SessionProvider>{children}</SessionProvider>;
+  return (
+    <SessionProvider refetchInterval={0} refetchOnWindowFocus={false}>
+      {children}
+    </SessionProvider>
+  );
 }
 // This component wraps the children with the NextAuth SessionProvider to manage authentication state.
 // It allows the use of authentication features throughout the application.
