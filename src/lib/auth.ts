@@ -7,7 +7,7 @@ import {
 import { hashPassword } from "./utils";
 import { randomBytes } from "crypto";
 import { NextApiRequest } from "next";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "./auth-config";
 
 
 // Password Reset Functions (integrated with sendPasswordResetEmail)
