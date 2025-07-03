@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Search, MapPin, Star, Calendar, Clock } from "lucide-react";
 import Image from "next/image";
+import Router from "next/router";
 
 interface Event {
   id: string;
@@ -19,6 +20,7 @@ interface Event {
 
 const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [isFavorite, setIsFavorite] = useState(false);
+
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -82,6 +84,7 @@ const HomePage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [showMoreLocal, setShowMoreLocal] = useState(false);
   const [showMoreOnline, setShowMoreOnline] = useState(false);
+  const router = Router;
 
   const categories = [
     { icon: "🎵", label: "Entertainment" },
@@ -215,7 +218,8 @@ const HomePage: React.FC = () => {
     },
   ];
 
-  const handleSearch = () => {
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     // Navigate to filter page with search query
     console.log("Searching for:", searchQuery, "in", location);
   };
@@ -242,16 +246,14 @@ const HomePage: React.FC = () => {
         style={{
           backgroundImage: "url('/homepageHero.jpg')",
           backgroundSize: "cover",
-          backgroundPosition: "full",
+          backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}
       >
-        {/* Overlay for fade/dimming */}
-        <div
-          className="absolute inset-0 bg-black/60 pointer-events-none z-0"
-          aria-hidden="true"
-        ></div>
-        {/* Rest of hero content */}
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/60 pointer-events-none z-0"></div>
+
+        {/* Content */}
         <div className="container mx-auto px-4 text-center relative z-10">
           <h1 className="text-4xl md:text-6xl font-bold mb-4">
             Don't miss out!
@@ -260,28 +262,47 @@ const HomePage: React.FC = () => {
             Explore the vibrant events happening locally and globally.
           </p>
 
-          {/* Search Form */}
-          <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-2xl p-2 shadow-lg flex flex-col md:flex-row gap-2">
+          {/* Search form - visible only on md+ screens */}
+          <div className="hidden md:block max-w-2xl mx-auto">
+            <form
+              onSubmit={(e) => {
+                handleSearch(e);
+              }}
+              className="bg-white rounded-2xl p-2 shadow-lg flex flex-col md:flex-row gap-2"
+              role="search"
+              aria-label="Search for events"
+            >
+              {/* Search input */}
               <div className="flex-1 relative">
+                <label htmlFor="searchQuery" className="sr-only">
+                  Search events
+                </label>
                 <Search
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   size={20}
                 />
                 <input
+                  id="searchQuery"
                   type="text"
                   placeholder="Search events, artists, venues..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  autoComplete="off"
                 />
               </div>
+
+              {/* Location input (static) */}
               <div className="relative w-full md:w-auto">
+                <label htmlFor="location" className="sr-only">
+                  Location
+                </label>
                 <MapPin
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   size={20}
                 />
                 <input
+                  id="location"
                   type="text"
                   value="Lagos"
                   disabled
@@ -289,13 +310,25 @@ const HomePage: React.FC = () => {
                 />
               </div>
 
+              {/* Submit */}
               <button
-                onClick={handleSearch}
+                type="submit"
                 className="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-700 transition-colors font-semibold"
               >
                 Search
               </button>
-            </div>
+            </form>
+          </div>
+
+          {/* Mobile CTA */}
+          <div className="md:hidden mt-6">
+            <button
+            //changed (filter page)
+              onClick={() => router.push("/")}
+              className="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-700 transition-colors font-semibold"
+            >
+              Book a space now
+            </button>
           </div>
         </div>
       </div>
