@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
 import { Menu, X, Ticket, Star, User, Settings, LogOut } from "lucide-react";
@@ -68,7 +68,7 @@ const Navbar: React.FC = () => {
       {/* Changed */}
       <a
         href="#"
-        onClick={() => handleNavClick("/")}
+        onClick={() => handleNavClick("/events")}
         className="text-white hover:text-yellow-400 transition-colors duration-200 hover:border-b-2 hover:border-yellow-400 pb-1"
       >
         Events
@@ -86,15 +86,13 @@ const Navbar: React.FC = () => {
   const AuthButtons = () => (
     <>
       <button
-      // Changed
-        onClick={() => handleNavClick("/")}
+        onClick={() => handleNavClick("/auth/login")}
         className="text-white hover:text-yellow-400 transition-colors duration-200"
       >
         Login
       </button>
       <button
-      // Changed
-        onClick={() => handleNavClick("/")}
+        onClick={() => handleNavClick("/auth/register")}
         className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-300 transition-colors duration-200 font-medium"
       >
         Sign Up
@@ -423,15 +421,13 @@ const Navbar: React.FC = () => {
               ) : (
                 <div className="flex flex-col space-y-3 pt-3 border-t border-gray-600">
                   <button
-                  // Changed
-                    onClick={() => handleNavClick("/")}
+                    onClick={() => handleNavClick("/auth/login")}
                     className="text-white hover:text-yellow-400 transition-colors duration-200 text-left"
                   >
                     Login
                   </button>
                   <button
-                  // Changed
-                    onClick={() => handleNavClick("/")}
+                    onClick={() => handleNavClick("/auth/register")}
                     className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-300 transition-colors duration-200 font-medium text-center"
                   >
                     Sign Up

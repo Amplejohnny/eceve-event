@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "../generated/prisma/";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -208,13 +208,16 @@ export async function createEvent(data: {
   tags: string[];
   category?: string;
   imageUrl?: string;
-  ticketTypes: unknown[];
+  ticketTypes: any[];
   maxAttendees?: number;
   organizerId: string;
   slug: string;
 }) {
   return await db.event.create({
-    data,
+    data: {
+      ...data,
+      ticketTypes: data.ticketTypes as Prisma.InputJsonValue,
+    },
     include: {
       organizer: {
         select: {
@@ -227,7 +230,10 @@ export async function createEvent(data: {
   });
 }
 
-export async function updateEvent(id: string, data: unknown) {
+export async function updateEvent(
+  id: string,
+  data: Prisma.EventUpdateInput | Prisma.EventUncheckedUpdateInput
+) {
   return await db.event.update({
     where: { id },
     data,
@@ -319,14 +325,17 @@ export async function createPayment(data: {
   organizerAmount: number;
   customerEmail: string;
   eventId: string;
-  metadata?: unknown;
+  metadata?: Prisma.InputJsonValue;
 }) {
   return await db.payment.create({
     data,
   });
 }
 
-export async function updatePayment(paystackRef: string, data: unknown) {
+export async function updatePayment(
+  paystackRef: string,
+  data: Prisma.PaymentUpdateInput | Prisma.PaymentUncheckedUpdateInput
+) {
   return await db.payment.update({
     where: { paystackRef },
     data,

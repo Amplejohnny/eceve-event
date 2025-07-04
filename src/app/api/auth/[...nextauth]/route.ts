@@ -1,4 +1,4 @@
-import { authOptions, AuthError } from "@/lib/auth-config";
+import { authOptions } from "@/lib/auth-config";
 import NextAuth from "next-auth";
 
 // NextAuth types
@@ -31,4 +31,3 @@ declare module "next-auth/jwt" {
 const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };
-export { authOptions, AuthError };
