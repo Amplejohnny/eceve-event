@@ -24,7 +24,7 @@ function getTransporter(): Transporter {
 // Email templates
 const emailTemplates = {
   verification: (url: string, email: string) => ({
-    subject: "Verify your email address - comforeve",
+    subject: "Verify your email address - Comforeve",
     html: `
       <!DOCTYPE html>
       <html lang="en">
@@ -45,14 +45,14 @@ const emailTemplates = {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎟️ comforeve</h1>
+            <h1>🎟️ Comforeve</h1>
             <p>Your Event Ticketing Platform</p>
           </div>
           
           <div class="content">
             <h2>Verify Your Email Address</h2>
             <p>Hello,</p>
-            <p>Thank you for signing up for comforeve! To complete your registration and start exploring amazing events, please verify your email address by clicking the button below:</p>
+            <p>Thank you for signing up for Comforeve! To complete your registration and start exploring amazing events, please verify your email address by clicking the button below:</p>
             
             <div style="text-align: center;">
               <a href="${url}" class="button">Verify Email Address</a>
@@ -75,11 +75,11 @@ const emailTemplates = {
             
             <p>If you didn't create an account with us, please ignore this email.</p>
             
-            <p>Best regards,<br>The comforeve Team</p>
+            <p>Best regards,<br>The Comforeve Team</p>
           </div>
           
           <div class="footer">
-            <p>© ${currentYear} comforeve. All rights reserved.</p>
+            <p>© ${currentYear} Comforeve. All rights reserved.</p>
             <p>This email was sent to ${email}</p>
           </div>
         </div>
@@ -87,11 +87,11 @@ const emailTemplates = {
       </html>
     `,
     text: `
-      Verify Your Email Address - comforeve
+      Verify Your Email Address - Comforeve
 
       Hello,
 
-      Thank you for signing up for comforeve! To complete your registration, please verify your email address by clicking this link:
+      Thank you for signing up for Comforeve! To complete your registration, please verify your email address by clicking this link:
 
       ${url}
       
@@ -100,19 +100,19 @@ const emailTemplates = {
       If you didn't create an account with us, please ignore this email.
       
       Best regards,
-      The comforeve Team
+      The Comforeve Team
     `,
   }),
 
   welcomeAfterVerification: (name: string, email: string) => ({
-    subject: "Welcome to comforeve - You're all set!",
+    subject: "Welcome to Comforeve - You're all set!",
     html: `
       <!DOCTYPE html>
       <html lang="en">
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Welcome to comforeve</title>
+        <title>Welcome to Comforeve</title>
         <style>
           body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
           .container { max-width: 600px; margin: 0 auto; padding: 20px; }
@@ -125,13 +125,13 @@ const emailTemplates = {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎉 Welcome to comforeve!</h1>
+            <h1>🎉 Welcome to Comforeve!</h1>
             <p>Your email has been verified successfully</p>
           </div>
           
           <div class="content">
             <h2>Hello ${name}</h2>
-            <p>Congratulations! Your email address has been verified and your comforeve account is now fully activated.</p>
+            <p>Congratulations! Your email address has been verified and your Comforeve account is now fully activated.</p>
             
             <div class="feature-box">
               <h3>🎟️ What you can do now:</h3>
@@ -149,11 +149,11 @@ const emailTemplates = {
             <p>If you have any questions or need support, don't hesitate to reach out to our team.</p>
             
             <p>Happy event hunting!</p>
-            <p>The comforeve Team</p>
+            <p>The Comforeve Team</p>
           </div>
           
           <div class="footer">
-            <p>© ${currentYear} comforeve. All rights reserved.</p>
+            <p>© ${currentYear} Comforeve. All rights reserved.</p>
             <p>This email was sent to ${email}</p>
           </div>
         </div>
@@ -163,7 +163,7 @@ const emailTemplates = {
   }),
 
   passwordReset: (resetUrl: string, email: string) => ({
-    subject: "Reset your comforeve password",
+    subject: "Reset your Comforeve password",
     html: `
       <!DOCTYPE html>
       <html lang="en">
@@ -185,13 +185,13 @@ const emailTemplates = {
         <div class="container">
           <div class="header">
             <h1>🔒 Password Reset</h1>
-            <p>Reset your comforeve account password</p>
+            <p>Reset your Comforeve account password</p>
           </div>
           
           <div class="content">
             <h2>Reset Your Password</h2>
             <p>Hello,</p>
-            <p>We received a request to reset the password for your comforeve account. Click the button below to create a new password:</p>
+            <p>We received a request to reset the password for your Comforeve account. Click the button below to create a new password:</p>
 
             <div style="text-align: center;">
               <a href="${resetUrl}" class="button">Reset Password</a>
@@ -208,11 +208,11 @@ const emailTemplates = {
             
             <p>For security reasons, this link can only be used once.</p>
             
-            <p>Best regards,<br>The comforeve Team</p>
+            <p>Best regards,<br>The Comforeve Team</p>
           </div>
           
           <div class="footer">
-            <p>© ${currentYear} comforeve. All rights reserved.</p>
+            <p>© ${currentYear} Comforeve. All rights reserved.</p>
             <p>This email was sent to ${email}</p>
           </div>
         </div>
@@ -278,11 +278,11 @@ const emailTemplates = {
             <p>If you have any questions, please contact the event organizer or our support team.</p>
             
             <p>Enjoy the event!</p>
-            <p>The comforeve Team</p>
+            <p>The Comforeve Team</p>
           </div>
           
           <div class="footer">
-            <p>© ${currentYear} comforeve. All rights reserved.</p>
+            <p>© ${currentYear} Comforeve. All rights reserved.</p>
           </div>
         </div>
       </body>
@@ -301,7 +301,7 @@ export async function sendVerificationRequest(
     const transporter = getTransporter();
 
     await transporter.sendMail({
-      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
       to: email,
       subject,
       html,
@@ -329,7 +329,7 @@ export async function sendWelcomeEmail(userData: {
     const transporter = getTransporter();
 
     await transporter.sendMail({
-      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
       to: userData.email,
       subject,
       html,
@@ -356,7 +356,7 @@ export async function sendPasswordResetEmail(userData: {
     const transporter = getTransporter();
 
     await transporter.sendMail({
-      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
       to: userData.email,
       subject,
       html,
@@ -386,7 +386,7 @@ export async function sendTicketConfirmation(ticketData: {
     const transporter = getTransporter();
 
     await transporter.sendMail({
-      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
       to: ticketData.attendeeEmail,
       subject,
       html,
@@ -436,7 +436,7 @@ export async function sendEventReminder(eventData: {
           
           <p>Don't forget to bring your confirmation ID with you!</p>
           <p>See you there!</p>
-          <p>The comforeve Team</p>
+          <p>The Comforeve Team</p>
         </div>
       `,
     });
@@ -494,7 +494,7 @@ export async function sendOrganizerNotification(organizerData: {
           
           <p>You can view more details in your organizer dashboard.</p>
           <p>Keep up the great work!</p>
-          <p>The comforeve Team</p>
+          <p>The Comforeve Team</p>
         </div>
       `,
     });
@@ -514,4 +514,122 @@ export async function testEmailConnection(): Promise<boolean> {
     console.error("Email connection failed:", error);
     return false;
   }
+}
+
+
+
+
+
+export async function sendVerificationRequestWithDebug(
+  params: SendVerificationRequestParams
+) {
+  const { identifier: email, url } = params;
+  
+  console.log('🔍 Email Debug Info:');
+  console.log('- To:', email);
+  console.log('- SMTP Host:', process.env.SMTP_HOST);
+  console.log('- SMTP Port:', process.env.SMTP_PORT);
+  console.log('- SMTP User:', process.env.SMTP_USER);
+  console.log('- From Email:', process.env.FROM_EMAIL || process.env.SMTP_USER);
+  
+  try {
+    const transporter = createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: false, // true for 465, false for other ports
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      debug: true, // Enable debug output
+      logger: true, // Log to console
+    });
+
+    // Test the connection first
+    console.log('🔗 Testing SMTP connection...');
+    await transporter.verify();
+    console.log('✅ SMTP connection verified');
+
+    const mailOptions = {
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER,
+      to: email,
+      subject: "Test Email - Comforeve",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2>🧪 Test Email from Comforeve</h2>
+          <p>Hello,</p>
+          <p>This is a test email to verify your email configuration is working.</p>
+          <p><strong>Verification URL:</strong> <a href="${url}">${url}</a></p>
+          <p>If you received this email, your SMTP configuration is working correctly!</p>
+          <p>Best regards,<br>The Comforeve Team</p>
+        </div>
+      `,
+      text: `
+        Test Email from Comforeve
+
+        Hello,
+        
+        This is a test email to verify your email configuration is working.
+        
+        Verification URL: ${url}
+        
+        If you received this email, your SMTP configuration is working correctly!
+        
+        Best regards,
+        The Comforeve Team
+      `,
+    };
+
+    console.log('📧 Sending email with options:', {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject
+    });
+
+    const result = await transporter.sendMail(mailOptions);
+    
+    console.log('✅ Email sent successfully!');
+    console.log('📊 Send result:', {
+      messageId: result.messageId,
+      response: result.response,
+      accepted: result.accepted,
+      rejected: result.rejected,
+      pending: result.pending
+    });
+
+    return result;
+
+  } catch (error) {
+    console.error('❌ Email sending failed:', error);
+    
+    // More detailed error logging
+    if (error instanceof Error) {
+      console.error('Error name:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
+    
+    throw error;
+  }
+}
+
+// Create a test API endpoint that uses this debug version
+export async function sendTestEmailWithDebug(email: string) {
+  return sendVerificationRequestWithDebug({
+    identifier: email,
+    url: `http://localhost:3000/auth/verify-request?token=test-token&email=${email}`,
+    expires: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes from now
+    token: "test-token",
+    provider: {
+      id: "email",
+      type: "email",
+      name: "Email",
+      server: {},
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
+      maxAge: 24 * 60 * 60, // 24 hours in seconds
+      sendVerificationRequest: async () => {},
+      options: {},
+    },
+    theme: { colorScheme: 'light' }
+  });
 }
