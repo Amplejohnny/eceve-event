@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Home, ArrowLeft, Search, Mail, Phone } from "lucide-react";
 
@@ -30,7 +32,7 @@ export default function NotFoundPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="mt-12 pt-8 flex border-t border-slate-200 dark:border-slate-700 flex-col sm:flex-row gap-4 justify-center items-center">
             <Link
               href="/"
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800"
@@ -41,78 +43,11 @@ export default function NotFoundPage() {
 
             <button
               onClick={() => window.history.back()}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg border border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:focus:ring-offset-slate-800"
+              className="cursor-pointer inline-flex items-center gap-2 px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-lg border border-slate-300 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:focus:ring-offset-slate-800"
             >
               <ArrowLeft className="w-5 h-5" />
               Go Back
             </button>
-          </div>
-
-          {/* Helpful Links */}
-          <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-700">
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100 mb-4">
-              Popular Pages
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
-              <Link
-                href="/about"
-                className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors group"
-              >
-                <h3 className="font-medium text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  About Us
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-                  Learn more about our company
-                </p>
-              </Link>
-
-              <Link
-                href="/contact"
-                className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors group"
-              >
-                <h3 className="font-medium text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  Contact
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-                  Get in touch with us
-                </p>
-              </Link>
-
-              <Link
-                href="#"
-                className="p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors group"
-              >
-                <h3 className="font-medium text-slate-800 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400">
-                  Help Center
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-                  Find answers to common questions
-                </p>
-              </Link>
-            </div>
-          </div>
-
-          {/* Contact Info */}
-          <div className="mt-8 p-6 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-3">
-              Need Help?
-            </h3>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm text-slate-600 dark:text-slate-300">
-              <a
-                href="mailto:support@company.com"
-                className="inline-flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                <Mail className="w-4 h-4" />
-                support@comforeve.com
-              </a>
-              <a
-                href="tel:+1234567890"
-                className="inline-flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                <Phone className="w-4 h-4" />
-                (123) 456-7890
-              </a>
-            </div>
           </div>
         </div>
 

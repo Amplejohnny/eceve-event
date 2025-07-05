@@ -3,8 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 // import { Recursive } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,11 +60,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         // className={recursive.className}
       >
-        <AuthProvider>
-          <Navbar />
-          {children}
-          <Footer />
-        </AuthProvider>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

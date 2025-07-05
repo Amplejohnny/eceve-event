@@ -13,7 +13,7 @@ export const metadata = {
   openGraph: {
     title: "Sign Up - Comforeve",
     description: "Create your account to start using Comforeve.",
-    url: "https://www.comforeve.com/auth/signup",
+    url: "https://www.comforeve.com/auth/register",
     siteName: "Comforeve",
   },
 };

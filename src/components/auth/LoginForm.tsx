@@ -207,39 +207,32 @@ const LoginForm = () => {
             isDarkMode ? "bg-slate-800" : "bg-slate-900"
           }`}
         >
-          <button
-            onClick={toggleDarkMode}
-            className={`absolute top-8 right-8 p-2 rounded-full transition-colors duration-300 ${
-              isDarkMode
-                ? "bg-gray-700 text-yellow-400 hover:bg-gray-600"
-                : "bg-gray-700 text-white hover:bg-gray-600"
-            } shadow-md`}
-            aria-label={`Switch to ${isDarkMode ? "light" : "dark"} mode`}
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
-
-          <div className="max-w-md">
-            <div className="flex items-center mb-8">
-              <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
+          <div className="absolute top-8 left-8 lg:top-12 lg:left-12">
+            <div className="flex items-center">
+              <div className="">
                 <Image
                   src="/ticket.png"
                   alt="Comforeve Logo"
                   width={32}
                   height={32}
-                  className="rounded-md"
+                  className="rounded-md border"
                 />
               </div>
-              <span className="text-white text-xl font-semibold">Comforeve</span>
+                <span className="text-[#ffe047] text-xl font-semibold ml-1">
+                  Comforeve
+                </span>
+              </div>
             </div>
 
-            <h1 className="text-white text-3xl lg:text-4xl font-bold mb-4 leading-tight">
-              Discover tailored events.
-            </h1>
-            <p className="text-gray-300 text-lg mb-6">
-              Sign in for personalized recommendations today!
-            </p>
-          </div>
+            <div className="flex flex-col justify-center h-full max-w-md">
+              <h1 className="text-white text-3xl font-bold mb-4 leading-tight">
+                Discover tailored
+                <br />
+                events. 
+                <br />
+                Sign in for personalized recommendations today!
+              </h1>
+            </div>
         </div>
 
         {/* Right side - Form section */}
@@ -250,7 +243,7 @@ const LoginForm = () => {
         >
           <button
             onClick={toggleDarkMode}
-            className={`lg:hidden absolute top-6 right-6 p-2 rounded-full transition-colors duration-300 ${
+            className={`absolute top-6 right-6 p-2 rounded-full transition-colors duration-300 ${
               isDarkMode
                 ? "bg-gray-800 text-yellow-400 hover:bg-gray-700"
                 : "bg-white text-gray-600 hover:bg-gray-100"
@@ -264,7 +257,7 @@ const LoginForm = () => {
             {/* Mobile header */}
             <div className="lg:hidden mb-8 text-center">
               <div className="flex items-center justify-center mb-4">
-                <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center mr-3">
+                <div className="w-8 h-8 bg-[#ffe047] rounded-md flex items-center justify-center mr-3">
                   <Image
                     src="/ticket.png"
                     alt="Comforeve Logo"
@@ -426,7 +419,7 @@ const LoginForm = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${
+                    className={`absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer ${
                       isDarkMode
                         ? "text-gray-400 hover:text-gray-300"
                         : "text-gray-500 hover:text-gray-700"
@@ -477,7 +470,7 @@ const LoginForm = () => {
               >
                 Don't have an account?{" "}
                 <Link
-                  href="/auth/signup"
+                  href="/auth/register"
                   className="text-blue-600 hover:text-blue-500 font-medium transition-colors duration-200"
                 >
                   Sign up
