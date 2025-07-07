@@ -185,30 +185,6 @@ export function getEventImageUrl(imageUrl?: string): string {
   return `https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80`;
 }
 
-export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
-  if (imageUrl) return imageUrl;
-
-  if (email) {
-    // Generate a deterministic color based on email
-    const colors = [
-      "bg-red-500",
-      "bg-blue-500",
-      "bg-green-500",
-      "bg-yellow-500",
-      "bg-purple-500",
-      "bg-pink-500",
-    ];
-    const colorIndex = email.charCodeAt(0) % colors.length;
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      email
-    )}&background=${colors[colorIndex]
-      .replace("bg-", "")
-      .replace("-500", "")}&color=fff&size=128`;
-  }
-
-  return `https://ui-avatars.com/api/?name=User&background=gray&color=fff&size=128`;
-}
-
 // Location utilities
 export function calculateDistance(
   lat1: number,

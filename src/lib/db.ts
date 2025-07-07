@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "../generated/prisma/";
+import { CircleUserRound } from "lucide-react";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -153,6 +154,49 @@ export async function getUserFavorites(userId: string) {
               favorites: true,
             },
           },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
+  if (imageUrl) return imageUrl;
+
+  if (email) {
+    // Generate a deterministic color based on email
+    const colors = [
+      "bg-red-500",
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-yellow-500",
+      "bg-purple-500",
+      "bg-pink-500",
+    ];
+    const colorIndex = email.charCodeAt(0) % colors.length;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      email
+    )}&background=${colors[colorIndex]
+      .replace("bg-", "")
+      .replace("-500", "")}&color=fff&size=128`;
+  }
+
+  return `<CircleUserRound class="w-8 h-8 text-gray-500" />`;
+}
+
+export async function getUserTickets(userId: string) {
+  return await db.ticket.findMany({
+    where: { userId },
+    include: {
+      event: {
+        select: {
+          id: true,
+          title: true,
+          date: true,
+          location: true,
+          imageUrl: true,
+          slug: true,
         },
       },
     },

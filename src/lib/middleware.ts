@@ -25,7 +25,7 @@ const AUTH_ROUTES = [
   "/auth/reset-password",
 ];
 
-const PROTECTED_ROUTES = ["/dashboard", "/profile", "/tickets", "/favorites"];
+const PROTECTED_ROUTES = ["/dashboard", "/settings", "/myevents", "/tickets", "/favorites"];
 
 const ORGANIZER_ROUTES = [
   "/organizer",

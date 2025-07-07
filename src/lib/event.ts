@@ -200,25 +200,6 @@ export async function getTicketByConfirmationId(confirmationId: string) {
   });
 }
 
-export async function getUserTickets(userId: string) {
-  return await db.ticket.findMany({
-    where: { userId },
-    include: {
-      event: {
-        select: {
-          id: true,
-          title: true,
-          date: true,
-          location: true,
-          imageUrl: true,
-          slug: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-}
-
 // Favorites database functions
 export async function toggleEventFavorite(userId: string, eventId: string) {
   const existingFavorite = await db.eventFavorite.findUnique({
