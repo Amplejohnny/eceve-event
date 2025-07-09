@@ -137,9 +137,7 @@ export async function registerUser(
     },
   });
 
-  // This creates a verification token in the verification_token table automatically
   try {
-    // Validate required environment variables
     if (
       !process.env.SMTP_HOST ||
       !process.env.SMTP_USER ||
@@ -307,6 +305,29 @@ export async function resendVerificationEmail(email: string): Promise<boolean> {
     console.error("Error resending verification email:", error);
     return false;
   }
+}
+
+export async function updateUser(
+  id: string,
+  data: Partial<{
+    name: string;
+    password: string;
+    email: string;
+    role: "USER" | "ORGANIZER";
+    emailVerified: Date;
+    image: string;
+    bio: string;
+    location: string;
+    website: string;
+    twitter: string;
+    instagram: string;
+    isActive: boolean;
+  }>
+) {
+  return await db.user.update({
+    where: { id },
+    data,
+  });
 }
 
 // Helper functions for authentication

@@ -57,13 +57,36 @@ const ProfileSettings = () => {
     setMessage({ type: "", text: "" });
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setMessage({ type: "success", text: "Profile updated successfully!" });
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(profileData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update profile");
+      }
+      setMessage({
+        type: "success",
+        text: data.message || "Profile updated successfully!",
+      });
+
+      // Update local state with returned data
+      setProfileData((prev) => ({
+        ...prev,
+        ...data.data,
+      }));
     } catch (error) {
       setMessage({
         type: "error",
-        text: "Failed to update profile. Please try again.",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to update profile. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -82,9 +105,23 @@ const ProfileSettings = () => {
     }
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setMessage({ type: "success", text: "Password updated successfully!" });
+      const response = await fetch("/api/profile/password", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(passwordData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update password");
+      }
+      setMessage({
+        type: "success",
+        text: data.message || "Password updated successfully!",
+      });
       setPasswordData({
         currentPassword: "",
         newPassword: "",
@@ -93,7 +130,10 @@ const ProfileSettings = () => {
     } catch (error) {
       setMessage({
         type: "error",
-        text: "Failed to update password. Please try again.",
+        text:
+          error instanceof Error
+            ? error.message
+            : "Failed to update password. Please try again.",
       });
     } finally {
       setIsLoading(false);

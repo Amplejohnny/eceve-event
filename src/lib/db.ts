@@ -71,28 +71,7 @@ export async function createUser(data: {
   });
 }
 
-export async function updateUser(
-  id: string,
-  data: Partial<{
-    name: string;
-    password: string;
-    email: string;
-    role: "USER" | "ORGANIZER";
-    emailVerified: Date;
-    image: string;
-    bio: string;
-    location: string;
-    website: string;
-    twitter: string;
-    instagram: string;
-    isActive: boolean;
-  }>
-) {
-  return await db.user.update({
-    where: { id },
-    data,
-  });
-}
+
 
 export async function deleteUser(id: string) {
   return await db.user.delete({
