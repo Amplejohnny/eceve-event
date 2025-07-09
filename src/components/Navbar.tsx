@@ -181,11 +181,11 @@ const Navbar: React.FC = () => {
                 {isEmailVerified ? (
                   <>
                     <button
-                      onClick={() => handleNavClick("/profile")}
+                      onClick={() => handleNavClick("/my-events")}
                       className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
                     >
                       <User className="w-4 h-4" />
-                      <span>My Profile</span>
+                      <span>My Events</span>
                     </button>
 
                     <button
