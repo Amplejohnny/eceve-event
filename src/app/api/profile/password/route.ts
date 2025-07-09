@@ -24,7 +24,6 @@ const passwordChangeSchema = z
     path: ["confirmPassword"],
   });
 
-// PUT - Change user password
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);

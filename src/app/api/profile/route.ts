@@ -312,22 +312,3 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
-
-
-
-useEffect(() => {
-  const loadProfileData = async () => {
-    try {
-      const response = await fetch('/api/profile');
-      const data = await response.json();
-      
-      if (response.ok) {
-        setProfileData(data.data);
-      }
-    } catch (error) {
-      console.error('Error loading profile data:', error);
-    }
-  };
-
-  loadProfileData();
-}, []);

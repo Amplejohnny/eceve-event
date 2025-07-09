@@ -18,6 +18,8 @@ const ProfileSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
 
   // Profile form state
   const [profileData, setProfileData] = useState({
@@ -37,6 +39,26 @@ const ProfileSettings = () => {
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Load initial profile data
+  useEffect(() => {
+    const loadProfileData = async () => {
+      try {
+        const response = await fetch("/api/profile");
+        const data = await response.json();
+
+        if (response.ok) {
+          setProfileData(data.data);
+        }
+      } catch (error) {
+        console.error("Error loading profile data:", error);
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    loadProfileData();
+  }, []);
 
   // Check if user can save profile (for organizer role change)
   const canSaveProfile = () => {
