@@ -275,9 +275,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Invalid field" }, { status: 400 });
     }
 
-    // Validate field value
-    const fieldValidation = profileUpdateSchema.pick({ [field]: true });
-    const validatedData = fieldValidation.parse({ [field]: value });
+    // Validate field value using existing schema
+    const dataToValidate = { [field]: value };
+    const validatedData = profileUpdateSchema.parse(dataToValidate);
 
     // Update specific field
     const updatedUser = await updateUser(session.user.id, validatedData);
