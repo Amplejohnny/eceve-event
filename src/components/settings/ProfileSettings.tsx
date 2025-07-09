@@ -10,7 +10,22 @@ import {
   Menu,
 } from "lucide-react";
 
-const ProfileSettings = () => {
+interface ProfileData {
+  image: string;
+  name: string;
+  bio: string;
+  website: string;
+  location: string;
+  twitter: string;
+  instagram: string;
+  role: string;
+}
+
+interface ProfileSettingsProps {
+  initialData: ProfileData;
+}
+
+const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
   const [activeTab, setActiveTab] = useState("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -18,20 +33,9 @@ const ProfileSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
 
-
-  // Profile form state
-  const [profileData, setProfileData] = useState({
-    image: "",
-    name: "",
-    bio: "",
-    website: "",
-    location: "",
-    twitter: "",
-    instagram: "",
-    role: "USER",
-  });
+  // Profile form state - initialize with the passed data
+  const [profileData, setProfileData] = useState(initialData);
 
   // Password form state
   const [passwordData, setPasswordData] = useState({
@@ -39,26 +43,6 @@ const ProfileSettings = () => {
     newPassword: "",
     confirmPassword: "",
   });
-
-  // Load initial profile data
-  useEffect(() => {
-    const loadProfileData = async () => {
-      try {
-        const response = await fetch("/api/profile");
-        const data = await response.json();
-
-        if (response.ok) {
-          setProfileData(data.data);
-        }
-      } catch (error) {
-        console.error("Error loading profile data:", error);
-      } finally {
-        setInitialLoading(false);
-      }
-    };
-
-    loadProfileData();
-  }, []);
 
   // Check if user can save profile (for organizer role change)
   const canSaveProfile = () => {
