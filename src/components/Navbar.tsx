@@ -364,11 +364,11 @@ const Navbar: React.FC = () => {
                   {isEmailVerified ? (
                     <>
                       <button
-                        onClick={() => handleNavClick("/profile")}
+                        onClick={() => handleNavClick("/my-events")}
                         className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
                       >
                         <User className="w-5 h-5" />
-                        <span>Profile</span>
+                        <span>My Events</span>
                       </button>
 
                       <button
