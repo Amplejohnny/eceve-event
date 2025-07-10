@@ -136,6 +136,10 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         events: transformedEvents,
+        user: {
+          id: user.id,
+          role: user.role,
+        },
         pagination: {
           total: totalEvents,
           limit,
