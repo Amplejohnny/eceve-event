@@ -185,7 +185,13 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
     setPasswordMessage({ type: "", text: "" });
   };
 
-  const BIO_CHARACTER_LIMIT = 500;
+  const limits = {
+    bio: 500,
+    website: 100,
+    location: 100,
+    twitter: 50,
+    instagram: 50,
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 lg:bg-white">
@@ -364,7 +370,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                         value={profileData.bio}
                         onChange={(e) => {
                           const newValue = e.target.value;
-                          if (newValue.length <= BIO_CHARACTER_LIMIT) {
+                          if (newValue.length <= limits.bio) {
                             setProfileData((prev) => ({
                               ...prev,
                               bio: newValue,
@@ -374,16 +380,16 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                         rows={4}
                         className="w-full px-3 lg:px-4 py-2 pb-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base resize-none"
                         placeholder="Tell us about yourself"
-                        maxLength={BIO_CHARACTER_LIMIT}
+                        maxLength={limits.bio}
                       />
                       <div
                         className={`absolute bottom-2 right-2 text-xs px-1 rounded ${
-                          profileData.bio.length > BIO_CHARACTER_LIMIT * 0.9
+                          profileData.bio.length > limits.bio * 0.9
                             ? "text-red-500 bg-red-50"
                             : "text-gray-500 bg-white"
                         }`}
                       >
-                        {profileData.bio.length}/{BIO_CHARACTER_LIMIT}
+                        {profileData.bio.length}/{limits.bio}
                       </div>
                     </div>
                   </div>
@@ -404,6 +410,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                       }
                       className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
                       placeholder="https://your-website.com"
+                      maxLength={limits.website}
                     />
                   </div>
 
@@ -423,6 +430,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                       }
                       className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
                       placeholder="Your location"
+                      maxLength={limits.location}
                     />
                   </div>
 
@@ -444,6 +452,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                         }
                         className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
                         placeholder="@yourusername"
+                        maxLength={limits.twitter}
                       />
                     </div>
 
@@ -463,6 +472,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                         }
                         className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
                         placeholder="@yourusername"
+                        maxLength={limits.instagram}
                       />
                     </div>
                   </div>
