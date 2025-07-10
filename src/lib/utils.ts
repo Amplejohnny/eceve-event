@@ -36,7 +36,7 @@ export function toKobo(nairaAmount: number): number {
 
 // Convert Kobo to Naira
 export function fromKobo(koboAmount: number): number {
-  return koboAmount / 100;
+  return parseFloat((koboAmount / 100).toFixed(2));
 }
 
 // Date formatting utilities
