@@ -87,6 +87,7 @@ interface ApiResponse<T> {
   data: {
     tickets?: T[];
     events?: T[];
+    user?: User;
     pagination: {
       total: number;
       limit: number;
@@ -113,31 +114,17 @@ export default function MyEvents() {
   });
 
   useEffect(() => {
-    fetchUserData();
+    if (user?.role === "ORGANIZER" || user?.role === "ADMIN") {
+    }
   }, []);
 
   useEffect(() => {
     if (tab === "myBookings") {
       fetchMyBookings();
-    } else if (
-      tab === "myEvents" &&
-      (user?.role === "ORGANIZER" || user?.role === "ADMIN")
-    ) {
+    } else if (tab === "myEvents") {
       fetchMyEvents();
     }
-  }, [tab, user, filterStatus]);
-
-  const fetchUserData = async () => {
-    try {
-      const response = await fetch("/api/auth/me");
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      }
-    } catch (err) {
-      console.error("Error fetching user data:", err);
-    }
-  };
+  }, [tab, filterStatus]);
 
   const fetchMyBookings = async () => {
     try {
@@ -164,6 +151,9 @@ export default function MyEvents() {
 
       if (data.success) {
         setTickets(data.data.tickets || []);
+       if (data.data.user) {
+        setUser(data.data.user);
+      }
         setPagination(data.data.pagination);
       } else {
         throw new Error("Failed to fetch bookings");
@@ -200,6 +190,9 @@ export default function MyEvents() {
 
       if (data.success) {
         setEvents(data.data.events || []);
+       if (data.data.user) {
+        setUser(data.data.user);
+      }
         setPagination(data.data.pagination);
       } else {
         throw new Error("Failed to fetch events");
@@ -362,12 +355,17 @@ export default function MyEvents() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900">My Records</h1>
             <p className="text-gray-600 mt-1">
               {tab === "myBookings"
                 ? "Manage your event bookings and tickets"
                 : "Manage your events and track performance"}
             </p>
+            {user && (
+              <p className="text-sm text-gray-500 mt-1">
+                Account: {user.role.toLowerCase().replace("_", " ")}
+              </p>
+            )}
           </div>
 
           {/* Tab Navigation */}
