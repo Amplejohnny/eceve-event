@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import {
   Camera,
@@ -31,7 +33,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
+  const [passwordMessage, setPasswordMessage] = useState({
+    type: "",
+    text: "",
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Profile form state - initialize with the passed data
@@ -60,7 +66,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
   const handleProfileSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage({ type: "", text: "" });
+    setProfileMessage({ type: "", text: "" });
 
     try {
       const response = await fetch("/api/profile", {
@@ -76,7 +82,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
       if (!response.ok) {
         throw new Error(data.error || "Failed to update profile");
       }
-      setMessage({
+      setProfileMessage({
         type: "success",
         text: data.message || "Profile updated successfully!",
       });
@@ -87,7 +93,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
         ...data.data,
       }));
     } catch (error) {
-      setMessage({
+      setProfileMessage({
         type: "error",
         text:
           error instanceof Error
@@ -102,10 +108,13 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
   const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
-    setMessage({ type: "", text: "" });
+    setPasswordMessage({ type: "", text: "" });
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage({ type: "error", text: "New passwords do not match." });
+      setPasswordMessage({
+        type: "error",
+        text: "New passwords do not match.",
+      });
       setIsLoading(false);
       return;
     }
@@ -124,7 +133,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
       if (!response.ok) {
         throw new Error(data.error || "Failed to update password");
       }
-      setMessage({
+      setPasswordMessage({
         type: "success",
         text: data.message || "Password updated successfully!",
       });
@@ -134,7 +143,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
         confirmPassword: "",
       });
     } catch (error) {
-      setMessage({
+      setPasswordMessage({
         type: "error",
         text:
           error instanceof Error
@@ -171,7 +180,12 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
   const handleTabChange = (tab: "profile" | "password") => {
     setActiveTab(tab);
     setIsMobileMenuOpen(false);
+    // Clear messages when switching tabs
+    setProfileMessage({ type: "", text: "" });
+    setPasswordMessage({ type: "", text: "" });
   };
+
+  const BIO_CHARACTER_LIMIT = 500;
 
   return (
     <div className="min-h-screen bg-gray-50 lg:bg-white">
@@ -277,24 +291,6 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
 
           {/* Main Content */}
           <div className="flex-1 p-4 lg:p-0">
-            {/* Success/Error Messages */}
-            {message.text && (
-              <div
-                className={`mb-4 lg:mb-6 p-4 rounded-lg flex items-center gap-2 ${
-                  message.type === "success"
-                    ? "bg-green-50 text-green-800 border border-green-200"
-                    : "bg-red-50 text-red-800 border border-red-200"
-                }`}
-              >
-                {message.type === "success" ? (
-                  <Check className="w-5 h-5 flex-shrink-0" />
-                ) : (
-                  <X className="w-5 h-5 flex-shrink-0" />
-                )}
-                <span className="text-sm lg:text-base">{message.text}</span>
-              </div>
-            )}
-
             {/* Profile Tab */}
             {activeTab === "profile" && (
               <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
@@ -363,18 +359,33 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Bio
                     </label>
-                    <textarea
-                      value={profileData.bio}
-                      onChange={(e) =>
-                        setProfileData((prev) => ({
-                          ...prev,
-                          bio: e.target.value,
-                        }))
-                      }
-                      rows={4}
-                      className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base resize-none"
-                      placeholder="Tell us about yourself"
-                    />
+                    <div className="relative">
+                      <textarea
+                        value={profileData.bio}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          if (newValue.length <= BIO_CHARACTER_LIMIT) {
+                            setProfileData((prev) => ({
+                              ...prev,
+                              bio: newValue,
+                            }));
+                          }
+                        }}
+                        rows={4}
+                        className="w-full px-3 lg:px-4 py-2 pb-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base resize-none"
+                        placeholder="Tell us about yourself"
+                        maxLength={BIO_CHARACTER_LIMIT}
+                      />
+                      <div
+                        className={`absolute bottom-2 right-2 text-xs px-1 rounded ${
+                          profileData.bio.length > BIO_CHARACTER_LIMIT * 0.9
+                            ? "text-red-500 bg-red-50"
+                            : "text-gray-500 bg-white"
+                        }`}
+                      >
+                        {profileData.bio.length}/{BIO_CHARACTER_LIMIT}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Website */}
@@ -509,6 +520,26 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                     )}
                   </div>
 
+                  {/* Profile Success/Error Messages */}
+                  {profileMessage.text && (
+                    <div
+                      className={`p-4 rounded-lg flex items-center gap-2 ${
+                        profileMessage.type === "success"
+                          ? "bg-green-50 text-green-800 border border-green-200"
+                          : "bg-red-50 text-red-800 border border-red-200"
+                      }`}
+                    >
+                      {profileMessage.type === "success" ? (
+                        <Check className="w-5 h-5 flex-shrink-0" />
+                      ) : (
+                        <X className="w-5 h-5 flex-shrink-0" />
+                      )}
+                      <span className="text-sm lg:text-base">
+                        {profileMessage.text}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Save Button */}
                   <div className="flex justify-end pt-4">
                     <button
@@ -632,13 +663,33 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
                         {showConfirmPassword ? (
-                          <Eye className="w-4 h-5 lg:w-5 lg:h-5" />
+                          <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
                         ) : (
                           <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
                         )}
                       </button>
                     </div>
                   </div>
+
+                  {/* Password Success/Error Messages */}
+                  {passwordMessage.text && (
+                    <div
+                      className={`p-4 rounded-lg flex items-center gap-2 ${
+                        passwordMessage.type === "success"
+                          ? "bg-green-50 text-green-800 border border-green-200"
+                          : "bg-red-50 text-red-800 border border-red-200"
+                      }`}
+                    >
+                      {passwordMessage.type === "success" ? (
+                        <Check className="w-5 h-5 flex-shrink-0" />
+                      ) : (
+                        <X className="w-5 h-5 flex-shrink-0" />
+                      )}
+                      <span className="text-sm lg:text-base">
+                        {passwordMessage.text}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Save Button */}
                   <div className="flex justify-end pt-4">
