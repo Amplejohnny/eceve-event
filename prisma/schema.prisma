@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -66,7 +60,6 @@ model Event {
   tags         String[]
   category     String?
   imageUrl     String?
-  ticketTypes  Json // [{name: "Standard", price: 5000, available: 100, sold: 0}]
   maxAttendees Int?
   isPublic     Boolean     @default(true)
   status       EventStatus @default(ACTIVE)
@@ -78,23 +71,24 @@ model Event {
   organizerId String
   organizer   User   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
 
-  tickets   Ticket[]
-  favorites EventFavorite[]
-  payments  Payment[]
+  ticketTypes TicketType[]
+  tickets     Ticket[]
+  favorites   EventFavorite[]
+  payments    Payment[]
 
   @@index([organizerId])
   @@index([status])
   @@index([date])
   @@index([eventType])
   @@index([isPublic])
-  @@index([status, isPublic]) // Composite for "active public events"s
+  @@index([status, isPublic])
+  @@index([date, status]) // For filtering upcoming active events
   @@map("events")
 }
 
 model Ticket {
   id             String       @id @default(cuid())
-  ticketType     String // "Standard", "VIP", "Premium", etc.
-  price          Int // in kobo for Paystack (0 for free tickets)
+  price          Int // Price at time of purchase (historical tracking)
   quantity       Int          @default(1)
   attendeeName   String
   attendeeEmail  String
@@ -111,6 +105,9 @@ model Ticket {
   eventId String
   event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
+  ticketTypeId String
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id])
+
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -118,21 +115,41 @@ model Ticket {
   payment   Payment? @relation(fields: [paymentId], references: [id])
 
   @@index([eventId])
+  @@index([ticketTypeId])
   @@index([userId])
   @@index([status])
   @@index([attendeeEmail])
-  @@index([eventId, status]) // Composite for "active tickets for event"
+  @@index([eventId, status])
+  @@index([ticketTypeId, status]) // For counting sold tickets per type
   @@map("tickets")
+}
+
+model TicketType {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(100)
+  price     Int // Current price
+  quantity  Int // Total available
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  eventId String
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+
+  @@index([eventId])
+  @@index([eventId, price]) // For filtering by event and price
+  @@map("ticket_types")
 }
 
 model Payment {
   id              String        @id @default(cuid())
   paystackRef     String        @unique
-  amount          Int // total amount in kobo
+  amount          Int
   currency        String        @default("NGN")
   status          PaymentStatus @default(PENDING)
-  platformFee     Int // 20% commission in kobo
-  organizerAmount Int // 80% to organizer in kobo
+  platformFee     Int
+  organizerAmount Int
   paymentMethod   String?
   customerEmail   String
   metadata        Json?
@@ -147,6 +164,9 @@ model Payment {
 
   tickets Ticket[]
 
+  @@index([eventId]) // Added missing index
+  @@index([status]) // For filtering payments by status
+  @@index([customerEmail]) // For customer payment history
   @@map("payments")
 }
 
@@ -166,7 +186,7 @@ model EventFavorite {
 
 model Payout {
   id            String       @id @default(cuid())
-  amount        Int // amount in kobo
+  amount        Int
   status        PayoutStatus @default(PENDING)
   paystackRef   String?      @unique
   bankAccount   String?
@@ -183,6 +203,8 @@ model Payout {
   organizerId String
   organizer   User   @relation(fields: [organizerId], references: [id])
 
+  @@index([organizerId])
+  @@index([status])
   @@map("payouts")
 }
 
