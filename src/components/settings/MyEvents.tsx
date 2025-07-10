@@ -2,7 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Share2, Download, QrCode } from "lucide-react";
+import {
+  Share2,
+  Download,
+  QrCode,
+  Calendar,
+  MapPin,
+  Users,
+  Eye,
+  Edit,
+} from "lucide-react";
+
+interface TicketType {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  sold: number;
+  currentPrice?: number;
+}
 
 interface Event {
   id: string;
@@ -12,22 +30,40 @@ interface Event {
   venue?: string;
   imageUrl?: string;
   status: "DRAFT" | "ACTIVE" | "CANCELLED" | "COMPLETED" | "SUSPENDED";
-  ticketTypes: any[];
   slug: string;
+  ticketTypes: TicketType[];
+  totalTicketsSold: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface Payment {
+  id: string;
+  paystackRef: string;
+  status: string;
+  paidAt: string | null;
 }
 
 interface Ticket {
   id: string;
   eventId: string;
-  ticketType: string;
+  ticketType: {
+    id: string;
+    name: string;
+    currentPrice: number;
+  };
   price: number;
   quantity: number;
   attendeeName: string;
   attendeeEmail: string;
   attendeePhone?: string;
   confirmationId: string;
+  qrCode?: string;
+  notes?: string;
   status: "ACTIVE" | "CANCELLED" | "USED" | "REFUNDED";
+  usedAt: string | null;
   createdAt: string;
+  updatedAt: string;
   event: {
     id: string;
     title: string;
@@ -36,12 +72,28 @@ interface Ticket {
     venue?: string;
     imageUrl?: string;
     status: string;
+    slug: string;
   };
+  payment: Payment | null;
 }
 
 interface User {
   id: string;
   role: "VISITOR" | "USER" | "ORGANIZER" | "ADMIN";
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  data: {
+    tickets?: T[];
+    events?: T[];
+    pagination: {
+      total: number;
+      limit: number;
+      offset: number;
+      hasMore: boolean;
+    };
+  };
 }
 
 export default function MyEvents() {
@@ -53,6 +105,12 @@ export default function MyEvents() {
   const [tab, setTab] = useState<"myBookings" | "myEvents">("myBookings");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pagination, setPagination] = useState({
+    total: 0,
+    limit: 50,
+    offset: 0,
+    hasMore: false,
+  });
 
   useEffect(() => {
     fetchUserData();
@@ -61,10 +119,13 @@ export default function MyEvents() {
   useEffect(() => {
     if (tab === "myBookings") {
       fetchMyBookings();
-    } else if (tab === "myEvents" && user?.role === "ORGANIZER") {
+    } else if (
+      tab === "myEvents" &&
+      (user?.role === "ORGANIZER" || user?.role === "ADMIN")
+    ) {
       fetchMyEvents();
     }
-  }, [tab, user]);
+  }, [tab, user, filterStatus]);
 
   const fetchUserData = async () => {
     try {
@@ -81,14 +142,32 @@ export default function MyEvents() {
   const fetchMyBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/my-bookings");
+      setError(null);
+
+      const url = new URL("/api/my-bookings", window.location.origin);
+      if (filterStatus !== "all") {
+        url.searchParams.set("status", filterStatus);
+      }
+      url.searchParams.set("limit", pagination.limit.toString());
+      url.searchParams.set("offset", pagination.offset.toString());
+
+      const response = await fetch(url.toString());
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`
+        );
       }
 
-      const data = await response.json();
-      setTickets(data.tickets || []);
+      const data: ApiResponse<Ticket> = await response.json();
+
+      if (data.success) {
+        setTickets(data.data.tickets || []);
+        setPagination(data.data.pagination);
+      } else {
+        throw new Error("Failed to fetch bookings");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch bookings");
     } finally {
@@ -99,14 +178,32 @@ export default function MyEvents() {
   const fetchMyEvents = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/my-events");
+      setError(null);
+
+      const url = new URL("/api/my-events", window.location.origin);
+      if (filterStatus !== "all") {
+        url.searchParams.set("status", filterStatus);
+      }
+      url.searchParams.set("limit", pagination.limit.toString());
+      url.searchParams.set("offset", pagination.offset.toString());
+
+      const response = await fetch(url.toString());
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(
+          errorData.error || `HTTP error! status: ${response.status}`
+        );
       }
 
-      const data = await response.json();
-      setEvents(data.events || []);
+      const data: ApiResponse<Event> = await response.json();
+
+      if (data.success) {
+        setEvents(data.data.events || []);
+        setPagination(data.data.pagination);
+      } else {
+        throw new Error("Failed to fetch events");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch events");
     } finally {
@@ -119,6 +216,7 @@ export default function MyEvents() {
     const now = new Date();
 
     if (ticket.status === "CANCELLED") return "cancelled";
+    if (ticket.status === "REFUNDED") return "refunded";
     if (ticket.status === "USED") return "completed";
     if (eventDate < now) return "completed";
     return "upcoming";
@@ -130,8 +228,10 @@ export default function MyEvents() {
 
     if (event.status === "CANCELLED") return "cancelled";
     if (event.status === "COMPLETED") return "completed";
+    if (event.status === "SUSPENDED") return "suspended";
+    if (event.status === "DRAFT") return "draft";
     if (eventDate < now) return "completed";
-    return "upcoming";
+    return "active";
   };
 
   const filteredBookings = tickets
@@ -154,8 +254,7 @@ export default function MyEvents() {
   const handleShare = async (item: Event | Ticket) => {
     const isEvent = "title" in item;
     const title = isEvent ? item.title : item.event.title;
-    const id = isEvent ? item.id : item.event.id;
-    const slug = isEvent ? item.slug : item.event.id;
+    const slug = isEvent ? item.slug : item.event.slug;
 
     const shareData = {
       title: title,
@@ -185,11 +284,18 @@ export default function MyEvents() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "upcoming":
+      case "active":
         return "text-green-600 bg-green-50";
       case "completed":
         return "text-blue-600 bg-blue-50";
       case "cancelled":
         return "text-red-600 bg-red-50";
+      case "refunded":
+        return "text-orange-600 bg-orange-50";
+      case "suspended":
+        return "text-yellow-600 bg-yellow-50";
+      case "draft":
+        return "text-gray-600 bg-gray-50";
       default:
         return "text-gray-600 bg-gray-50";
     }
@@ -197,6 +303,26 @@ export default function MyEvents() {
 
   const formatPrice = (priceInKobo: number) => {
     return (priceInKobo / 100).toFixed(2);
+  };
+
+  const calculateRevenue = (event: Event) => {
+    return event.ticketTypes.reduce((total, ticketType) => {
+      return total + ticketType.sold * ticketType.price;
+    }, 0);
+  };
+
+  const getPaymentStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "success":
+      case "paid":
+        return "text-green-600 bg-green-50";
+      case "pending":
+        return "text-yellow-600 bg-yellow-50";
+      case "failed":
+        return "text-red-600 bg-red-50";
+      default:
+        return "text-gray-600 bg-gray-50";
+    }
   };
 
   if (loading) {
@@ -215,35 +341,53 @@ export default function MyEvents() {
     return (
       <div className="p-4 max-w-6xl mx-auto">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          Error: {error}
+          <h3 className="font-medium mb-2">Error loading data</h3>
+          <p>{error}</p>
+          <button
+            onClick={() =>
+              tab === "myBookings" ? fetchMyBookings() : fetchMyEvents()
+            }
+            className="mt-3 px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       <div className="p-4 sm:p-6 max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
+            <p className="text-gray-600 mt-1">
+              {tab === "myBookings"
+                ? "Manage your event bookings and tickets"
+                : "Manage your events and track performance"}
+            </p>
+          </div>
+
           {/* Tab Navigation */}
-          <div className="flex space-x-1 bg-gray-50 rounded-lg p-1">
+          <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm">
             <button
               onClick={() => setTab("myBookings")}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                 tab === "myBookings"
-                  ? "bg-white text-gray-900 shadow-sm"
+                  ? "bg-blue-600 text-white shadow-sm"
                   : "text-gray-600 hover:text-gray-900"
               }`}
             >
               My Bookings
             </button>
-            {user?.role === "ORGANIZER" && (
+            {(user?.role === "ORGANIZER" || user?.role === "ADMIN") && (
               <button
                 onClick={() => setTab("myEvents")}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                   tab === "myEvents"
-                    ? "bg-white text-gray-900 shadow-sm"
+                    ? "bg-blue-600 text-white shadow-sm"
                     : "text-gray-600 hover:text-gray-900"
                 }`}
               >
@@ -251,9 +395,11 @@ export default function MyEvents() {
               </button>
             )}
           </div>
+        </div>
 
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex gap-2">
             <select
               title="Filter by Status"
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -262,8 +408,18 @@ export default function MyEvents() {
             >
               <option value="all">All Status</option>
               <option value="upcoming">Upcoming</option>
+              <option value="active">Active</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
+              {tab === "myBookings" && (
+                <option value="refunded">Refunded</option>
+              )}
+              {tab === "myEvents" && (
+                <>
+                  <option value="draft">Draft</option>
+                  <option value="suspended">Suspended</option>
+                </>
+              )}
             </select>
             <select
               title="Sort by Date"
@@ -274,6 +430,13 @@ export default function MyEvents() {
               <option value="date">Sort by Date</option>
             </select>
           </div>
+
+          {/* Pagination Info */}
+          <div className="flex items-center text-sm text-gray-600">
+            Showing {pagination.offset + 1} -{" "}
+            {Math.min(pagination.offset + pagination.limit, pagination.total)}{" "}
+            of {pagination.total} results
+          </div>
         </div>
 
         {/* Content */}
@@ -281,8 +444,14 @@ export default function MyEvents() {
           {tab === "myBookings" ? (
             // My Bookings Content
             filteredBookings.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 text-lg">No bookings found</p>
+                <p className="text-gray-400 text-sm mt-2">
+                  {filterStatus !== "all"
+                    ? "Try adjusting your filters"
+                    : "Book your first event to get started"}
+                </p>
               </div>
             ) : (
               filteredBookings.map((ticket) => (
@@ -301,10 +470,8 @@ export default function MyEvents() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                            <span className="text-gray-400 text-xs">
-                              No Image
-                            </span>
+                          <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+                            <Calendar className="w-8 h-8 text-blue-300" />
                           </div>
                         )}
                       </div>
@@ -313,30 +480,53 @@ export default function MyEvents() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                           <div className="flex-1">
-                            <h2 className="font-semibold text-lg sm:text-xl text-gray-900 mb-1">
+                            <h2 className="font-semibold text-lg sm:text-xl text-gray-900 mb-2">
                               {ticket.event.title}
                             </h2>
-                            <p className="text-gray-600 mb-2">
-                              {format(
-                                new Date(ticket.event.date),
-                                "MMM dd, yyyy"
-                              )}
-                            </p>
-                            <p className="text-sm text-gray-500 mb-3">
-                              📍 {ticket.event.venue || ticket.event.location}
-                            </p>
-                            <div className="space-y-1">
-                              <p className="text-sm font-medium text-gray-900">
-                                {ticket.ticketType} - ₦
-                                {formatPrice(ticket.price)}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Booking ID: {ticket.confirmationId}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Quantity: {ticket.quantity}
-                              </p>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                {format(
+                                  new Date(ticket.event.date),
+                                  "MMM dd, yyyy"
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {ticket.event.venue || ticket.event.location}
+                              </div>
                             </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium text-gray-900">
+                                  {ticket.ticketType.name}
+                                </span>
+                                <p className="text-gray-600">
+                                  ₦{formatPrice(ticket.price)} ×{" "}
+                                  {ticket.quantity}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-900">
+                                  Total: ₦
+                                  {formatPrice(ticket.price * ticket.quantity)}
+                                </span>
+                                <p className="text-gray-600">
+                                  ID: {ticket.confirmationId}
+                                </p>
+                              </div>
+                            </div>
+                            {ticket.payment && (
+                              <div className="mt-2">
+                                <span
+                                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
+                                    ticket.payment.status
+                                  )}`}
+                                >
+                                  Payment: {ticket.payment.status}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Status Badge */}
@@ -361,11 +551,20 @@ export default function MyEvents() {
                             className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
                           >
                             <Download className="w-4 h-4" />
-                            Download PDF
+                            PDF
                           </button>
-                          <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <QrCode className="w-6 h-6 text-gray-400" />
-                          </div>
+                          <button
+                            onClick={() => handleShare(ticket)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            Share
+                          </button>
+                          {ticket.qrCode && (
+                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                              <QrCode className="w-5 h-5 text-gray-400" />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -374,10 +573,16 @@ export default function MyEvents() {
               ))
             )
           ) : // My Events Content (Only for Organizers)
-          user?.role === "ORGANIZER" ? (
+          user?.role === "ORGANIZER" || user?.role === "ADMIN" ? (
             filteredEvents.length === 0 ? (
-              <div className="text-center py-12">
+              <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 text-lg">No events found</p>
+                <p className="text-gray-400 text-sm mt-2">
+                  {filterStatus !== "all"
+                    ? "Try adjusting your filters"
+                    : "Create your first event to get started"}
+                </p>
               </div>
             ) : (
               filteredEvents.map((event) => (
@@ -396,10 +601,8 @@ export default function MyEvents() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                            <span className="text-gray-400 text-xs">
-                              No Image
-                            </span>
+                          <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+                            <Calendar className="w-8 h-8 text-blue-300" />
                           </div>
                         )}
                       </div>
@@ -408,19 +611,42 @@ export default function MyEvents() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                           <div className="flex-1">
-                            <h2 className="font-semibold text-lg sm:text-xl text-gray-900 mb-1">
+                            <h2 className="font-semibold text-lg sm:text-xl text-gray-900 mb-2">
                               {event.title}
                             </h2>
-                            <p className="text-gray-600 mb-2">
-                              {format(new Date(event.date), "MMM dd, yyyy")}
-                            </p>
-                            <p className="text-sm text-gray-500 mb-3">
-                              📍 {event.venue || event.location}
-                            </p>
-                            <div className="space-y-1">
-                              <p className="text-sm text-gray-600">
-                                {event.ticketTypes.length} ticket type(s)
-                              </p>
+                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-4 h-4" />
+                                {format(new Date(event.date), "MMM dd, yyyy")}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {event.venue || event.location}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium text-gray-900 flex items-center gap-1">
+                                  <Users className="w-4 h-4" />
+                                  {event.totalTicketsSold} sold
+                                </span>
+                                <p className="text-gray-600">
+                                  {event.ticketTypes.length} ticket type(s)
+                                </p>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-900">
+                                  Revenue: ₦
+                                  {formatPrice(calculateRevenue(event))}
+                                </span>
+                                <p className="text-gray-600">
+                                  Created:{" "}
+                                  {format(
+                                    new Date(event.createdAt),
+                                    "MMM dd, yyyy"
+                                  )}
+                                </p>
+                              </div>
                             </div>
                           </div>
 
@@ -442,30 +668,128 @@ export default function MyEvents() {
                       <div className="flex-shrink-0">
                         <div className="flex items-center gap-2">
                           <button
+                            onClick={() =>
+                              window.open(`/event/${event.slug}`, "_blank")
+                            }
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View
+                          </button>
+                          <button
                             onClick={() => handleShare(event)}
-                            className="flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
                           >
                             <Share2 className="w-4 h-4" />
                             Share
                           </button>
-                          <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <QrCode className="w-6 h-6 text-gray-400" />
-                          </div>
+                          <button
+                            onClick={() =>
+                              window.open(
+                                `/dashboard/events/${event.id}/edit`,
+                                "_blank"
+                              )
+                            }
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Edit
+                          </button>
                         </div>
                       </div>
                     </div>
+
+                    {/* Ticket Types Summary */}
+                    {event.ticketTypes.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-gray-100">
+                        <h4 className="text-sm font-medium text-gray-900 mb-2">
+                          Ticket Types
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {event.ticketTypes.map((ticketType) => (
+                            <div
+                              key={ticketType.id}
+                              className="bg-gray-50 rounded-lg p-3"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-sm text-gray-900">
+                                    {ticketType.name}
+                                  </p>
+                                  <p className="text-xs text-gray-600">
+                                    ₦{formatPrice(ticketType.price)}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-gray-600">
+                                    {ticketType.sold}/{ticketType.quantity}
+                                  </p>
+                                  <div className="w-12 bg-gray-200 rounded-full h-1.5 mt-1">
+                                    <div
+                                      className="bg-blue-600 h-1.5 rounded-full"
+                                      style={{
+                                        width: `${
+                                          (ticketType.sold /
+                                            ticketType.quantity) *
+                                          100
+                                        }%`,
+                                      }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
             )
           ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">
+            <div className="text-center py-12 bg-white rounded-lg shadow-sm">
+              <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-500 text-lg">Access Restricted</p>
+              <p className="text-gray-400 text-sm mt-2">
                 Only organizers can view this section
               </p>
             </div>
           )}
         </div>
+
+        {/* Pagination */}
+        {pagination.total > pagination.limit && (
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+            <button
+              onClick={() => {
+                const newOffset = Math.max(
+                  0,
+                  pagination.offset - pagination.limit
+                );
+                setPagination((prev) => ({ ...prev, offset: newOffset }));
+              }}
+              disabled={pagination.offset === 0}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-700">
+              Page {Math.floor(pagination.offset / pagination.limit) + 1} of{" "}
+              {Math.ceil(pagination.total / pagination.limit)}
+            </span>
+            <button
+              onClick={() => {
+                const newOffset = pagination.offset + pagination.limit;
+                setPagination((prev) => ({ ...prev, offset: newOffset }));
+              }}
+              disabled={!pagination.hasMore}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
