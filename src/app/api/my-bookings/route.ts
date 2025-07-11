@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
         id: true,
         emailVerified: true,
         isActive: true,
-        role: true,
       },
     });
 
@@ -148,10 +147,6 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         tickets: transformedTickets,
-        user: {
-          id: user.id,
-          role: user.role,
-        },
         pagination: {
           total: totalTickets,
           limit,
