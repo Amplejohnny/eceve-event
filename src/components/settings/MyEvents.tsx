@@ -123,7 +123,7 @@ export default function MyEvents() {
     );
   }
 
-  //to satisfy TypeScript, we need to check if session is defined
+  // Check if session is defined
   if (!session?.user) {
     return (
       <div className="p-4 max-w-6xl mx-auto">
@@ -141,23 +141,35 @@ export default function MyEvents() {
     | "ORGANIZER"
     | "ADMIN";
 
+  // Single useEffect for data fetching
   useEffect(() => {
-    if (tab === "myBookings") {
-      fetchMyBookings();
-    } else if (tab === "myEvents") {
-      fetchMyEvents();
-    }
+    const fetchData = async () => {
+      // Reset pagination when changing tabs or filters
+      const newPagination = { ...pagination, offset: 0 };
+      setPagination(newPagination);
+
+      if (tab === "myBookings") {
+        await fetchMyBookings(newPagination);
+      } else if (tab === "myEvents") {
+        await fetchMyEvents(newPagination);
+      }
+    };
+
+    fetchData();
   }, [tab, filterStatus]);
 
+  // Separate useEffect for pagination changes
   useEffect(() => {
-    if (tab === "myBookings") {
-      fetchMyBookings();
-    } else if (tab === "myEvents") {
-      fetchMyEvents();
+    if (pagination.offset > 0) {
+      if (tab === "myBookings") {
+        fetchMyBookings(pagination);
+      } else if (tab === "myEvents") {
+        fetchMyEvents(pagination);
+      }
     }
-  }, [tab, filterStatus, pagination.offset]);
+  }, [pagination.offset]);
 
-  const fetchMyBookings = async () => {
+  const fetchMyBookings = async (paginationData = pagination) => {
     try {
       setLoading(true);
       setError(null);
@@ -166,8 +178,8 @@ export default function MyEvents() {
       if (filterStatus !== "all") {
         url.searchParams.set("status", filterStatus);
       }
-      url.searchParams.set("limit", pagination.limit.toString());
-      url.searchParams.set("offset", pagination.offset.toString());
+      url.searchParams.set("limit", paginationData.limit.toString());
+      url.searchParams.set("offset", paginationData.offset.toString());
 
       const response = await fetch(url.toString());
 
@@ -193,7 +205,7 @@ export default function MyEvents() {
     }
   };
 
-  const fetchMyEvents = async () => {
+  const fetchMyEvents = async (paginationData = pagination) => {
     try {
       setLoading(true);
       setError(null);
@@ -202,8 +214,8 @@ export default function MyEvents() {
       if (filterStatus !== "all") {
         url.searchParams.set("status", filterStatus);
       }
-      url.searchParams.set("limit", pagination.limit.toString());
-      url.searchParams.set("offset", pagination.offset.toString());
+      url.searchParams.set("limit", paginationData.limit.toString());
+      url.searchParams.set("offset", paginationData.offset.toString());
 
       const response = await fetch(url.toString());
 
@@ -229,15 +241,32 @@ export default function MyEvents() {
     }
   };
 
-  // Simplified client-side sorting only (no filtering since it's done server-side)
-  const sortedBookings = [...tickets].sort(
-    (a, b) =>
-      new Date(a.event.date).getTime() - new Date(b.event.date).getTime()
-  );
+  // Helper function to get booking status for display
+  const getBookingStatusForDisplay = (ticket: Ticket) => {
+    return ticket.displayStatus; // Use server-computed status
+  };
 
-  const sortedEvents = [...events].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-  );
+  // Helper function to get event status for display
+  const getEventStatusForDisplay = (event: Event) => {
+    return event.displayStatus; // Use server-computed status
+  };
+
+  // Client-side sorting (since server already handles filtering)
+  const sortedBookings = [...tickets].sort((a, b) => {
+    if (sortBy === "date") {
+      return (
+        new Date(a.event.date).getTime() - new Date(b.event.date).getTime()
+      );
+    }
+    return 0;
+  });
+
+  const sortedEvents = [...events].sort((a, b) => {
+    if (sortBy === "date") {
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    }
+    return 0;
+  });
 
   const handleShare = async (item: Event | Ticket) => {
     const isEvent = "title" in item;
@@ -313,6 +342,15 @@ export default function MyEvents() {
     }
   };
 
+  const handleFilterChange = (newStatus: string) => {
+    setFilterStatus(newStatus);
+    setPagination((prev) => ({ ...prev, offset: 0 }));
+  };
+
+  const handlePaginationChange = (newOffset: number) => {
+    setPagination((prev) => ({ ...prev, offset: newOffset }));
+  };
+
   if (loading) {
     return (
       <div className="p-4 max-w-6xl mx-auto">
@@ -332,9 +370,13 @@ export default function MyEvents() {
           <h3 className="font-medium mb-2">Error loading data</h3>
           <p>{error}</p>
           <button
-            onClick={() =>
-              tab === "myBookings" ? fetchMyBookings() : fetchMyEvents()
-            }
+            onClick={() => {
+              if (tab === "myBookings") {
+                fetchMyBookings();
+              } else {
+                fetchMyEvents();
+              }
+            }}
             className="mt-3 px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
           >
             Try Again
@@ -356,7 +398,6 @@ export default function MyEvents() {
                 ? "Manage your event bookings and tickets"
                 : "Manage your events and track performance"}
             </p>
-
             <p className="text-sm text-gray-500 mt-1">
               Account: {userRole.toLowerCase().replace("_", " ")}
             </p>
@@ -396,7 +437,7 @@ export default function MyEvents() {
               title="Filter by Status"
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={(e) => handleFilterChange(e.target.value)}
             >
               <option value="all">All Status</option>
               <option value="upcoming">Upcoming</option>
@@ -417,7 +458,7 @@ export default function MyEvents() {
               title="Sort by Date"
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as "date")}
             >
               <option value="date">Sort by Date</option>
             </select>
@@ -568,7 +609,7 @@ export default function MyEvents() {
             )
           ) : // My Events Content (Only for Organizers)
           userRole === "ORGANIZER" || userRole === "ADMIN" ? (
-            filteredEvents.length === 0 ? (
+            sortedEvents.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg shadow-sm">
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 text-lg">No events found</p>
@@ -579,7 +620,7 @@ export default function MyEvents() {
                 </p>
               </div>
             ) : (
-              filteredEvents.map((event) => (
+              sortedEvents.map((event) => (
                 <div
                   key={event.id}
                   className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
