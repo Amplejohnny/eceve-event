@@ -142,7 +142,11 @@ export default function MyEvents() {
   useEffect(() => {
     if (tab === "myBookings") {
       fetchMyBookings();
-    } else if (tab === "myEvents") {
+    }
+  }, [tab, filterStatus]);
+
+  useEffect(() => {
+    if (tab === "myEvents") {
       fetchMyEvents();
     }
   }, [tab, filterStatus]);
@@ -184,8 +188,16 @@ export default function MyEvents() {
       } else {
         throw new Error("Failed to fetch bookings");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch bookings");
+    } catch (err: any) {
+      if (err instanceof TypeError) {
+        setError("Network error. Please check your connection.");
+      } else if (err.message.includes("403")) {
+        setError("You don't have permission to access this resource.");
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch bookings"
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -220,8 +232,16 @@ export default function MyEvents() {
       } else {
         throw new Error("Failed to fetch events");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch events");
+    } catch (err: any) {
+      if (err instanceof TypeError) {
+        setError("Network error. Please check your connection.");
+      } else if (err.message.includes("403")) {
+        setError("You don't have permission to access this resource.");
+      } else {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch bookings"
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -360,6 +380,7 @@ export default function MyEvents() {
           <h3 className="font-medium mb-2">Error loading data</h3>
           <p>{error}</p>
           <button
+            aria-label="Retry loading data"
             onClick={() =>
               tab === "myBookings" ? fetchMyBookings() : fetchMyEvents()
             }
@@ -393,6 +414,7 @@ export default function MyEvents() {
           {/* Tab Navigation */}
           <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm">
             <button
+              aria-label="My Bookings"
               onClick={() => setTab("myBookings")}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                 tab === "myBookings"
@@ -404,6 +426,7 @@ export default function MyEvents() {
             </button>
             {(userRole === "ORGANIZER" || userRole === "ADMIN") && (
               <button
+                aria-label="My Events"
                 onClick={() => setTab("myEvents")}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                   tab === "myEvents"
@@ -567,6 +590,7 @@ export default function MyEvents() {
                       <div className="flex-shrink-0">
                         <div className="flex items-center gap-2">
                           <button
+                            aria-label={`Download PDF for ${ticket.event.title}`}
                             onClick={() => handleDownloadPDF(ticket.id)}
                             className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
                           >
@@ -574,6 +598,7 @@ export default function MyEvents() {
                             PDF
                           </button>
                           <button
+                            aria-label={`Share ${ticket.event.title}`}
                             onClick={() => handleShare(ticket)}
                             className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
                           >
@@ -688,6 +713,7 @@ export default function MyEvents() {
                       <div className="flex-shrink-0">
                         <div className="flex items-center gap-2">
                           <button
+                            aria-label={`View ${event.title}`}
                             onClick={() =>
                               window.open(`/event/${event.slug}`, "_blank")
                             }
@@ -697,6 +723,7 @@ export default function MyEvents() {
                             View
                           </button>
                           <button
+                            aria-label={`Share ${event.title}`}
                             onClick={() => handleShare(event)}
                             className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
                           >
@@ -704,6 +731,7 @@ export default function MyEvents() {
                             Share
                           </button>
                           <button
+                            aria-label={`Edit ${event.title}`}
                             onClick={() =>
                               window.open(
                                 `/dashboard/events/${event.id}/edit`,
@@ -782,6 +810,7 @@ export default function MyEvents() {
         {pagination.total > pagination.limit && (
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
             <button
+              aria-label="Previous Page"
               onClick={() => {
                 const newOffset = Math.max(
                   0,
@@ -799,6 +828,7 @@ export default function MyEvents() {
               {Math.ceil(pagination.total / pagination.limit)}
             </span>
             <button
+              aria-label="Next Page"
               onClick={() => {
                 const newOffset = pagination.offset + pagination.limit;
                 setPagination((prev) => ({ ...prev, offset: newOffset }));
