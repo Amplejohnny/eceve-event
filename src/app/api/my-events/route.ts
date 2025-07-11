@@ -3,6 +3,18 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 
+// Helper function to get event status based on event data
+function getEventStatusForFiltering(event: any, currentDate: Date) {
+  const eventDate = new Date(event.date);
+
+  if (event.status === "CANCELLED") return "cancelled";
+  if (event.status === "COMPLETED") return "completed";
+  if (event.status === "SUSPENDED") return "suspended";
+  if (event.status === "DRAFT") return "draft";
+  if (eventDate < currentDate) return "completed";
+  return "active";
+}
+
 // GET - Fetch organizer's events
 export async function GET(request: NextRequest) {
   try {
@@ -58,13 +70,40 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Build where clause for filtering
+    // Build base where clause
     const whereClause: any = {
       organizerId: session.user.id,
     };
 
+    // Apply server-side filtering based on status
+    const currentDate = new Date();
+
     if (status && status !== "all") {
-      whereClause.status = status.toUpperCase();
+      switch (status) {
+        case "cancelled":
+          whereClause.status = "CANCELLED";
+          break;
+        case "completed":
+          whereClause.OR = [
+            { status: "COMPLETED" },
+            {
+              AND: [{ status: "ACTIVE" }, { date: { lt: currentDate } }],
+            },
+          ];
+          break;
+        case "suspended":
+          whereClause.status = "SUSPENDED";
+          break;
+        case "draft":
+          whereClause.status = "DRAFT";
+          break;
+        case "active":
+          whereClause.AND = [
+            { status: "ACTIVE" },
+            { date: { gte: currentDate } },
+          ];
+          break;
+      }
     }
 
     // Fetch organizer's events with proper relations
@@ -105,7 +144,7 @@ export async function GET(request: NextRequest) {
       skip: offset,
     });
 
-    // Get total count for pagination
+    // Get total count for pagination with same filtering
     const totalEvents = await db.event.count({
       where: whereClause,
     });
@@ -120,6 +159,8 @@ export async function GET(request: NextRequest) {
       imageUrl: event.imageUrl,
       status: event.status,
       slug: event.slug,
+      // Add computed display status to avoid client-side calculation
+      displayStatus: getEventStatusForFiltering(event, currentDate),
       ticketTypes: event.ticketTypes.map((ticketType) => ({
         id: ticketType.id,
         name: ticketType.name,

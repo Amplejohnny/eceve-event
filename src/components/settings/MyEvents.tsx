@@ -32,6 +32,7 @@ interface Event {
   imageUrl?: string;
   status: "DRAFT" | "ACTIVE" | "CANCELLED" | "COMPLETED" | "SUSPENDED";
   slug: string;
+  displayStatus: string; // Server-computed status
   ticketTypes: TicketType[];
   totalTicketsSold: number;
   createdAt: string;
@@ -62,6 +63,7 @@ interface Ticket {
   qrCode?: string;
   notes?: string;
   status: "ACTIVE" | "CANCELLED" | "USED" | "REFUNDED";
+  displayStatus: string; // Server-computed status
   usedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -142,11 +144,7 @@ export default function MyEvents() {
   useEffect(() => {
     if (tab === "myBookings") {
       fetchMyBookings();
-    }
-  }, [tab, filterStatus]);
-
-  useEffect(() => {
-    if (tab === "myEvents") {
+    } else if (tab === "myEvents") {
       fetchMyEvents();
     }
   }, [tab, filterStatus]);
@@ -188,16 +186,8 @@ export default function MyEvents() {
       } else {
         throw new Error("Failed to fetch bookings");
       }
-    } catch (err: any) {
-      if (err instanceof TypeError) {
-        setError("Network error. Please check your connection.");
-      } else if (err.message.includes("403")) {
-        setError("You don't have permission to access this resource.");
-      } else {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch bookings"
-        );
-      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch bookings");
     } finally {
       setLoading(false);
     }
@@ -232,60 +222,22 @@ export default function MyEvents() {
       } else {
         throw new Error("Failed to fetch events");
       }
-    } catch (err: any) {
-      if (err instanceof TypeError) {
-        setError("Network error. Please check your connection.");
-      } else if (err.message.includes("403")) {
-        setError("You don't have permission to access this resource.");
-      } else {
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch bookings"
-        );
-      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch events");
     } finally {
       setLoading(false);
     }
   };
 
-  const getBookingStatusForDisplay = (ticket: Ticket) => {
-    const eventDate = new Date(ticket.event.date);
-    const now = new Date();
+  // Simplified client-side sorting only (no filtering since it's done server-side)
+  const sortedBookings = [...tickets].sort(
+    (a, b) =>
+      new Date(a.event.date).getTime() - new Date(b.event.date).getTime()
+  );
 
-    if (ticket.status === "CANCELLED") return "cancelled";
-    if (ticket.status === "REFUNDED") return "refunded";
-    if (ticket.status === "USED") return "completed";
-    if (eventDate < now) return "completed";
-    return "upcoming";
-  };
-
-  const getEventStatusForDisplay = (event: Event) => {
-    const eventDate = new Date(event.date);
-    const now = new Date();
-
-    if (event.status === "CANCELLED") return "cancelled";
-    if (event.status === "COMPLETED") return "completed";
-    if (event.status === "SUSPENDED") return "suspended";
-    if (event.status === "DRAFT") return "draft";
-    if (eventDate < now) return "completed";
-    return "active";
-  };
-
-  const filteredBookings = tickets
-    .filter((ticket) => {
-      const displayStatus = getBookingStatusForDisplay(ticket);
-      return filterStatus === "all" || displayStatus === filterStatus;
-    })
-    .sort(
-      (a, b) =>
-        new Date(a.event.date).getTime() - new Date(b.event.date).getTime()
-    );
-
-  const filteredEvents = events
-    .filter((event) => {
-      const displayStatus = getEventStatusForDisplay(event);
-      return filterStatus === "all" || displayStatus === filterStatus;
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const sortedEvents = [...events].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
 
   const handleShare = async (item: Event | Ticket) => {
     const isEvent = "title" in item;
@@ -380,7 +332,6 @@ export default function MyEvents() {
           <h3 className="font-medium mb-2">Error loading data</h3>
           <p>{error}</p>
           <button
-            aria-label="Retry loading data"
             onClick={() =>
               tab === "myBookings" ? fetchMyBookings() : fetchMyEvents()
             }
@@ -414,7 +365,6 @@ export default function MyEvents() {
           {/* Tab Navigation */}
           <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm">
             <button
-              aria-label="My Bookings"
               onClick={() => setTab("myBookings")}
               className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                 tab === "myBookings"
@@ -426,7 +376,6 @@ export default function MyEvents() {
             </button>
             {(userRole === "ORGANIZER" || userRole === "ADMIN") && (
               <button
-                aria-label="My Events"
                 onClick={() => setTab("myEvents")}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                   tab === "myEvents"
@@ -486,7 +435,7 @@ export default function MyEvents() {
         <div className="space-y-4">
           {tab === "myBookings" ? (
             // My Bookings Content
-            filteredBookings.length === 0 ? (
+            sortedBookings.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg shadow-sm">
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 text-lg">No bookings found</p>
@@ -497,7 +446,7 @@ export default function MyEvents() {
                 </p>
               </div>
             ) : (
-              filteredBookings.map((ticket) => (
+              sortedBookings.map((ticket) => (
                 <div
                   key={ticket.id}
                   className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"

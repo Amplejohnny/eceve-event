@@ -3,6 +3,17 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 
+// Helper function to get booking status based on ticket and event data
+function getBookingStatusForFiltering(ticket: any, currentDate: Date) {
+  const eventDate = new Date(ticket.event.date);
+  
+  if (ticket.status === "CANCELLED") return "cancelled";
+  if (ticket.status === "REFUNDED") return "refunded";
+  if (ticket.status === "USED") return "completed";
+  if (eventDate < currentDate) return "completed";
+  return "upcoming";
+}
+
 // GET - Fetch user's bookings
 export async function GET(request: NextRequest) {
   try {
@@ -49,13 +60,40 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Build where clause for filtering
+    // Build base where clause
     const whereClause: any = {
       userId: session.user.id,
     };
 
+    // Apply server-side filtering based on status
+    const currentDate = new Date();
+    
     if (status && status !== "all") {
-      whereClause.status = status.toUpperCase();
+      switch (status) {
+        case "cancelled":
+          whereClause.status = "CANCELLED";
+          break;
+        case "refunded":
+          whereClause.status = "REFUNDED";
+          break;
+        case "completed":
+          whereClause.OR = [
+            { status: "USED" },
+            { 
+              AND: [
+                { status: "ACTIVE" },
+                { event: { date: { lt: currentDate } } }
+              ]
+            }
+          ];
+          break;
+        case "upcoming":
+          whereClause.AND = [
+            { status: "ACTIVE" },
+            { event: { date: { gte: currentDate } } }
+          ];
+          break;
+      }
     }
 
     // Fetch user's tickets with event and ticket type details
@@ -97,7 +135,7 @@ export async function GET(request: NextRequest) {
       skip: offset,
     });
 
-    // Get total count for pagination
+    // Get total count for pagination with same filtering
     const totalTickets = await db.ticket.count({
       where: whereClause,
     });
@@ -123,6 +161,8 @@ export async function GET(request: NextRequest) {
       usedAt: ticket.usedAt?.toISOString() || null,
       createdAt: ticket.createdAt.toISOString(),
       updatedAt: ticket.updatedAt.toISOString(),
+      // Add computed display status to avoid client-side calculation
+      displayStatus: getBookingStatusForFiltering(ticket, currentDate),
       event: {
         id: ticket.event.id,
         title: ticket.event.title,
