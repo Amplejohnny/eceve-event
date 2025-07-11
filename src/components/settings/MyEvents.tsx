@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { format } from "date-fns";
 import {
   Share2,
@@ -77,17 +78,11 @@ interface Ticket {
   payment: Payment | null;
 }
 
-interface User {
-  id: string;
-  role: "VISITOR" | "USER" | "ORGANIZER" | "ADMIN";
-}
-
 interface ApiResponse<T> {
   success: boolean;
   data: {
     tickets?: T[];
     events?: T[];
-    user?: User;
     pagination: {
       total: number;
       limit: number;
@@ -98,9 +93,9 @@ interface ApiResponse<T> {
 }
 
 export default function MyEvents() {
+  const { data: session, status } = useSession();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
-  const [user, setUser] = useState<User | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"date">("date");
   const [tab, setTab] = useState<"myBookings" | "myEvents">("myBookings");
@@ -113,10 +108,36 @@ export default function MyEvents() {
     hasMore: false,
   });
 
-  useEffect(() => {
-    if (user?.role === "ORGANIZER" || user?.role === "ADMIN") {
-    }
-  }, []);
+  // Show loading while session is loading
+  if (status === "loading") {
+    return (
+      <div className="p-4 max-w-6xl mx-auto">
+        <div className="animate-pulse space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-gray-200 h-32 rounded-lg"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  //to satisfy TypeScript, we need to check if session is defined
+  if (!session?.user) {
+    return (
+      <div className="p-4 max-w-6xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <h3 className="font-medium mb-2">Authentication Required</h3>
+          <p>Please log in to view your events and bookings.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const userRole = session.user.role as
+    | "VISITOR"
+    | "USER"
+    | "ORGANIZER"
+    | "ADMIN";
 
   useEffect(() => {
     if (tab === "myBookings") {
@@ -125,6 +146,14 @@ export default function MyEvents() {
       fetchMyEvents();
     }
   }, [tab, filterStatus]);
+
+  useEffect(() => {
+    if (tab === "myBookings") {
+      fetchMyBookings();
+    } else if (tab === "myEvents") {
+      fetchMyEvents();
+    }
+  }, [tab, filterStatus, pagination.offset]);
 
   const fetchMyBookings = async () => {
     try {
@@ -151,9 +180,6 @@ export default function MyEvents() {
 
       if (data.success) {
         setTickets(data.data.tickets || []);
-       if (data.data.user) {
-        setUser(data.data.user);
-      }
         setPagination(data.data.pagination);
       } else {
         throw new Error("Failed to fetch bookings");
@@ -190,9 +216,6 @@ export default function MyEvents() {
 
       if (data.success) {
         setEvents(data.data.events || []);
-       if (data.data.user) {
-        setUser(data.data.user);
-      }
         setPagination(data.data.pagination);
       } else {
         throw new Error("Failed to fetch events");
@@ -355,17 +378,16 @@ export default function MyEvents() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">My Records</h1>
+            <h1 className="text-2xl font-bold text-gray-900">History</h1>
             <p className="text-gray-600 mt-1">
               {tab === "myBookings"
                 ? "Manage your event bookings and tickets"
                 : "Manage your events and track performance"}
             </p>
-            {user && (
-              <p className="text-sm text-gray-500 mt-1">
-                Account: {user.role.toLowerCase().replace("_", " ")}
-              </p>
-            )}
+
+            <p className="text-sm text-gray-500 mt-1">
+              Account: {userRole.toLowerCase().replace("_", " ")}
+            </p>
           </div>
 
           {/* Tab Navigation */}
@@ -380,7 +402,7 @@ export default function MyEvents() {
             >
               My Bookings
             </button>
-            {(user?.role === "ORGANIZER" || user?.role === "ADMIN") && (
+            {(userRole === "ORGANIZER" || userRole === "ADMIN") && (
               <button
                 onClick={() => setTab("myEvents")}
                 className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
@@ -571,7 +593,7 @@ export default function MyEvents() {
               ))
             )
           ) : // My Events Content (Only for Organizers)
-          user?.role === "ORGANIZER" || user?.role === "ADMIN" ? (
+          userRole === "ORGANIZER" || userRole === "ADMIN" ? (
             filteredEvents.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg shadow-sm">
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />

@@ -44,6 +44,9 @@ const PROTECTED_API_ROUTES = [
   "/api/tickets",
   "/api/favorites",
   "/api/profile",
+  "/api/profile/password",
+  "/api/my-bookings",
+  "/api/my-events",
 ];
 
 const ORGANIZER_API_ROUTES = [
