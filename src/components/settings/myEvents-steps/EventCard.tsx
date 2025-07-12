@@ -1,5 +1,15 @@
 import { Calendar, MapPin, Users, Eye, Share2, Edit } from "lucide-react";
-import { formatDate, formatCurrency, getEventImageUrl } from "@/lib/utils";
+import {
+  formatDate,
+  formatCurrency,
+  getEventImageUrl,
+  getEventShareUrl,
+  getErrorMessage,
+  truncateText,
+  getRelativeTime,
+  isEventActive,
+  isEventPast,
+} from "@/lib/utils";
 
 interface TicketType {
   id: string;
@@ -60,7 +70,7 @@ const handleShare = async (event: Event) => {
   const shareData = {
     title: event.title,
     text: `Check out this event: ${event.title}`,
-    url: `${window.location.origin}/event/${event.slug}`,
+    url: getEventShareUrl(event.slug),
   };
 
   try {
@@ -71,7 +81,7 @@ const handleShare = async (event: Event) => {
       alert("Event link copied to clipboard!");
     }
   } catch (err) {
-    console.error("Error sharing:", err);
+    console.error("Error sharing:", getErrorMessage(err));
   }
 };
 
@@ -90,13 +100,26 @@ export default function EventCard({ event }: EventCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1">
-                <h2 className="font-semibold text-lg sm:text-xl text-gray-900 mb-2">
-                  {event.title}
+                <h2
+                  className="font-semibold text-lg sm:text-xl text-gray-900 mb-2"
+                  title={event.title}
+                >
+                  {truncateText(event.title, 60)}
                 </h2>
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    {formatDate(event.date, "MMM dd, yyyy")}
+                    <span
+                      className={
+                        isEventPast(event.date)
+                          ? "text-red-600"
+                          : isEventActive(event.date)
+                          ? "text-green-600"
+                          : ""
+                      }
+                    >
+                      {formatDate(event.date, "MMM dd, yyyy")}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
@@ -118,7 +141,7 @@ export default function EventCard({ event }: EventCardProps) {
                       Revenue: {formatCurrency(calculateRevenue(event))}
                     </span>
                     <p className="text-gray-600">
-                      Created: {formatDate(event.createdAt, "MMM dd, yyyy")}
+                      Created {getRelativeTime(event.createdAt)}
                     </p>
                   </div>
                 </div>

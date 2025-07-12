@@ -1,5 +1,13 @@
 import { Calendar, Download, MapPin, QrCode, Share2 } from "lucide-react";
-import { formatDate, formatCurrency, getEventImageUrl } from "@/lib/utils";
+import {
+  formatDate,
+  formatCurrency,
+  getEventImageUrl,
+  getEventShareUrl,
+  getErrorMessage,
+  truncateText,
+  getRelativeTime,
+} from "@/lib/utils";
 
 interface Ticket {
   id: string;
@@ -82,7 +90,7 @@ const handleShare = async (ticket: Ticket) => {
   const shareData = {
     title: ticket.event.title,
     text: `Check out this event: ${ticket.event.title}`,
-    url: `${window.location.origin}/event/${ticket.event.slug}`,
+    url: getEventShareUrl(ticket.event.slug),
   };
 
   try {
@@ -93,7 +101,7 @@ const handleShare = async (ticket: Ticket) => {
       alert("Event link copied to clipboard!");
     }
   } catch (err) {
-    console.error("Error sharing:", err);
+    console.error("Error sharing:", getErrorMessage(err));
   }
 };
 
@@ -119,8 +127,11 @@ export default function BookingCard({ ticket }: BookingCardProps) {
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="flex-1">
-                <h2 className="font-semibold text-lg sm:text-xl text-gray-900 mb-2">
-                  {ticket.event.title}
+                <h2
+                  className="font-semibold text-lg sm:text-xl text-gray-900 mb-2"
+                  title={ticket.event.title}
+                >
+                  {truncateText(ticket.event.title, 60)}
                 </h2>
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                   <div className="flex items-center gap-1">
@@ -145,7 +156,9 @@ export default function BookingCard({ ticket }: BookingCardProps) {
                     <span className="font-medium text-gray-900">
                       Total: {formatCurrency(ticket.price * ticket.quantity)}
                     </span>
-                    <p className="text-gray-600">ID: {ticket.confirmationId}</p>
+                    <p className="text-gray-600">
+                      Booked {getRelativeTime(ticket.createdAt)}
+                    </p>
                   </div>
                 </div>
                 {ticket.payment && (
