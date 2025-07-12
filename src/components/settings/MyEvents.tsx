@@ -146,7 +146,15 @@ export default function MyEvents() {
       }
     };
 
-    fetchData();
+    // Debounce the fetch operation
+    const timeoutId = setTimeout(() => {
+      fetchData();
+    }, 300);
+
+    // Cleanup function to cancel the timeout if dependencies change
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, [tab, filterStatus]);
 
   useEffect(() => {

@@ -1,5 +1,5 @@
-import { format } from "date-fns";
 import { Calendar, Download, MapPin, QrCode, Share2 } from "lucide-react";
+import { formatDate, formatCurrency, getEventImageUrl } from "@/lib/utils";
 
 interface Ticket {
   id: string;
@@ -78,10 +78,6 @@ const getPaymentStatusColor = (status: string) => {
   }
 };
 
-const formatPrice = (priceInKobo: number) => {
-  return (priceInKobo / 100).toFixed(2);
-};
-
 const handleShare = async (ticket: Ticket) => {
   const shareData = {
     title: ticket.event.title,
@@ -114,17 +110,11 @@ export default function BookingCard({ ticket }: BookingCardProps) {
       <div className="p-4 sm:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="w-full lg:w-24 h-48 lg:h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-            {ticket.event.imageUrl ? (
-              <img
-                src={ticket.event.imageUrl}
-                alt={ticket.event.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                <Calendar className="w-8 h-8 text-blue-300" />
-              </div>
-            )}
+            <img
+              src={getEventImageUrl(ticket.event.imageUrl)}
+              alt={ticket.event.title}
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -135,7 +125,7 @@ export default function BookingCard({ ticket }: BookingCardProps) {
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    {format(new Date(ticket.event.date), "MMM dd, yyyy")}
+                    {formatDate(ticket.event.date, "MMM dd, yyyy")}
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
@@ -148,12 +138,12 @@ export default function BookingCard({ ticket }: BookingCardProps) {
                       {ticket.ticketType.name}
                     </span>
                     <p className="text-gray-600">
-                      ₦{formatPrice(ticket.price)} × {ticket.quantity}
+                      {formatCurrency(ticket.price)} × {ticket.quantity}
                     </p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-900">
-                      Total: ₦{formatPrice(ticket.price * ticket.quantity)}
+                      Total: {formatCurrency(ticket.price * ticket.quantity)}
                     </span>
                     <p className="text-gray-600">ID: {ticket.confirmationId}</p>
                   </div>

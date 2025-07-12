@@ -1,5 +1,5 @@
-import { format } from "date-fns";
 import { Calendar, MapPin, Users, Eye, Share2, Edit } from "lucide-react";
+import { formatDate, formatCurrency, getEventImageUrl } from "@/lib/utils";
 
 interface TicketType {
   id: string;
@@ -50,10 +50,6 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const formatPrice = (priceInKobo: number) => {
-  return (priceInKobo / 100).toFixed(2);
-};
-
 const calculateRevenue = (event: Event) => {
   return event.ticketTypes.reduce((total, ticketType) => {
     return total + ticketType.sold * ticketType.price;
@@ -85,17 +81,11 @@ export default function EventCard({ event }: EventCardProps) {
       <div className="p-4 sm:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="w-full lg:w-24 h-48 lg:h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-            {event.imageUrl ? (
-              <img
-                src={event.imageUrl}
-                alt={event.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                <Calendar className="w-8 h-8 text-blue-300" />
-              </div>
-            )}
+            <img
+              src={getEventImageUrl(event.imageUrl)}
+              alt={event.title}
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -106,7 +96,7 @@ export default function EventCard({ event }: EventCardProps) {
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    {format(new Date(event.date), "MMM dd, yyyy")}
+                    {formatDate(event.date, "MMM dd, yyyy")}
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
@@ -125,11 +115,10 @@ export default function EventCard({ event }: EventCardProps) {
                   </div>
                   <div>
                     <span className="font-medium text-gray-900">
-                      Revenue: ₦{formatPrice(calculateRevenue(event))}
+                      Revenue: {formatCurrency(calculateRevenue(event))}
                     </span>
                     <p className="text-gray-600">
-                      Created:{" "}
-                      {format(new Date(event.createdAt), "MMM dd, yyyy")}
+                      Created: {formatDate(event.createdAt, "MMM dd, yyyy")}
                     </p>
                   </div>
                 </div>
@@ -189,7 +178,7 @@ export default function EventCard({ event }: EventCardProps) {
                         {ticketType.name}
                       </p>
                       <p className="text-xs text-gray-600">
-                        ₦{formatPrice(ticketType.price)}
+                        {formatCurrency(ticketType.price)}
                       </p>
                     </div>
                     <div className="text-right">

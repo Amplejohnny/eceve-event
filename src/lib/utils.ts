@@ -24,7 +24,7 @@ export function formatCurrency(
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: currency,
-    minimumFractionDigits: 0,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(nairaAmount);
 }
