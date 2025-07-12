@@ -2,17 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { format } from "date-fns";
-import {
-  Share2,
-  Download,
-  QrCode,
-  Calendar,
-  MapPin,
-  Users,
-  Eye,
-  Edit,
-} from "lucide-react";
+import Header from "@/components/settings/myEvents-steps/Header";
+import FilterBar from "@/components/settings/myEvents-steps/FilterBar";
+import BookingCard from "@/components/settings/myEvents-steps/BookingCard";
+import EventCard from "@/components/settings/myEvents-steps/EventCard";
+import PaginationControls from "@/components/settings/myEvents-steps/PaginationControls";
+import { Calendar, Users } from "lucide-react";
 
 interface TicketType {
   id: string;
@@ -32,7 +27,7 @@ interface Event {
   imageUrl?: string;
   status: "DRAFT" | "ACTIVE" | "CANCELLED" | "COMPLETED" | "SUSPENDED";
   slug: string;
-  displayStatus: string; // Server-computed status
+  displayStatus: string;
   ticketTypes: TicketType[];
   totalTicketsSold: number;
   createdAt: string;
@@ -63,7 +58,7 @@ interface Ticket {
   qrCode?: string;
   notes?: string;
   status: "ACTIVE" | "CANCELLED" | "USED" | "REFUNDED";
-  displayStatus: string; // Server-computed status
+  displayStatus: string;
   usedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -110,7 +105,6 @@ export default function MyEvents() {
     hasMore: false,
   });
 
-  // Show loading while session is loading
   if (status === "loading") {
     return (
       <div className="p-4 max-w-6xl mx-auto">
@@ -123,7 +117,6 @@ export default function MyEvents() {
     );
   }
 
-  // Check if session is defined
   if (!session?.user) {
     return (
       <div className="p-4 max-w-6xl mx-auto">
@@ -141,10 +134,8 @@ export default function MyEvents() {
     | "ORGANIZER"
     | "ADMIN";
 
-  // Single useEffect for data fetching
   useEffect(() => {
     const fetchData = async () => {
-      // Reset pagination when changing tabs or filters
       const newPagination = { ...pagination, offset: 0 };
       setPagination(newPagination);
 
@@ -158,7 +149,6 @@ export default function MyEvents() {
     fetchData();
   }, [tab, filterStatus]);
 
-  // Separate useEffect for pagination changes
   useEffect(() => {
     if (pagination.offset > 0) {
       if (tab === "myBookings") {
@@ -241,17 +231,6 @@ export default function MyEvents() {
     }
   };
 
-  // Helper function to get booking status for display
-  const getBookingStatusForDisplay = (ticket: Ticket) => {
-    return ticket.displayStatus; // Use server-computed status
-  };
-
-  // Helper function to get event status for display
-  const getEventStatusForDisplay = (event: Event) => {
-    return event.displayStatus; // Use server-computed status
-  };
-
-  // Client-side sorting (since server already handles filtering)
   const sortedBookings = [...tickets].sort((a, b) => {
     if (sortBy === "date") {
       return (
@@ -267,89 +246,6 @@ export default function MyEvents() {
     }
     return 0;
   });
-
-  const handleShare = async (item: Event | Ticket) => {
-    const isEvent = "title" in item;
-    const title = isEvent ? item.title : item.event.title;
-    const slug = isEvent ? item.slug : item.event.slug;
-
-    const shareData = {
-      title: title,
-      text: `Check out this event: ${title}`,
-      url: `${window.location.origin}/event/${slug}`,
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(shareData.url);
-        alert("Event link copied to clipboard!");
-      }
-    } catch (err) {
-      console.error("Error sharing:", err);
-    }
-  };
-
-  const handleDownloadPDF = (ticketId: string) => {
-    const link = document.createElement("a");
-    link.href = `/api/tickets/${ticketId}/pdf`;
-    link.download = `ticket-${ticketId}.pdf`;
-    link.click();
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "upcoming":
-      case "active":
-        return "text-green-600 bg-green-50";
-      case "completed":
-        return "text-blue-600 bg-blue-50";
-      case "cancelled":
-        return "text-red-600 bg-red-50";
-      case "refunded":
-        return "text-orange-600 bg-orange-50";
-      case "suspended":
-        return "text-yellow-600 bg-yellow-50";
-      case "draft":
-        return "text-gray-600 bg-gray-50";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
-  };
-
-  const formatPrice = (priceInKobo: number) => {
-    return (priceInKobo / 100).toFixed(2);
-  };
-
-  const calculateRevenue = (event: Event) => {
-    return event.ticketTypes.reduce((total, ticketType) => {
-      return total + ticketType.sold * ticketType.price;
-    }, 0);
-  };
-
-  const getPaymentStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "success":
-      case "paid":
-        return "text-green-600 bg-green-50";
-      case "pending":
-        return "text-yellow-600 bg-yellow-50";
-      case "failed":
-        return "text-red-600 bg-red-50";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
-  };
-
-  const handleFilterChange = (newStatus: string) => {
-    setFilterStatus(newStatus);
-    setPagination((prev) => ({ ...prev, offset: 0 }));
-  };
-
-  const handlePaginationChange = (newOffset: number) => {
-    setPagination((prev) => ({ ...prev, offset: newOffset }));
-  };
 
   if (loading) {
     return (
@@ -389,93 +285,17 @@ export default function MyEvents() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="p-4 sm:p-6 max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">History</h1>
-            <p className="text-gray-600 mt-1">
-              {tab === "myBookings"
-                ? "Manage your event bookings and tickets"
-                : "Manage your events and track performance"}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              Account: {userRole.toLowerCase().replace("_", " ")}
-            </p>
-          </div>
-
-          {/* Tab Navigation */}
-          <div className="flex space-x-1 bg-white rounded-lg p-1 shadow-sm">
-            <button
-              onClick={() => setTab("myBookings")}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                tab === "myBookings"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              My Bookings
-            </button>
-            {(userRole === "ORGANIZER" || userRole === "ADMIN") && (
-              <button
-                onClick={() => setTab("myEvents")}
-                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                  tab === "myEvents"
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                My Events
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex gap-2">
-            <select
-              title="Filter by Status"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={filterStatus}
-              onChange={(e) => handleFilterChange(e.target.value)}
-            >
-              <option value="all">All Status</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-              {tab === "myBookings" && (
-                <option value="refunded">Refunded</option>
-              )}
-              {tab === "myEvents" && (
-                <>
-                  <option value="draft">Draft</option>
-                  <option value="suspended">Suspended</option>
-                </>
-              )}
-            </select>
-            <select
-              title="Sort by Date"
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as "date")}
-            >
-              <option value="date">Sort by Date</option>
-            </select>
-          </div>
-
-          {/* Pagination Info */}
-          <div className="flex items-center text-sm text-gray-600">
-            Showing {pagination.offset + 1} -{" "}
-            {Math.min(pagination.offset + pagination.limit, pagination.total)}{" "}
-            of {pagination.total} results
-          </div>
-        </div>
-
-        {/* Content */}
+        <Header tab={tab} setTab={setTab} userRole={userRole} />
+        <FilterBar
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          sortBy={sortBy}
+          setSortBy={setSortBy}
+          tab={tab}
+          pagination={pagination}
+        />
         <div className="space-y-4">
           {tab === "myBookings" ? (
-            // My Bookings Content
             sortedBookings.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg shadow-sm">
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -488,127 +308,10 @@ export default function MyEvents() {
               </div>
             ) : (
               sortedBookings.map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-                >
-                  <div className="p-4 sm:p-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                      {/* Event Image */}
-                      <div className="w-full lg:w-24 h-48 lg:h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                        {ticket.event.imageUrl ? (
-                          <img
-                            src={ticket.event.imageUrl}
-                            alt={ticket.event.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                            <Calendar className="w-8 h-8 text-blue-300" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Event Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                          <div className="flex-1">
-                            <h2 className="font-semibold text-lg sm:text-xl text-gray-900 mb-2">
-                              {ticket.event.title}
-                            </h2>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {format(
-                                  new Date(ticket.event.date),
-                                  "MMM dd, yyyy"
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="w-4 h-4" />
-                                {ticket.event.venue || ticket.event.location}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="font-medium text-gray-900">
-                                  {ticket.ticketType.name}
-                                </span>
-                                <p className="text-gray-600">
-                                  ₦{formatPrice(ticket.price)} ×{" "}
-                                  {ticket.quantity}
-                                </p>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-900">
-                                  Total: ₦
-                                  {formatPrice(ticket.price * ticket.quantity)}
-                                </span>
-                                <p className="text-gray-600">
-                                  ID: {ticket.confirmationId}
-                                </p>
-                              </div>
-                            </div>
-                            {ticket.payment && (
-                              <div className="mt-2">
-                                <span
-                                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(
-                                    ticket.payment.status
-                                  )}`}
-                                >
-                                  Payment: {ticket.payment.status}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Status Badge */}
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                              getBookingStatusForDisplay(ticket)
-                            )}`}
-                          >
-                            {getBookingStatusForDisplay(ticket)
-                              .charAt(0)
-                              .toUpperCase() +
-                              getBookingStatusForDisplay(ticket).slice(1)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex-shrink-0">
-                        <div className="flex items-center gap-2">
-                          <button
-                            aria-label={`Download PDF for ${ticket.event.title}`}
-                            onClick={() => handleDownloadPDF(ticket.id)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
-                          >
-                            <Download className="w-4 h-4" />
-                            PDF
-                          </button>
-                          <button
-                            aria-label={`Share ${ticket.event.title}`}
-                            onClick={() => handleShare(ticket)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            Share
-                          </button>
-                          {ticket.qrCode && (
-                            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                              <QrCode className="w-5 h-5 text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <BookingCard key={ticket.id} ticket={ticket} />
               ))
             )
-          ) : // My Events Content (Only for Organizers)
-          userRole === "ORGANIZER" || userRole === "ADMIN" ? (
+          ) : userRole === "ORGANIZER" || userRole === "ADMIN" ? (
             sortedEvents.length === 0 ? (
               <div className="text-center py-12 bg-white rounded-lg shadow-sm">
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -621,168 +324,7 @@ export default function MyEvents() {
               </div>
             ) : (
               sortedEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow"
-                >
-                  <div className="p-4 sm:p-6">
-                    <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                      {/* Event Image */}
-                      <div className="w-full lg:w-24 h-48 lg:h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-                        {event.imageUrl ? (
-                          <img
-                            src={event.imageUrl}
-                            alt={event.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
-                            <Calendar className="w-8 h-8 text-blue-300" />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Event Details */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                          <div className="flex-1">
-                            <h2 className="font-semibold text-lg sm:text-xl text-gray-900 mb-2">
-                              {event.title}
-                            </h2>
-                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-4 h-4" />
-                                {format(new Date(event.date), "MMM dd, yyyy")}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <MapPin className="w-4 h-4" />
-                                {event.venue || event.location}
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <span className="font-medium text-gray-900 flex items-center gap-1">
-                                  <Users className="w-4 h-4" />
-                                  {event.totalTicketsSold} sold
-                                </span>
-                                <p className="text-gray-600">
-                                  {event.ticketTypes.length} ticket type(s)
-                                </p>
-                              </div>
-                              <div>
-                                <span className="font-medium text-gray-900">
-                                  Revenue: ₦
-                                  {formatPrice(calculateRevenue(event))}
-                                </span>
-                                <p className="text-gray-600">
-                                  Created:{" "}
-                                  {format(
-                                    new Date(event.createdAt),
-                                    "MMM dd, yyyy"
-                                  )}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Status Badge */}
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                              getEventStatusForDisplay(event)
-                            )}`}
-                          >
-                            {getEventStatusForDisplay(event)
-                              .charAt(0)
-                              .toUpperCase() +
-                              getEventStatusForDisplay(event).slice(1)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex-shrink-0">
-                        <div className="flex items-center gap-2">
-                          <button
-                            aria-label={`View ${event.title}`}
-                            onClick={() =>
-                              window.open(`/event/${event.slug}`, "_blank")
-                            }
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                            View
-                          </button>
-                          <button
-                            aria-label={`Share ${event.title}`}
-                            onClick={() => handleShare(event)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
-                          >
-                            <Share2 className="w-4 h-4" />
-                            Share
-                          </button>
-                          <button
-                            aria-label={`Edit ${event.title}`}
-                            onClick={() =>
-                              window.open(
-                                `/dashboard/events/${event.id}/edit`,
-                                "_blank"
-                              )
-                            }
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Ticket Types Summary */}
-                    {event.ticketTypes.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <h4 className="text-sm font-medium text-gray-900 mb-2">
-                          Ticket Types
-                        </h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {event.ticketTypes.map((ticketType) => (
-                            <div
-                              key={ticketType.id}
-                              className="bg-gray-50 rounded-lg p-3"
-                            >
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <p className="font-medium text-sm text-gray-900">
-                                    {ticketType.name}
-                                  </p>
-                                  <p className="text-xs text-gray-600">
-                                    ₦{formatPrice(ticketType.price)}
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs text-gray-600">
-                                    {ticketType.sold}/{ticketType.quantity}
-                                  </p>
-                                  <div className="w-12 bg-gray-200 rounded-full h-1.5 mt-1">
-                                    <div
-                                      className="bg-blue-600 h-1.5 rounded-full"
-                                      style={{
-                                        width: `${
-                                          (ticketType.sold /
-                                            ticketType.quantity) *
-                                          100
-                                        }%`,
-                                      }}
-                                    ></div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <EventCard key={event.id} event={event} />
               ))
             )
           ) : (
@@ -795,54 +337,11 @@ export default function MyEvents() {
             </div>
           )}
         </div>
-
-        {/* Pagination */}
         {pagination.total > pagination.limit && (
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
-            <button
-              aria-label="Previous Page"
-              onClick={() => {
-                const newOffset = Math.max(
-                  0,
-                  pagination.offset - pagination.limit
-                );
-                handlePaginationChange(newOffset);
-              }}
-              disabled={pagination.offset === 0}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Previous
-            </button>
-
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-700">
-                Page {Math.floor(pagination.offset / pagination.limit) + 1} of{" "}
-                {Math.ceil(pagination.total / pagination.limit)}
-              </span>
-
-              {/* Optional: Show current range */}
-              <span className="text-xs text-gray-500 hidden sm:inline">
-                ({pagination.offset + 1} -{" "}
-                {Math.min(
-                  pagination.offset + pagination.limit,
-                  pagination.total
-                )}{" "}
-                of {pagination.total})
-              </span>
-            </div>
-
-            <button
-              aria-label="Next Page"
-              onClick={() => {
-                const newOffset = pagination.offset + pagination.limit;
-                handlePaginationChange(newOffset);
-              }}
-              disabled={!pagination.hasMore}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-            </button>
-          </div>
+          <PaginationControls
+            pagination={pagination}
+            setPagination={setPagination}
+          />
         )}
       </div>
     </div>
