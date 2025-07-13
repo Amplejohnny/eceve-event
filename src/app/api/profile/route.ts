@@ -21,6 +21,22 @@ const profileUpdateSchema = z.object({
   image: z.string().optional(),
 });
 
+// Type for user data
+type UserData = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  image: string | null;
+  bio: string | null;
+  website: string | null;
+  location: string | null;
+  twitter: string | null;
+  instagram: string | null;
+  role: string;
+  emailVerified: Date | null;
+  isActive: boolean;
+};
+
 // GET - Fetch user profile
 export async function GET(request: NextRequest) {
   try {
@@ -77,7 +93,7 @@ export async function GET(request: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name || session.user.name || "",
-        image: user.image || session.user.image || "",
+        image: user.image || (session.user as { image?: string }).image || "",
         bio: user.bio || "",
         website: user.website || "",
         location: user.location || "",
@@ -191,7 +207,8 @@ export async function PUT(request: NextRequest) {
         id: updatedUser.id,
         email: updatedUser.email,
         name: updatedUser.name || session.user.name || "",
-        image: updatedUser.image || session.user.image || "",
+        image:
+          updatedUser.image || (session.user as { image?: string }).image || "",
         bio: updatedUser.bio || "",
         website: updatedUser.website || "",
         location: updatedUser.location || "",
@@ -241,9 +258,17 @@ export async function PATCH(request: NextRequest) {
       where: { id: session.user.id },
       select: {
         id: true,
+        email: true,
+        name: true,
+        image: true,
+        bio: true,
+        website: true,
+        location: true,
+        twitter: true,
+        instagram: true,
+        role: true,
         emailVerified: true,
         isActive: true,
-        role: true,
       },
     });
 
@@ -294,15 +319,30 @@ export async function PATCH(request: NextRequest) {
     // Update specific field
     const updatedUser = await updateUser(session.user.id, validatedData);
 
+    // Get the updated field value with proper type checking
+    let fieldValue = "";
+    if (field === "name") {
+      fieldValue = updatedUser.name || session.user.name || "";
+    } else if (field === "image") {
+      fieldValue =
+        updatedUser.image || (session.user as { image?: string }).image || "";
+    } else if (field === "bio") {
+      fieldValue = updatedUser.bio || "";
+    } else if (field === "website") {
+      fieldValue = updatedUser.website || "";
+    } else if (field === "location") {
+      fieldValue = updatedUser.location || "";
+    } else if (field === "twitter") {
+      fieldValue = updatedUser.twitter || "";
+    } else if (field === "instagram") {
+      fieldValue = updatedUser.instagram || "";
+    }
+
     return NextResponse.json({
       success: true,
       message: `${field} updated successfully`,
       data: {
-        [field]:
-          updatedUser[field as keyof typeof updatedUser] ||
-          (field === "name" && session.user.name) ||
-          (field === "image" && session.user.image) ||
-          "",
+        [field]: fieldValue,
       },
     });
   } catch (error) {
