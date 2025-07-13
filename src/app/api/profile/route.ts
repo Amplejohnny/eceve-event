@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Check if user is verified
+    // Get user data from database
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -70,20 +70,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Return user profile data
+    // Return user profile data with fallbacks to session data
     return NextResponse.json({
       success: true,
       data: {
         id: user.id,
         email: user.email,
-        name: user.name || "",
-        image: user.image || "",
+        name: user.name || session.user.name || "",
+        image: user.image || session.user.image || "",
         bio: user.bio || "",
         website: user.website || "",
         location: user.location || "",
         twitter: user.twitter || "",
         instagram: user.instagram || "",
-        role: user.role,
+        role: user.role || session.user.role || "USER",
       },
     });
   } catch (error) {
@@ -107,18 +107,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check if user is verified
+    // Get current user data
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       select: {
         id: true,
         email: true,
-        emailVerified: true,
-        isActive: true,
-        role: true,
+        name: true,
+        image: true,
+        bio: true,
         website: true,
+        location: true,
         twitter: true,
         instagram: true,
+        role: true,
+        emailVerified: true,
+        isActive: true,
       },
     });
 
@@ -146,11 +150,17 @@ export async function PUT(request: NextRequest) {
 
     // Check if user is trying to change to ORGANIZER role
     if (validatedData.role === "ORGANIZER" && user.role !== "ORGANIZER") {
-      // Check social proof requirements
+      // Check social proof requirements using both new data and existing data
       const socialProofs = [
-        validatedData.website || user.website,
-        validatedData.twitter || user.twitter,
-        validatedData.instagram || user.instagram,
+        validatedData.website !== undefined
+          ? validatedData.website
+          : user.website,
+        validatedData.twitter !== undefined
+          ? validatedData.twitter
+          : user.twitter,
+        validatedData.instagram !== undefined
+          ? validatedData.instagram
+          : user.instagram,
       ].filter(Boolean);
 
       if (socialProofs.length < 2) {
@@ -173,20 +183,21 @@ export async function PUT(request: NextRequest) {
     // Update user profile
     const updatedUser = await updateUser(session.user.id, validatedData);
 
+    // Return updated profile data with fallbacks
     return NextResponse.json({
       success: true,
       message: "Profile updated successfully",
       data: {
         id: updatedUser.id,
         email: updatedUser.email,
-        name: updatedUser.name || "",
-        image: updatedUser.image || "",
+        name: updatedUser.name || session.user.name || "",
+        image: updatedUser.image || session.user.image || "",
         bio: updatedUser.bio || "",
         website: updatedUser.website || "",
         location: updatedUser.location || "",
         twitter: updatedUser.twitter || "",
         instagram: updatedUser.instagram || "",
-        role: updatedUser.role,
+        role: updatedUser.role || session.user.role || "USER",
       },
     });
   } catch (error) {
@@ -213,6 +224,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
+// PATCH - Update specific profile field
 export async function PATCH(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -224,7 +236,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Check if user is verified
+    // Get current user data
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -286,7 +298,11 @@ export async function PATCH(request: NextRequest) {
       success: true,
       message: `${field} updated successfully`,
       data: {
-        [field]: updatedUser[field as keyof typeof updatedUser],
+        [field]:
+          updatedUser[field as keyof typeof updatedUser] ||
+          (field === "name" && session.user.name) ||
+          (field === "image" && session.user.image) ||
+          "",
       },
     });
   } catch (error) {

@@ -24,6 +24,7 @@ const passwordChangeSchema = z
     path: ["confirmPassword"],
   });
 
+// PUT - Change user password
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -35,7 +36,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Check if user is verified and get current password
+    // Get user data from database
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       select: {
@@ -53,21 +54,26 @@ export async function PUT(request: NextRequest) {
 
     if (!user.emailVerified) {
       return NextResponse.json(
-        { error: "Email verification required" },
+        {
+          error:
+            "Email verification required. Please verify your email before changing your password.",
+        },
         { status: 403 }
       );
     }
 
     if (!user.isActive) {
       return NextResponse.json(
-        { error: "Account is inactive" },
+        { error: "Account is inactive. Please contact support." },
         { status: 403 }
       );
     }
 
     if (!user.password) {
       return NextResponse.json(
-        { error: "User has no password set" },
+        {
+          error: "No password set. Please use social login or contact support.",
+        },
         { status: 400 }
       );
     }
@@ -105,6 +111,13 @@ export async function PUT(request: NextRequest) {
     // Update password
     await updateUserPassword(user.id, validatedData.newPassword);
 
+    // Log password change for security
+    console.log(
+      `Password changed for user: ${user.email} (ID: ${
+        user.id
+      }) at ${new Date().toISOString()}`
+    );
+
     return NextResponse.json({
       success: true,
       message: "Password updated successfully",
@@ -127,7 +140,7 @@ export async function PUT(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: "Failed to change password" },
+      { error: "Failed to change password. Please try again." },
       { status: 500 }
     );
   }
@@ -145,11 +158,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user is verified and get current password
+    // Get user data from database
     const user = await db.user.findUnique({
       where: { id: session.user.id },
       select: {
         id: true,
+        email: true,
         password: true,
         emailVerified: true,
         isActive: true,
@@ -198,6 +212,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       valid: isPasswordValid,
+      message: isPasswordValid ? "Password verified" : "Invalid password",
     });
   } catch (error) {
     console.error("Error verifying password:", error);
