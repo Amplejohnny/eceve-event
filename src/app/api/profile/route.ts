@@ -21,22 +21,6 @@ const profileUpdateSchema = z.object({
   image: z.string().optional(),
 });
 
-// Type for user data
-type UserData = {
-  id: string;
-  email: string | null;
-  name: string | null;
-  image: string | null;
-  bio: string | null;
-  website: string | null;
-  location: string | null;
-  twitter: string | null;
-  instagram: string | null;
-  role: string;
-  emailVerified: Date | null;
-  isActive: boolean;
-};
-
 // GET - Fetch user profile
 export async function GET(request: NextRequest) {
   try {

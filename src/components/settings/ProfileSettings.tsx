@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import {
   Camera,
@@ -11,7 +11,12 @@ import {
   X,
   User,
   Menu,
+  Globe,
+  MapPin,
 } from "lucide-react";
+import { RiTwitterXLine } from "react-icons/ri";
+import { PiInstagramLogo } from "react-icons/pi";
+import { isValidUrl, getErrorMessage, debounce } from "@/lib/utils";
 
 interface ProfileData {
   image: string;
@@ -24,18 +29,39 @@ interface ProfileData {
   role: string;
 }
 
+interface Message {
+  type: "success" | "error" | "";
+  text: string;
+}
+
+interface PasswordData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface ValidationErrors {
+  [key: string]: string;
+}
+
 const ProfileSettings: React.FC = () => {
   const { data: session, status } = useSession();
-  const [activeTab, setActiveTab] = useState("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [profileMessage, setProfileMessage] = useState({ type: "", text: "" });
-  const [passwordMessage, setPasswordMessage] = useState({
+  const [profileMessage, setProfileMessage] = useState<Message>({
     type: "",
     text: "",
   });
+  const [passwordMessage, setPasswordMessage] = useState<Message>({
+    type: "",
+    text: "",
+  });
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {}
+  );
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Profile form state - initialize with default values
@@ -51,7 +77,7 @@ const ProfileSettings: React.FC = () => {
   });
 
   // Password form state
-  const [passwordData, setPasswordData] = useState({
+  const [passwordData, setPasswordData] = useState<PasswordData>({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -59,6 +85,85 @@ const ProfileSettings: React.FC = () => {
 
   // Loading state for initial data fetch
   const [initialLoading, setInitialLoading] = useState(true);
+
+  // Field limits
+  const limits = {
+    bio: 500,
+    website: 100,
+    location: 100,
+    twitter: 50,
+    instagram: 50,
+  };
+
+  // Validation functions
+  const validateProfileData = useCallback((): ValidationErrors => {
+    const errors: ValidationErrors = {};
+
+    // Name validation
+    if (!profileData.name.trim()) {
+      errors.name = "Name is required";
+    } else if (profileData.name.length < 2) {
+      errors.name = "Name must be at least 2 characters";
+    }
+
+    // Website validation
+    if (profileData.website && !isValidUrl(profileData.website)) {
+      errors.website = "Please enter a valid website URL";
+    }
+
+    // Bio validation
+    if (profileData.bio.length > limits.bio) {
+      errors.bio = `Bio must not exceed ${limits.bio} characters`;
+    }
+
+    // Location validation
+    if (profileData.location.length > limits.location) {
+      errors.location = `Location must not exceed ${limits.location} characters`;
+    }
+
+    // Twitter validation
+    if (profileData.twitter.length > limits.twitter) {
+      errors.twitter = `Twitter handle must not exceed ${limits.twitter} characters`;
+    }
+
+    // Instagram validation
+    if (profileData.instagram.length > limits.instagram) {
+      errors.instagram = `Instagram handle must not exceed ${limits.instagram} characters`;
+    }
+
+    return errors;
+  }, [profileData, limits]);
+
+  const validatePasswordData = useCallback((): ValidationErrors => {
+    const errors: ValidationErrors = {};
+
+    if (!passwordData.currentPassword) {
+      errors.currentPassword = "Current password is required";
+    }
+
+    if (!passwordData.newPassword) {
+      errors.newPassword = "New password is required";
+    } else if (passwordData.newPassword.length < 8) {
+      errors.newPassword = "New password must be at least 8 characters";
+    }
+
+    if (!passwordData.confirmPassword) {
+      errors.confirmPassword = "Please confirm your new password";
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      errors.confirmPassword = "New passwords do not match";
+    }
+
+    return errors;
+  }, [passwordData]);
+
+  // Debounced validation
+  const debouncedValidateProfile = useCallback(
+    debounce(() => {
+      const errors = validateProfileData();
+      setValidationErrors(errors);
+    }, 300),
+    [validateProfileData]
+  );
 
   // Fetch user profile data when session is available
   useEffect(() => {
@@ -110,6 +215,13 @@ const ProfileSettings: React.FC = () => {
     }
   }, [session, status]);
 
+  // Trigger validation when profile data changes
+  useEffect(() => {
+    if (profileData.name || profileData.website || profileData.bio) {
+      debouncedValidateProfile();
+    }
+  }, [profileData, debouncedValidateProfile]);
+
   // Show loading state while checking authentication
   if (status === "loading" || initialLoading) {
     return (
@@ -137,7 +249,7 @@ const ProfileSettings: React.FC = () => {
   }
 
   // Check if user can save profile (for organizer role change)
-  const canSaveProfile = () => {
+  const canSaveProfile = (): boolean => {
     if (profileData.role === "ORGANIZER") {
       const socialProofs = [
         profileData.website,
@@ -146,11 +258,67 @@ const ProfileSettings: React.FC = () => {
       ].filter(Boolean);
       return socialProofs.length >= 2;
     }
-    return true;
+    return Object.keys(validateProfileData()).length === 0;
+  };
+
+  const getSocialProofCount = (): number => {
+    return [
+      profileData.website,
+      profileData.twitter,
+      profileData.instagram,
+    ].filter(Boolean).length;
+  };
+
+  const handleProfileInputChange = (
+    field: keyof ProfileData,
+    value: string
+  ) => {
+    setProfileData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    // Clear specific field error when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
+  };
+
+  const handlePasswordInputChange = (
+    field: keyof PasswordData,
+    value: string
+  ) => {
+    setPasswordData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
+    // Clear specific field error when user starts typing
+    if (validationErrors[field]) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [field]: "",
+      }));
+    }
   };
 
   const handleProfileSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Validate form
+    const errors = validateProfileData();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      setProfileMessage({
+        type: "error",
+        text: "Please fix the errors below before submitting.",
+      });
+      return;
+    }
+
     setIsLoading(true);
     setProfileMessage({ type: "", text: "" });
 
@@ -168,6 +336,7 @@ const ProfileSettings: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || "Failed to update profile");
       }
+
       setProfileMessage({
         type: "success",
         text: data.message || "Profile updated successfully!",
@@ -178,13 +347,13 @@ const ProfileSettings: React.FC = () => {
         ...prev,
         ...data.data,
       }));
+
+      // Clear validation errors on success
+      setValidationErrors({});
     } catch (error) {
       setProfileMessage({
         type: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Failed to update profile. Please try again.",
+        text: getErrorMessage(error),
       });
     } finally {
       setIsLoading(false);
@@ -193,17 +362,20 @@ const ProfileSettings: React.FC = () => {
 
   const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
-    setPasswordMessage({ type: "", text: "" });
 
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
+    // Validate form
+    const errors = validatePasswordData();
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
       setPasswordMessage({
         type: "error",
-        text: "New passwords do not match.",
+        text: "Please fix the errors below before submitting.",
       });
-      setIsLoading(false);
       return;
     }
+
+    setIsLoading(true);
+    setPasswordMessage({ type: "", text: "" });
 
     try {
       const response = await fetch("/api/profile/password", {
@@ -219,22 +391,24 @@ const ProfileSettings: React.FC = () => {
       if (!response.ok) {
         throw new Error(data.error || "Failed to update password");
       }
+
       setPasswordMessage({
         type: "success",
         text: data.message || "Password updated successfully!",
       });
+
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
+
+      // Clear validation errors on success
+      setValidationErrors({});
     } catch (error) {
       setPasswordMessage({
         type: "error",
-        text:
-          error instanceof Error
-            ? error.message
-            : "Failed to update password. Please try again.",
+        text: getErrorMessage(error),
       });
     } finally {
       setIsLoading(false);
@@ -253,40 +427,104 @@ const ProfileSettings: React.FC = () => {
         return;
       }
 
+      // Check file type
+      if (!file.type.startsWith("image/")) {
+        setProfileMessage({
+          type: "error",
+          text: "Please select a valid image file",
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
-        setProfileData((prev) => ({
-          ...prev,
-          image: e.target?.result as string,
-        }));
+        handleProfileInputChange("image", e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const getSocialProofCount = () => {
-    return [
-      profileData.website,
-      profileData.twitter,
-      profileData.instagram,
-    ].filter(Boolean).length;
-  };
-
   const handleTabChange = (tab: "profile" | "password") => {
     setActiveTab(tab);
     setIsMobileMenuOpen(false);
-    // Clear messages when switching tabs
+    // Clear messages and errors when switching tabs
     setProfileMessage({ type: "", text: "" });
     setPasswordMessage({ type: "", text: "" });
+    setValidationErrors({});
   };
 
-  const limits = {
-    bio: 500,
-    website: 100,
-    location: 100,
-    twitter: 50,
-    instagram: 50,
+  const togglePasswordVisibility = (field: "current" | "new" | "confirm") => {
+    switch (field) {
+      case "current":
+        setShowCurrentPassword(!showCurrentPassword);
+        break;
+      case "new":
+        setShowNewPassword(!showNewPassword);
+        break;
+      case "confirm":
+        setShowConfirmPassword(!showConfirmPassword);
+        break;
+    }
   };
+
+  const renderFieldError = (field: string) => {
+    if (validationErrors[field]) {
+      return (
+        <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+          <AlertCircle className="w-4 h-4" />
+          {validationErrors[field]}
+        </p>
+      );
+    }
+    return null;
+  };
+
+  const renderMessage = (message: Message) => {
+    if (!message.text) return null;
+
+    return (
+      <div
+        className={`p-4 rounded-lg flex items-center gap-2 ${
+          message.type === "success"
+            ? "bg-green-50 text-green-800 border border-green-200"
+            : "bg-red-50 text-red-800 border border-red-200"
+        }`}
+      >
+        {message.type === "success" ? (
+          <Check className="w-5 h-5 flex-shrink-0" />
+        ) : (
+          <X className="w-5 h-5 flex-shrink-0" />
+        )}
+        <span className="text-sm lg:text-base">{message.text}</span>
+      </div>
+    );
+  };
+
+  const renderInputWithIcon = (
+    type: string,
+    value: string,
+    onChange: (value: string) => void,
+    placeholder: string,
+    icon: React.ReactNode,
+    field: string,
+    maxLength?: number
+  ) => (
+    <div className="relative">
+      <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+        {icon}
+      </div>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full pl-10 pr-3 lg:pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base ${
+          validationErrors[field] ? "border-red-300" : "border-gray-300"
+        }`}
+        placeholder={placeholder}
+        maxLength={maxLength}
+      />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 lg:bg-white">
@@ -368,7 +606,7 @@ const ProfileSettings: React.FC = () => {
           <div className="hidden lg:block w-64 flex-shrink-0">
             <nav className="space-y-2">
               <button
-                onClick={() => setActiveTab("profile")}
+                onClick={() => handleTabChange("profile")}
                 className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-colors ${
                   activeTab === "profile"
                     ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
@@ -378,7 +616,7 @@ const ProfileSettings: React.FC = () => {
                 Account info
               </button>
               <button
-                onClick={() => setActiveTab("password")}
+                onClick={() => handleTabChange("password")}
                 className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-colors ${
                   activeTab === "password"
                     ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
@@ -439,20 +677,23 @@ const ProfileSettings: React.FC = () => {
                   {/* Name */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Name
+                      Name *
                     </label>
                     <input
                       type="text"
                       value={profileData.name}
                       onChange={(e) =>
-                        setProfileData((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
+                        handleProfileInputChange("name", e.target.value)
                       }
-                      className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
+                      className={`w-full px-3 lg:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base ${
+                        validationErrors.name
+                          ? "border-red-300"
+                          : "border-gray-300"
+                      }`}
                       placeholder="Enter your name"
+                      required
                     />
+                    {renderFieldError("name")}
                   </div>
 
                   {/* Bio */}
@@ -466,14 +707,15 @@ const ProfileSettings: React.FC = () => {
                         onChange={(e) => {
                           const newValue = e.target.value;
                           if (newValue.length <= limits.bio) {
-                            setProfileData((prev) => ({
-                              ...prev,
-                              bio: newValue,
-                            }));
+                            handleProfileInputChange("bio", newValue);
                           }
                         }}
                         rows={4}
-                        className="w-full px-3 lg:px-4 py-2 pb-6 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base resize-none"
+                        className={`w-full px-3 lg:px-4 py-2 pb-6 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base resize-none ${
+                          validationErrors.bio
+                            ? "border-red-300"
+                            : "border-gray-300"
+                        }`}
                         placeholder="Tell us about yourself"
                         maxLength={limits.bio}
                       />
@@ -487,6 +729,7 @@ const ProfileSettings: React.FC = () => {
                         {profileData.bio.length}/{limits.bio}
                       </div>
                     </div>
+                    {renderFieldError("bio")}
                   </div>
 
                   {/* Website */}
@@ -494,19 +737,16 @@ const ProfileSettings: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Website
                     </label>
-                    <input
-                      type="url"
-                      value={profileData.website}
-                      onChange={(e) =>
-                        setProfileData((prev) => ({
-                          ...prev,
-                          website: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
-                      placeholder="https://your-website.com"
-                      maxLength={limits.website}
-                    />
+                    {renderInputWithIcon(
+                      "url",
+                      profileData.website,
+                      (value) => handleProfileInputChange("website", value),
+                      "https://your-website.com",
+                      <Globe className="w-4 h-4" />,
+                      "website",
+                      limits.website
+                    )}
+                    {renderFieldError("website")}
                   </div>
 
                   {/* Location */}
@@ -514,19 +754,16 @@ const ProfileSettings: React.FC = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Address
                     </label>
-                    <input
-                      type="text"
-                      value={profileData.location}
-                      onChange={(e) =>
-                        setProfileData((prev) => ({
-                          ...prev,
-                          location: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
-                      placeholder="Your location"
-                      maxLength={limits.location}
-                    />
+                    {renderInputWithIcon(
+                      "text",
+                      profileData.location,
+                      (value) => handleProfileInputChange("location", value),
+                      "Your location",
+                      <MapPin className="w-4 h-4" />,
+                      "location",
+                      limits.location
+                    )}
+                    {renderFieldError("location")}
                   </div>
 
                   {/* Social Media */}
@@ -536,19 +773,16 @@ const ProfileSettings: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Twitter
                       </label>
-                      <input
-                        type="text"
-                        value={profileData.twitter}
-                        onChange={(e) =>
-                          setProfileData((prev) => ({
-                            ...prev,
-                            twitter: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
-                        placeholder="@yourusername"
-                        maxLength={limits.twitter}
-                      />
+                      {renderInputWithIcon(
+                        "text",
+                        profileData.twitter,
+                        (value) => handleProfileInputChange("twitter", value),
+                        "@yourusername",
+                        <RiTwitterXLine className="w-4 h-4" />,
+                        "twitter",
+                        limits.twitter
+                      )}
+                      {renderFieldError("twitter")}
                     </div>
 
                     {/* Instagram */}
@@ -556,19 +790,16 @@ const ProfileSettings: React.FC = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Instagram
                       </label>
-                      <input
-                        type="text"
-                        value={profileData.instagram}
-                        onChange={(e) =>
-                          setProfileData((prev) => ({
-                            ...prev,
-                            instagram: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
-                        placeholder="@yourusername"
-                        maxLength={limits.instagram}
-                      />
+                      {renderInputWithIcon(
+                        "text",
+                        profileData.instagram,
+                        (value) => handleProfileInputChange("instagram", value),
+                        "@yourusername",
+                        <PiInstagramLogo className="w-4 h-4" />,
+                        "instagram",
+                        limits.instagram
+                      )}
+                      {renderFieldError("instagram")}
                     </div>
                   </div>
 
@@ -584,10 +815,7 @@ const ProfileSettings: React.FC = () => {
                       id="role-select"
                       value={profileData.role}
                       onChange={(e) =>
-                        setProfileData((prev) => ({
-                          ...prev,
-                          role: e.target.value,
-                        }))
+                        handleProfileInputChange("role", e.target.value)
                       }
                       disabled={
                         profileData.role === "ORGANIZER" ||
@@ -626,24 +854,7 @@ const ProfileSettings: React.FC = () => {
                   </div>
 
                   {/* Profile Success/Error Messages */}
-                  {profileMessage.text && (
-                    <div
-                      className={`p-4 rounded-lg flex items-center gap-2 ${
-                        profileMessage.type === "success"
-                          ? "bg-green-50 text-green-800 border border-green-200"
-                          : "bg-red-50 text-red-800 border border-red-200"
-                      }`}
-                    >
-                      {profileMessage.type === "success" ? (
-                        <Check className="w-5 h-5 flex-shrink-0" />
-                      ) : (
-                        <X className="w-5 h-5 flex-shrink-0" />
-                      )}
-                      <span className="text-sm lg:text-base">
-                        {profileMessage.text}
-                      </span>
-                    </div>
-                  )}
+                  {renderMessage(profileMessage)}
 
                   {/* Save Button */}
                   <div className="flex justify-end pt-4">
@@ -676,135 +887,136 @@ const ProfileSettings: React.FC = () => {
                   {/* Current Password */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Current Password
+                      Current Password *
                     </label>
                     <div className="relative">
                       <input
                         type={showCurrentPassword ? "text" : "password"}
                         value={passwordData.currentPassword}
                         onChange={(e) =>
-                          setPasswordData((prev) => ({
-                            ...prev,
-                            currentPassword: e.target.value,
-                          }))
+                          handlePasswordInputChange(
+                            "currentPassword",
+                            e.target.value
+                          )
                         }
-                        className="w-full px-3 lg:px-4 py-2 pr-10 lg:pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
-                        placeholder="Enter current password"
+                        className={`w-full px-3 lg:px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base ${
+                          validationErrors.currentPassword
+                            ? "border-red-300"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="Enter your current password"
                         required
                       />
                       <button
                         type="button"
-                        onClick={() =>
-                          setShowCurrentPassword(!showCurrentPassword)
-                        }
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => togglePasswordVisibility("current")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         {showCurrentPassword ? (
-                          <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
-                        ) : (
                           <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
+                        ) : (
+                          <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
                         )}
                       </button>
                     </div>
+                    {renderFieldError("currentPassword")}
                   </div>
 
                   {/* New Password */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      New Password
+                      New Password *
                     </label>
                     <div className="relative">
                       <input
                         type={showNewPassword ? "text" : "password"}
                         value={passwordData.newPassword}
                         onChange={(e) =>
-                          setPasswordData((prev) => ({
-                            ...prev,
-                            newPassword: e.target.value,
-                          }))
+                          handlePasswordInputChange(
+                            "newPassword",
+                            e.target.value
+                          )
                         }
-                        className="w-full px-3 lg:px-4 py-2 pr-10 lg:pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
-                        placeholder="Enter new password"
+                        className={`w-full px-3 lg:px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base ${
+                          validationErrors.newPassword
+                            ? "border-red-300"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="Enter your new password"
                         required
                       />
                       <button
                         type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => togglePasswordVisibility("new")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         {showNewPassword ? (
-                          <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
-                        ) : (
                           <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
+                        ) : (
+                          <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
                         )}
                       </button>
                     </div>
+                    {renderFieldError("newPassword")}
+                    <div className="mt-2 text-xs lg:text-sm text-gray-500">
+                      Password must be at least 8 characters long
+                    </div>
                   </div>
 
-                  {/* Confirm Password */}
+                  {/* Confirm New Password */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Confirm New Password
+                      Confirm New Password *
                     </label>
                     <div className="relative">
                       <input
                         type={showConfirmPassword ? "text" : "password"}
                         value={passwordData.confirmPassword}
                         onChange={(e) =>
-                          setPasswordData((prev) => ({
-                            ...prev,
-                            confirmPassword: e.target.value,
-                          }))
+                          handlePasswordInputChange(
+                            "confirmPassword",
+                            e.target.value
+                          )
                         }
-                        className="w-full px-3 lg:px-4 py-2 pr-10 lg:pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base"
-                        placeholder="Confirm new password"
+                        className={`w-full px-3 lg:px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base ${
+                          validationErrors.confirmPassword
+                            ? "border-red-300"
+                            : "border-gray-300"
+                        }`}
+                        placeholder="Confirm your new password"
                         required
                       />
                       <button
                         type="button"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => togglePasswordVisibility("confirm")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         {showConfirmPassword ? (
-                          <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
-                        ) : (
                           <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
+                        ) : (
+                          <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
                         )}
                       </button>
                     </div>
+                    {renderFieldError("confirmPassword")}
                   </div>
 
                   {/* Password Success/Error Messages */}
-                  {passwordMessage.text && (
-                    <div
-                      className={`p-4 rounded-lg flex items-center gap-2 ${
-                        passwordMessage.type === "success"
-                          ? "bg-green-50 text-green-800 border border-green-200"
-                          : "bg-red-50 text-red-800 border border-red-200"
-                      }`}
-                    >
-                      {passwordMessage.type === "success" ? (
-                        <Check className="w-5 h-5 flex-shrink-0" />
-                      ) : (
-                        <X className="w-5 h-5 flex-shrink-0" />
-                      )}
-                      <span className="text-sm lg:text-base">
-                        {passwordMessage.text}
-                      </span>
-                    </div>
-                  )}
+                  {renderMessage(passwordMessage)}
 
                   {/* Save Button */}
                   <div className="flex justify-end pt-4">
                     <button
                       type="submit"
-                      disabled={isLoading}
-                      className={`w-full sm:w-auto px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-medium transition-colors text-sm lg:text-base ${
+                      disabled={
+                        isLoading ||
+                        Object.keys(validatePasswordData()).length > 0
+                      }
+                      className={`w-full sm:w-auto px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-medium transition-all text-sm lg:text-base ${
+                        Object.keys(validatePasswordData()).length === 0 &&
                         !isLoading
                           ? "bg-[#312c55] text-white hover:bg-black"
-                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
                       }`}
                     >
                       {isLoading ? "Updating..." : "Update Password"}
