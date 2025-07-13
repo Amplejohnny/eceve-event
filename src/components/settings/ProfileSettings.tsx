@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import {
   Camera,
   AlertCircle,
@@ -23,11 +24,8 @@ interface ProfileData {
   role: string;
 }
 
-interface ProfileSettingsProps {
-  initialData: ProfileData;
-}
-
-const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
+const ProfileSettings: React.FC = () => {
+  const { data: session, status } = useSession();
   const [activeTab, setActiveTab] = useState("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -40,8 +38,17 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
   });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Profile form state - initialize with the passed data
-  const [profileData, setProfileData] = useState(initialData);
+  // Profile form state - initialize with default values
+  const [profileData, setProfileData] = useState<ProfileData>({
+    image: "",
+    name: "",
+    bio: "",
+    website: "",
+    location: "",
+    twitter: "",
+    instagram: "",
+    role: "USER",
+  });
 
   // Password form state
   const [passwordData, setPasswordData] = useState({
@@ -49,6 +56,85 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
     newPassword: "",
     confirmPassword: "",
   });
+
+  // Loading state for initial data fetch
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Fetch user profile data when session is available
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!session?.user) return;
+
+      try {
+        setInitialLoading(true);
+        const response = await fetch("/api/profile");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch profile");
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          setProfileData({
+            image: data.data.image || "",
+            name: data.data.name || session.user.name || "",
+            bio: data.data.bio || "",
+            website: data.data.website || "",
+            location: data.data.location || "",
+            twitter: data.data.twitter || "",
+            instagram: data.data.instagram || "",
+            role: data.data.role || session.user.role || "USER",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching profile:", error);
+        // Set default values from session if API fails
+        setProfileData({
+          image: "",
+          name: session.user.name || "",
+          bio: "",
+          website: "",
+          location: "",
+          twitter: "",
+          instagram: "",
+          role: session.user.role || "USER",
+        });
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    if (status === "authenticated") {
+      fetchUserProfile();
+    }
+  }, [session, status]);
+
+  // Show loading state while checking authentication
+  if (status === "loading" || initialLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-pulse space-y-4 w-full max-w-2xl mx-auto p-4">
+          <div className="bg-gray-200 h-8 rounded-lg w-48"></div>
+          <div className="bg-gray-200 h-32 rounded-lg"></div>
+          <div className="bg-gray-200 h-10 rounded-lg"></div>
+          <div className="bg-gray-200 h-10 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if not authenticated
+  if (!session?.user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-700 max-w-md w-full">
+          <h3 className="font-medium mb-2">Authentication Required</h3>
+          <p>Please log in to access your profile settings.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Check if user can save profile (for organizer role change)
   const canSaveProfile = () => {
@@ -158,6 +244,15 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files && e.target.files[0];
     if (file) {
+      // Check file size (max 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        setProfileMessage({
+          type: "error",
+          text: "Image size must be less than 2MB",
+        });
+        return;
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
         setProfileData((prev) => ({
