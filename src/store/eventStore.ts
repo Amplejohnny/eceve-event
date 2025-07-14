@@ -335,8 +335,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
         })),
       };
 
-      // This would call your createEvent function from event.ts
-      const response = await fetch("/api/events", {
+      const response = await fetch("/api/events/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -380,7 +379,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
         status: formData.status,
       };
 
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetch(`/api/events/${eventId}/edit`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -389,7 +388,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update event");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update event");
       }
 
       const result = await response.json();
@@ -409,7 +409,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
     try {
       const response = await fetch(`/api/events/${eventId}`);
       if (!response.ok) {
-        throw new Error("Failed to load event");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to load event");
       }
 
       const event = await response.json();
