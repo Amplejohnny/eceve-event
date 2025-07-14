@@ -9,33 +9,22 @@ export interface TicketType {
 }
 
 export interface EventFormData {
-  // Step 1: Basic Info
   title: string;
   description: string;
   category: string;
   tags: string[];
   eventType: EventType;
-
-  // Step 2: Date & Time
   date: Date | null;
   endDate: Date | null;
-
-  // Step 3: Location
   location: string;
   venue: string;
   address: string;
   latitude?: number;
   longitude?: number;
-
-  // Step 4: Banner/Image
   bannerImage: File | null;
   imageUrl: string;
-
-  // Step 5: Ticketing
   ticketTypes: TicketType[];
   maxAttendees?: number;
-
-  // Additional settings
   isPublic: boolean;
   status: EventStatus;
   slug: string;
@@ -330,15 +319,14 @@ export const useEventStore = create<EventStore>((set, get) => ({
         title: formData.title,
         description: formData.description,
         eventType: formData.eventType,
-        date: formData.date!,
-        endDate: formData.endDate,
+        date: formData.date!.toISOString(),
+        endDate: formData.endDate?.toISOString(),
         location: formData.location,
         venue: formData.venue,
         address: formData.address,
         tags: formData.tags,
         category: formData.category,
         imageUrl: formData.imageUrl,
-        organizerId,
         slug: formData.slug,
         ticketTypes: formData.ticketTypes.map(({ id, ...ticket }) => ({
           name: ticket.name,
@@ -357,7 +345,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to create event");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to create event");
       }
 
       const result = await response.json();

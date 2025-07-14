@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions, resendVerificationEmail } from "@/lib/auth";
+import { resendVerificationEmail } from "@/lib/auth";
+import { authOptions } from "@/lib/auth-config";
 import { verifyPassword } from "@/lib/utils";
 import { db } from "@/lib/db";
 import { z } from "zod";
