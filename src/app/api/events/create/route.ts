@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { createEvent } from "@/lib/event";
+import { EventType } from "@/generated/prisma";
 import { z } from "zod";
 
 const createEventSchema = z.object({
   title: z.string().min(1, "Event title is required"),
   description: z.string().min(1, "Event description is required"),
-  eventType: z.enum(["FREE", "PAID"]),
+  eventType: z.nativeEnum(EventType),
   date: z.string().transform((str) => new Date(str)),
   endDate: z
     .string()
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     const validatedData = createEventSchema.parse(body);
 
     // Additional validation for paid events
-    if (validatedData.eventType === "PAID") {
+    if (validatedData.eventType === EventType.PAID) {
       const hasValidPaidTickets = validatedData.ticketTypes.some(
         (ticket) => ticket.price > 0
       );
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // For free events, ensure all ticket prices are 0
-    if (validatedData.eventType === "FREE") {
+    if (validatedData.eventType === EventType.FREE) {
       validatedData.ticketTypes = validatedData.ticketTypes.map((ticket) => ({
         ...ticket,
         price: 0,

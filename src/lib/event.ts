@@ -187,6 +187,9 @@ export async function updateEvent(
   });
 }
 
+//check if there are existing ticket sales here
+
+
 export async function deleteEvent(id: string) {
   return await db.event.delete({
     where: { id },
