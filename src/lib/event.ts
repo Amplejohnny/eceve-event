@@ -24,6 +24,14 @@ export async function getEvents(
           image: true,
         },
       },
+      ticketTypes: {
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          quantity: true,
+        },
+      },
       _count: {
         select: {
           tickets: true,
@@ -52,10 +60,24 @@ export async function getEventBySlug(slug: string) {
           instagram: true,
         },
       },
+      ticketTypes: {
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          quantity: true,
+        },
+      },
       tickets: {
         select: {
           id: true,
-          ticketType: true,
+          ticketType: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+            },
+          },
           attendeeName: true,
           attendeeEmail: true,
           status: true,
@@ -84,7 +106,18 @@ export async function getEventById(id: string) {
           image: true,
         },
       },
-      tickets: true,
+      ticketTypes: true,
+      tickets: {
+        include: {
+          ticketType: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+            },
+          },
+        },
+      },
       payments: true,
       _count: {
         select: {
@@ -110,15 +143,23 @@ export async function createEvent(data: {
   tags: string[];
   category?: string;
   imageUrl?: string;
-  ticketTypes: any[];
+  ticketTypes: Array<{
+    name: string;
+    price: number;
+    quantity: number;
+  }>;
   maxAttendees?: number;
   organizerId: string;
   slug: string;
 }) {
+  const { ticketTypes, ...eventData } = data;
+  
   return await db.event.create({
     data: {
-      ...data,
-      ticketTypes: data.ticketTypes as Prisma.InputJsonValue,
+      ...eventData,
+      ticketTypes: {
+        create: ticketTypes,
+      },
     },
     include: {
       organizer: {
@@ -128,6 +169,7 @@ export async function createEvent(data: {
           email: true,
         },
       },
+      ticketTypes: true,
     },
   });
 }
@@ -139,6 +181,9 @@ export async function updateEvent(
   return await db.event.update({
     where: { id },
     data,
+    include: {
+      ticketTypes: true,
+    },
   });
 }
 
@@ -148,9 +193,56 @@ export async function deleteEvent(id: string) {
   });
 }
 
+// Ticket Type functions
+export async function createTicketType(data: {
+  name: string;
+  price: number;
+  quantity: number;
+  eventId: string;
+}) {
+  return await db.ticketType.create({
+    data,
+  });
+}
+
+export async function updateTicketType(
+  id: string,
+  data: Prisma.TicketTypeUpdateInput
+) {
+  return await db.ticketType.update({
+    where: { id },
+    data,
+  });
+}
+
+export async function deleteTicketType(id: string) {
+  return await db.ticketType.delete({
+    where: { id },
+  });
+}
+
+export async function getTicketTypeById(id: string) {
+  return await db.ticketType.findUnique({
+    where: { id },
+    include: {
+      event: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+      _count: {
+        select: {
+          tickets: true,
+        },
+      },
+    },
+  });
+}
+
 // Ticket database functions
 export async function createTicket(data: {
-  ticketType: string;
+  ticketTypeId: string;
   price: number;
   quantity: number;
   attendeeName: string;
@@ -178,6 +270,13 @@ export async function createTicket(data: {
           },
         },
       },
+      ticketType: {
+        select: {
+          id: true,
+          name: true,
+          price: true,
+        },
+      },
     },
   });
 }
@@ -194,6 +293,13 @@ export async function getTicketByConfirmationId(confirmationId: string) {
               email: true,
             },
           },
+        },
+      },
+      ticketType: {
+        select: {
+          id: true,
+          name: true,
+          price: true,
         },
       },
     },
@@ -234,7 +340,7 @@ export async function toggleEventFavorite(userId: string, eventId: string) {
 
 // Analytics functions
 export async function getEventAnalytics(eventId: string) {
-  const [ticketsSold, totalRevenue, ticketTypes] = await Promise.all([
+  const [ticketsSold, totalRevenue, ticketTypeStats] = await Promise.all([
     db.ticket.count({
       where: { eventId, status: "ACTIVE" },
     }),
@@ -243,16 +349,73 @@ export async function getEventAnalytics(eventId: string) {
       _sum: { price: true },
     }),
     db.ticket.groupBy({
-      by: ["ticketType"],
+      by: ["ticketTypeId"],
       where: { eventId, status: "ACTIVE" },
-      _count: { ticketType: true },
+      _count: { ticketTypeId: true },
       _sum: { price: true },
     }),
   ]);
+
+  // Get ticket type details for the stats
+  const ticketTypeDetails = await db.ticketType.findMany({
+    where: { eventId },
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      quantity: true,
+    },
+  });
+
+  // Combine ticket type stats with details
+  const ticketTypes = ticketTypeStats.map(stat => {
+    const ticketType = ticketTypeDetails.find(t => t.id === stat.ticketTypeId);
+    return {
+      id: stat.ticketTypeId,
+      name: ticketType?.name || 'Unknown',
+      price: ticketType?.price || 0,
+      totalQuantity: ticketType?.quantity || 0,
+      soldCount: stat._count.ticketTypeId,
+      revenue: stat._sum.price || 0,
+    };
+  });
 
   return {
     ticketsSold,
     totalRevenue: totalRevenue._sum.price || 0,
     ticketTypes,
   };
+}
+
+// Additional utility functions
+export async function getAvailableTicketTypes(eventId: string) {
+  const ticketTypes = await db.ticketType.findMany({
+    where: { eventId },
+    include: {
+      _count: {
+        select: {
+          tickets: {
+            where: {
+              status: "ACTIVE",
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return ticketTypes.map(ticketType => ({
+    ...ticketType,
+    available: ticketType.quantity - ticketType._count.tickets,
+    soldOut: ticketType.quantity <= ticketType._count.tickets,
+  }));
+}
+
+export async function getTicketsSoldCount(ticketTypeId: string) {
+  return await db.ticket.count({
+    where: {
+      ticketTypeId,
+      status: "ACTIVE",
+    },
+  });
 }
