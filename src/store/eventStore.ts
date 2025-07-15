@@ -26,7 +26,6 @@ export interface EventFormData {
   bannerImage: File | null;
   imageUrl: string;
   ticketTypes: TicketType[];
-  maxAttendees?: number;
   isPublic: boolean;
   status: EventStatus;
   slug: string;
@@ -451,7 +450,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
         eventType: formData.eventType,
         date: formData.date!.toISOString(),
         startTime: formData.startTime,
-        endTime: formData.endTime,
+        endTime: formData.endTime || undefined, // Only send if provided
         endDate: formData.endDate?.toISOString(),
         location: formData.location,
         venue: formData.venue,
@@ -460,8 +459,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         category: formData.category,
         imageUrl: formData.imageUrl,
         slug: formData.slug,
-        isPublic: formData.isPublic,
-        status: formData.status,
         ticketTypes: formData.ticketTypes.map(({ id, ...ticket }) => ({
           name: ticket.name,
           price: ticket.price,
@@ -501,10 +498,10 @@ export const useEventStore = create<EventStore>((set, get) => ({
         title: formData.title,
         description: formData.description,
         eventType: formData.eventType,
-        date: formData.date!,
+        date: formData.date!.toISOString(),
         startTime: formData.startTime,
-        endTime: formData.endTime,
-        endDate: formData.endDate,
+        endTime: formData.endTime || undefined,
+        endDate: formData.endDate?.toISOString(),
         location: formData.location,
         venue: formData.venue,
         address: formData.address,
@@ -532,6 +529,43 @@ export const useEventStore = create<EventStore>((set, get) => ({
       return result;
     } catch (error) {
       console.error("Error updating event:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  },
+
+  updateEventTickets: async (eventId: string) => {
+    const { formData, setLoading } = get();
+    setLoading(true);
+
+    try {
+      const ticketData = {
+        ticketTypes: formData.ticketTypes.map((ticket) => ({
+          id: ticket.id === "default" ? undefined : ticket.id, // Don't send 'default' id for new tickets
+          name: ticket.name,
+          price: ticket.price,
+          quantity: ticket.quantity,
+        })),
+      };
+
+      const response = await fetch(`/api/events/${eventId}/ticket-type`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(ticketData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update event tickets");
+      }
+
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error("Error updating event tickets:", error);
       throw error;
     } finally {
       setLoading(false);

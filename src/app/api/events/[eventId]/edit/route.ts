@@ -17,6 +17,8 @@ const updateEventSchema = z.object({
     .string()
     .optional()
     .transform((str) => (str ? new Date(str) : undefined)),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
   location: z.string().min(1, "Event location is required").optional(),
   venue: z.string().optional(),
   address: z.string().optional(),
@@ -27,8 +29,6 @@ const updateEventSchema = z.object({
   imageUrl: z.string().optional(),
   isPublic: z.boolean().optional(),
   status: z.nativeEnum(EventStatus).optional(),
-  // Note: We typically don't update ticketTypes or slug through this endpoint
-  // Those might need separate endpoints for safety
 });
 
 export async function PUT(
@@ -74,12 +74,47 @@ export async function PUT(
       );
     }
 
+    // Validate start time and end time
+    if (validatedData.startTime && validatedData.endTime) {
+      // Basic time format validation (HH:MM)
+      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+      if (!timeRegex.test(validatedData.startTime)) {
+        return NextResponse.json(
+          { error: "Invalid start time format. Use HH:MM format" },
+          { status: 400 }
+        );
+      }
+
+      if (!timeRegex.test(validatedData.endTime)) {
+        return NextResponse.json(
+          { error: "Invalid end time format. Use HH:MM format" },
+          { status: 400 }
+        );
+      }
+
+      // Check if end time is after start time (on the same day)
+      const [startHour, startMinute] = validatedData.startTime
+        .split(":")
+        .map(Number);
+      const [endHour, endMinute] = validatedData.endTime.split(":").map(Number);
+
+      const startTimeMinutes = startHour * 60 + startMinute;
+      const endTimeMinutes = endHour * 60 + endMinute;
+
+      if (endTimeMinutes <= startTimeMinutes) {
+        return NextResponse.json(
+          { error: "End time must be after start time" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Prevent changing event type if there are existing ticket sales
     if (
       validatedData.eventType &&
       validatedData.eventType !== existingEvent.eventType
     ) {
-      //   You might want to check if there are existing ticket sales here
       const hasTicketSales = await checkTicketSales(eventId);
       if (hasTicketSales) {
         return NextResponse.json(
@@ -97,6 +132,8 @@ export async function PUT(
       ...(validatedData.endDate !== undefined && {
         endDate: validatedData.endDate,
       }),
+      ...(validatedData.startTime && { startTime: validatedData.startTime }),
+      ...(validatedData.endTime && { endTime: validatedData.endTime }),
     });
 
     return NextResponse.json(updatedEvent, { status: 200 });

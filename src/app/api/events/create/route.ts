@@ -14,6 +14,8 @@ const createEventSchema = z.object({
     .string()
     .optional()
     .transform((str) => (str ? new Date(str) : undefined)),
+  startTime: z.string().min(1, "Start time is required"),
+  endTime: z.string().optional(),
   location: z.string().min(1, "Event location is required"),
   venue: z.string().optional(),
   address: z.string().optional(),
@@ -31,7 +33,6 @@ const createEventSchema = z.object({
       })
     )
     .min(1, "At least one ticket type is required"),
-  maxAttendees: z.number().optional(),
   slug: z.string().min(1, "Event slug is required"),
 });
 
@@ -84,6 +85,46 @@ export async function POST(request: NextRequest) {
         { error: "End date cannot be before start date" },
         { status: 400 }
       );
+    }
+
+    // Validate start time and end time
+    if (validatedData.startTime) {
+      // Basic time format validation (HH:MM)
+      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+      if (!timeRegex.test(validatedData.startTime)) {
+        return NextResponse.json(
+          { error: "Invalid start time format. Use HH:MM format" },
+          { status: 400 }
+        );
+      }
+
+      if (validatedData.endTime) {
+        if (!timeRegex.test(validatedData.endTime)) {
+          return NextResponse.json(
+            { error: "Invalid end time format. Use HH:MM format" },
+            { status: 400 }
+          );
+        }
+
+        // Check if end time is after start time (on the same day)
+        const [startHour, startMinute] = validatedData.startTime
+          .split(":")
+          .map(Number);
+        const [endHour, endMinute] = validatedData.endTime
+          .split(":")
+          .map(Number);
+
+        const startTimeMinutes = startHour * 60 + startMinute;
+        const endTimeMinutes = endHour * 60 + endMinute;
+
+        if (endTimeMinutes <= startTimeMinutes) {
+          return NextResponse.json(
+            { error: "End time must be after start time" },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Use the event library function
