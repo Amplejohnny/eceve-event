@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { EventType, EventStatus } from "../generated/prisma";
+import { EventType, EventStatus } from "@/generated/prisma";
 
 export interface TicketType {
   id: string;
@@ -313,8 +313,31 @@ export const useEventStore = create<EventStore>((set, get) => ({
         break;
 
       case 2: // Banner Step
-        // Banner image is optional, so this step is always valid
-        // But we could add validation for image format/size if needed
+        // Banner image validation for event cover/banner
+        if (formData.bannerImage) {
+          const allowedTypes = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/webp",
+          ];
+          const maxSize = 5 * 1024 * 1024; // 5MB
+
+          // Check file type
+          if (!allowedTypes.includes(formData.bannerImage.type)) {
+            setError(
+              "bannerImage",
+              "Image must be in JPEG, PNG, or WebP format"
+            );
+            return false;
+          }
+
+          // Check file size
+          if (formData.bannerImage.size > maxSize) {
+            setError("bannerImage", "Image size must be less than 5MB");
+            return false;
+          }
+        }
         break;
 
       case 3: // Ticketing Step
@@ -356,7 +379,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         break;
 
       case 4: // Review Step
-        // Review step validates all previous steps
         return (
           get().validateStep(1) &&
           get().validateStep(2) &&
