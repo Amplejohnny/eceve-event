@@ -1,5 +1,6 @@
 import { db } from "./db";
-import { PrismaClient, Prisma } from "../generated/prisma/";
+import { PrismaClient } from "@/generated/prisma";
+const prisma = new PrismaClient();
 
 // Event database functions
 export async function getEvents(
@@ -153,7 +154,7 @@ export async function createEvent(data: {
   slug: string;
 }) {
   const { ticketTypes, ...eventData } = data;
-  
+
   return await db.event.create({
     data: {
       ...eventData,
@@ -176,7 +177,7 @@ export async function createEvent(data: {
 
 export async function updateEvent(
   id: string,
-  data: Prisma.EventUpdateInput | Prisma.EventUncheckedUpdateInput
+  data: prisma.EventUpdateInput | prisma.EventUncheckedUpdateInput
 ) {
   return await db.event.update({
     where: { id },
@@ -188,8 +189,118 @@ export async function updateEvent(
 }
 
 //check if there are existing ticket sales here
+export async function checkTicketSales(eventId: string): Promise<boolean> {
+  try {
+    // Check if there are any tickets sold for this event
+    const ticketSales = await prisma.ticket.findFirst({
+      where: {
+        eventId: eventId,
+        // Only count active tickets (not cancelled or refunded)
+        status: {
+          in: ["ACTIVE", "USED"], // ACTIVE and USED tickets represent actual sales
+        },
+      },
+      select: {
+        id: true, // We only need to know if one exists
+      },
+    });
 
+    return !!ticketSales; // Convert to boolean
+  } catch (error) {
+    console.error("Error checking ticket sales:", error);
+    // In case of error, return true to be safe (prevent changes)
+    return true;
+  }
+}
 
+/**
+ * Alternative implementation that counts the number of tickets sold
+ * @param eventId - The ID of the event to check
+ * @returns Promise<{ hasSales: boolean; count: number }> - Sales status and count
+ */
+export async function checkTicketSalesWithCount(eventId: string): Promise<{
+  hasSales: boolean;
+  count: number;
+}> {
+  try {
+    const ticketSalesCount = await prisma.ticket.count({
+      where: {
+        eventId: eventId,
+        status: {
+          in: ["ACTIVE", "USED"], // Count active and used tickets as sales
+        },
+      },
+    });
+
+    return {
+      hasSales: ticketSalesCount > 0,
+      count: ticketSalesCount,
+    };
+  } catch (error) {
+    console.error("Error checking ticket sales with count:", error);
+    return {
+      hasSales: true, // Safe default
+      count: 0,
+    };
+  }
+}
+
+/**
+ * More comprehensive check that includes different ticket statuses
+ * @param eventId - The ID of the event to check
+ * @returns Promise<{ hasAnySales: boolean; hasActiveSales: boolean; cancelledCount: number; activeSalesCount: number; usedCount: number }>
+ */
+export async function checkTicketSalesDetailed(eventId: string): Promise<{
+  hasAnySales: boolean;
+  hasActiveSales: boolean;
+  cancelledCount: number;
+  activeSalesCount: number;
+  usedCount: number;
+}> {
+  try {
+    const [activeSales, usedSales, cancelledSales] = await Promise.all([
+      prisma.ticket.count({
+        where: {
+          eventId: eventId,
+          status: "ACTIVE",
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          eventId: eventId,
+          status: "USED",
+        },
+      }),
+      prisma.ticket.count({
+        where: {
+          eventId: eventId,
+          status: {
+            in: ["CANCELLED", "REFUNDED"],
+          },
+        },
+      }),
+    ]);
+
+    const totalSales = activeSales + usedSales;
+
+    return {
+      hasAnySales: totalSales > 0,
+      hasActiveSales: activeSales > 0,
+      cancelledCount: cancelledSales,
+      activeSalesCount: activeSales,
+      usedCount: usedSales,
+    };
+  } catch (error) {
+    console.error("Error checking detailed ticket sales:", error);
+    return {
+      hasAnySales: true, // Safe default
+      hasActiveSales: true,
+      cancelledCount: 0,
+      activeSalesCount: 0,
+      usedCount: 0,
+    };
+  }
+}
 export async function deleteEvent(id: string) {
   return await db.event.delete({
     where: { id },
@@ -210,7 +321,7 @@ export async function createTicketType(data: {
 
 export async function updateTicketType(
   id: string,
-  data: Prisma.TicketTypeUpdateInput
+  data: prisma.TicketTypeUpdateInput
 ) {
   return await db.ticketType.update({
     where: { id },
@@ -371,11 +482,13 @@ export async function getEventAnalytics(eventId: string) {
   });
 
   // Combine ticket type stats with details
-  const ticketTypes = ticketTypeStats.map(stat => {
-    const ticketType = ticketTypeDetails.find(t => t.id === stat.ticketTypeId);
+  const ticketTypes = ticketTypeStats.map((stat) => {
+    const ticketType = ticketTypeDetails.find(
+      (t) => t.id === stat.ticketTypeId
+    );
     return {
       id: stat.ticketTypeId,
-      name: ticketType?.name || 'Unknown',
+      name: ticketType?.name || "Unknown",
       price: ticketType?.price || 0,
       totalQuantity: ticketType?.quantity || 0,
       soldCount: stat._count.ticketTypeId,
@@ -407,7 +520,7 @@ export async function getAvailableTicketTypes(eventId: string) {
     },
   });
 
-  return ticketTypes.map(ticketType => ({
+  return ticketTypes.map((ticketType) => ({
     ...ticketType,
     available: ticketType.quantity - ticketType._count.tickets,
     soldOut: ticketType.quantity <= ticketType._count.tickets,
