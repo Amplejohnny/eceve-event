@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
-import { updateEvent, getEventById } from "@/lib/event";
+import { updateEvent, getEventById, checkTicketSales } from "@/lib/event";
 import { EventType, EventStatus } from "@/generated/prisma";
 import { z } from "zod";
 
@@ -79,7 +79,7 @@ export async function PUT(
       validatedData.eventType &&
       validatedData.eventType !== existingEvent.eventType
     ) {
-    //   You might want to check if there are existing ticket sales here
+      //   You might want to check if there are existing ticket sales here
       const hasTicketSales = await checkTicketSales(eventId);
       if (hasTicketSales) {
         return NextResponse.json(
