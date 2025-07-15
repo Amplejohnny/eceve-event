@@ -1,5 +1,4 @@
-import { PrismaClient, Prisma } from "../generated/prisma/";
-import { CircleUserRound } from "lucide-react";
+import { PrismaClient, Prisma } from "@/generated/prisma";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

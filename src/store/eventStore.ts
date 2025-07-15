@@ -15,6 +15,8 @@ export interface EventFormData {
   tags: string[];
   eventType: EventType;
   date: Date | null;
+  startTime: string;
+  endTime: string;
   endDate: Date | null;
   location: string;
   venue: string;
@@ -30,7 +32,14 @@ export interface EventFormData {
   slug: string;
 }
 
+export interface EventStep {
+  step: number;
+  label: string;
+}
+
 interface EventStore {
+  // Step configuration
+  steps: EventStep[];
   currentStep: number;
   formData: EventFormData;
   isLoading: boolean;
@@ -40,10 +49,17 @@ interface EventStore {
   setCurrentStep: (step: number) => void;
   nextStep: () => void;
   prevStep: () => void;
+  canGoNext: () => boolean;
+  canGoPrev: () => boolean;
 
   // Form data management
   updateFormData: (data: Partial<EventFormData>) => void;
   setFormData: (data: EventFormData) => void;
+
+  // Tags management
+  addTag: (tag: string) => void;
+  removeTag: (tag: string) => void;
+  setTags: (tags: string[]) => void;
 
   // Ticket management
   addTicketType: () => void;
@@ -52,6 +68,7 @@ interface EventStore {
 
   // Validation
   validateStep: (step: number) => boolean;
+  validateCurrentStep: () => boolean;
   setError: (field: string, error: string) => void;
   clearError: (field: string) => void;
   clearAllErrors: () => void;
@@ -59,6 +76,8 @@ interface EventStore {
   // Utilities
   generateSlug: (title: string) => string;
   resetForm: () => void;
+  getStepLabel: (step: number) => string;
+  isStepComplete: (step: number) => boolean;
 
   // Loading states
   setLoading: (loading: boolean) => void;
@@ -69,6 +88,13 @@ interface EventStore {
   loadEvent: (eventId: string) => Promise<void>;
 }
 
+const eventSteps: EventStep[] = [
+  { step: 1, label: "Edit" },
+  { step: 2, label: "Banner" },
+  { step: 3, label: "Ticketing" },
+  { step: 4, label: "Review" },
+];
+
 const initialFormData: EventFormData = {
   title: "",
   description: "",
@@ -76,6 +102,8 @@ const initialFormData: EventFormData = {
   tags: [],
   eventType: EventType.FREE,
   date: null,
+  startTime: "",
+  endTime: "",
   endDate: null,
   location: "",
   venue: "",
@@ -96,17 +124,22 @@ const initialFormData: EventFormData = {
 };
 
 export const useEventStore = create<EventStore>((set, get) => ({
+  steps: eventSteps,
   currentStep: 1,
   formData: initialFormData,
   isLoading: false,
   errors: {},
 
   // Navigation
-  setCurrentStep: (step: number) => set({ currentStep: step }),
+  setCurrentStep: (step: number) => {
+    if (step >= 1 && step <= eventSteps.length) {
+      set({ currentStep: step });
+    }
+  },
 
   nextStep: () => {
-    const { currentStep, validateStep } = get();
-    if (validateStep(currentStep) && currentStep < 5) {
+    const { currentStep, validateCurrentStep } = get();
+    if (validateCurrentStep() && currentStep < eventSteps.length) {
       set({ currentStep: currentStep + 1 });
     }
   },
@@ -116,6 +149,16 @@ export const useEventStore = create<EventStore>((set, get) => ({
     if (currentStep > 1) {
       set({ currentStep: currentStep - 1 });
     }
+  },
+
+  canGoNext: () => {
+    const { currentStep, validateCurrentStep } = get();
+    return validateCurrentStep() && currentStep < eventSteps.length;
+  },
+
+  canGoPrev: () => {
+    const { currentStep } = get();
+    return currentStep > 1;
   },
 
   // Form data management
@@ -145,6 +188,37 @@ export const useEventStore = create<EventStore>((set, get) => ({
   },
 
   setFormData: (data: EventFormData) => set({ formData: data }),
+
+  // Tags management
+  addTag: (tag: string) => {
+    const trimmedTag = tag.trim();
+    if (trimmedTag && !get().formData.tags.includes(trimmedTag)) {
+      set((state) => ({
+        formData: {
+          ...state.formData,
+          tags: [...state.formData.tags, trimmedTag],
+        },
+      }));
+    }
+  },
+
+  removeTag: (tag: string) => {
+    set((state) => ({
+      formData: {
+        ...state.formData,
+        tags: state.formData.tags.filter((t) => t !== tag),
+      },
+    }));
+  },
+
+  setTags: (tags: string[]) => {
+    set((state) => ({
+      formData: {
+        ...state.formData,
+        tags: tags.filter((tag) => tag.trim() !== ""),
+      },
+    }));
+  },
 
   // Ticket management
   addTicketType: () => {
@@ -194,22 +268,15 @@ export const useEventStore = create<EventStore>((set, get) => ({
     clearAllErrors();
 
     switch (step) {
-      case 1: // Basic Info
+      case 1: // Edit Step
         if (!formData.title.trim()) {
           setError("title", "Event title is required");
-          return false;
-        }
-        if (!formData.description.trim()) {
-          setError("description", "Event description is required");
           return false;
         }
         if (!formData.category.trim()) {
           setError("category", "Event category is required");
           return false;
         }
-        break;
-
-      case 2: // Date & Time
         if (!formData.date) {
           setError("date", "Event date is required");
           return false;
@@ -218,20 +285,39 @@ export const useEventStore = create<EventStore>((set, get) => ({
           setError("date", "Event date cannot be in the past");
           return false;
         }
-        if (formData.endDate && formData.endDate < formData.date) {
-          setError("endDate", "End date cannot be before start date");
+        if (!formData.startTime.trim()) {
+          setError("startTime", "Start time is required");
           return false;
         }
-        break;
-
-      case 3: // Location
+        // endTime is optional, but if provided, it must be after startTime
+        if (
+          formData.endTime &&
+          formData.endTime.trim() &&
+          formData.endTime <= formData.startTime
+        ) {
+          setError("endTime", "End time must be after start time");
+          return false;
+        }
         if (!formData.location.trim()) {
           setError("location", "Event location is required");
           return false;
         }
+        if (!formData.description.trim()) {
+          setError("description", "Event description is required");
+          return false;
+        }
+        if (formData.tags.length === 0) {
+          setError("tags", "At least one tag is required");
+          return false;
+        }
         break;
 
-      case 5: // Ticketing
+      case 2: // Banner Step
+        // Banner image is optional, so this step is always valid
+        // But we could add validation for image format/size if needed
+        break;
+
+      case 3: // Ticketing Step
         if (formData.eventType === EventType.PAID) {
           const hasValidTickets = formData.ticketTypes.some(
             (ticket) =>
@@ -268,9 +354,22 @@ export const useEventStore = create<EventStore>((set, get) => ({
           }
         }
         break;
+
+      case 4: // Review Step
+        // Review step validates all previous steps
+        return (
+          get().validateStep(1) &&
+          get().validateStep(2) &&
+          get().validateStep(3)
+        );
     }
 
     return true;
+  },
+
+  validateCurrentStep: () => {
+    const { currentStep } = get();
+    return get().validateStep(currentStep);
   },
 
   setError: (field: string, error: string) => {
@@ -299,6 +398,15 @@ export const useEventStore = create<EventStore>((set, get) => ({
       .substring(0, 50);
   },
 
+  getStepLabel: (step: number) => {
+    const stepData = eventSteps.find((s) => s.step === step);
+    return stepData ? stepData.label : "";
+  },
+
+  isStepComplete: (step: number) => {
+    return get().validateStep(step);
+  },
+
   resetForm: () =>
     set({
       formData: initialFormData,
@@ -320,6 +428,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
         description: formData.description,
         eventType: formData.eventType,
         date: formData.date!.toISOString(),
+        startTime: formData.startTime,
+        endTime: formData.endTime,
         endDate: formData.endDate?.toISOString(),
         location: formData.location,
         venue: formData.venue,
@@ -328,6 +438,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
         category: formData.category,
         imageUrl: formData.imageUrl,
         slug: formData.slug,
+        isPublic: formData.isPublic,
+        status: formData.status,
         ticketTypes: formData.ticketTypes.map(({ id, ...ticket }) => ({
           name: ticket.name,
           price: ticket.price,
@@ -368,6 +480,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
         description: formData.description,
         eventType: formData.eventType,
         date: formData.date!,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
         endDate: formData.endDate,
         location: formData.location,
         venue: formData.venue,
@@ -423,6 +537,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
         tags: event.tags || [],
         eventType: event.eventType,
         date: new Date(event.date),
+        startTime: event.startTime || "",
+        endTime: event.endTime || "",
         endDate: event.endDate ? new Date(event.endDate) : null,
         location: event.location,
         venue: event.venue || "",
