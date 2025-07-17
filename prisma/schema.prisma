@@ -52,13 +52,15 @@ model Event {
   eventType    EventType
   date         DateTime
   endDate      DateTime?
+  startTime    String
+  endTime      String?
   location     String
   venue        String?
   address      String?
   latitude     Float?
   longitude    Float?
   tags         String[]
-  category     String?
+  category     String
   imageUrl     String?
   maxAttendees Int?
   isPublic     Boolean     @default(true)

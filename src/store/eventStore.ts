@@ -15,9 +15,9 @@ export interface EventFormData {
   tags: string[];
   eventType: EventType;
   date: Date | null;
+  endDate: Date | null;
   startTime: string;
   endTime: string;
-  endDate: Date | null;
   location: string;
   venue: string;
   address: string;
@@ -101,9 +101,9 @@ const initialFormData: EventFormData = {
   tags: [],
   eventType: EventType.FREE,
   date: null,
+  endDate: null,
   startTime: "",
   endTime: "",
-  endDate: null,
   location: "",
   venue: "",
   address: "",
@@ -451,9 +451,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
         description: formData.description,
         eventType: formData.eventType,
         date: formData.date!.toISOString(),
-        startTime: formData.startTime,
-        endTime: formData.endTime || undefined, // Only send if provided
         endDate: formData.endDate?.toISOString(),
+        startTime: formData.startTime,
+        endTime: formData.endTime || undefined,
         location: formData.location,
         venue: formData.venue,
         address: formData.address,
@@ -501,9 +501,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
         description: formData.description,
         eventType: formData.eventType,
         date: formData.date!.toISOString(),
+        endDate: formData.endDate?.toISOString(),
         startTime: formData.startTime,
         endTime: formData.endTime || undefined,
-        endDate: formData.endDate?.toISOString(),
         location: formData.location,
         venue: formData.venue,
         address: formData.address,
@@ -591,18 +591,18 @@ export const useEventStore = create<EventStore>((set, get) => ({
       const formData: EventFormData = {
         title: event.title,
         description: event.description,
-        category: event.category || "",
-        tags: event.tags || [],
         eventType: event.eventType,
         date: new Date(event.date),
+        endDate: event.endDate ? new Date(event.endDate) : null,
         startTime: event.startTime || "",
         endTime: event.endTime || "",
-        endDate: event.endDate ? new Date(event.endDate) : null,
         location: event.location,
         venue: event.venue || "",
         address: event.address || "",
-        bannerImage: null,
+        tags: event.tags || [],
+        category: event.category || "",
         imageUrl: event.imageUrl || "",
+        bannerImage: null,
         ticketTypes: event.ticketTypes.map((ticket: any) => ({
           id: ticket.id,
           name: ticket.name,

@@ -26,6 +26,7 @@ interface EventSuccessPageProps {
     title: string;
     category: string;
     date: Date;
+    endDate?: Date;
     startTime: string;
     endTime?: string;
     location: string;
