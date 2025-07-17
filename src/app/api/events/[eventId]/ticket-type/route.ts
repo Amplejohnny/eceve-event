@@ -4,8 +4,7 @@ import { authOptions } from "@/lib/auth-config";
 import { getEventById } from "@/lib/event";
 import { EventType } from "@/generated/prisma";
 import { z } from "zod";
-import { PrismaClient } from "@/generated/prisma";
-const prisma = new PrismaClient();
+import { db } from "@/lib/db";
 
 const updateTicketsSchema = z.object({
   ticketTypes: z
@@ -86,7 +85,7 @@ export async function PUT(
     }
 
     // Check for tickets that have already been sold before allowing quantity reduction
-    const soldTicketsCounts = await prisma.ticket.groupBy({
+    const soldTicketsCounts = await db.ticket.groupBy({
       by: ["ticketTypeId"],
       where: {
         eventId,
@@ -105,7 +104,7 @@ export async function PUT(
     );
 
     // Use a transaction to update tickets
-    const updatedEvent = await prisma.$transaction(async (tx) => {
+    const updatedEvent = await db.$transaction(async (tx) => {
       // Get existing ticket types
       const existingTickets = await tx.ticketType.findMany({
         where: { eventId },
