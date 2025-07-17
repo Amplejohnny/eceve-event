@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useEventStore } from "../../store/eventStore";
+import { EventType } from "@/generated/prisma";
 import {
   ChevronLeft,
   Upload,
@@ -8,8 +9,10 @@ import {
   MapPin,
   Calendar,
   Clock,
-  Users,
+  Tag,
+  AlertCircle,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const CATEGORIES = [
   "Entertainment",
@@ -20,86 +23,106 @@ const CATEGORIES = [
   "Travel & Adventure",
 ];
 
+const PREDEFINED_TAGS = [
+  "Conference",
+  "Workshop",
+  "Networking",
+  "Music",
+  "Comedy",
+  "Art",
+  "Sports",
+  "Food",
+  "Business",
+  "Technology",
+  "Education",
+  "Health",
+  "Family",
+  "Online",
+  "Outdoor",
+  "Indoor",
+  "Free",
+  "Premium",
+  "Beginner",
+  "Advanced",
+];
+
 const CreateEvent: React.FC = () => {
+  const router = useRouter();
   const {
     currentStep,
     formData,
+    errors,
+    isLoading,
     setCurrentStep,
     updateFormData,
+    addTag,
+    removeTag,
     addTicketType,
     removeTicketType,
     updateTicketType,
+    validateCurrentStep,
+    canGoNext,
+    canGoPrev,
+    nextStep,
+    prevStep,
+    createEvent,
     resetForm,
+    clearError,
   } = useEventStore();
 
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [tagInput, setTagInput] = useState("");
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    setSubmitError("");
+    if (!validateCurrentStep()) {
+      return;
+    }
 
     try {
-      const formDataToSend = new FormData();
+      setSubmitError("");
+      // Assuming we have session/user data - you might need to get this from your auth system
+      const organizerId = "current-user-id"; // Replace with actual user ID from session
 
-      // Add basic event data
-      formDataToSend.append("eventName", formData.eventName);
-      formDataToSend.append("eventCategory", formData.eventCategory);
-      formDataToSend.append("eventType", formData.eventType);
-      formDataToSend.append("location", formData.location);
-      formDataToSend.append("eventDescription", formData.eventDescription);
-      formDataToSend.append("ticketingType", formData.ticketingType);
+      const result = await createEvent(organizerId);
 
-      // Add sessions
-      formDataToSend.append("sessions", JSON.stringify(formData.sessions));
+      // Success! Redirect to event page or dashboard
+      router.push(`/events/${result.slug}`);
 
-      // Add tickets
-      formDataToSend.append(
-        "ticketTypes",
-        JSON.stringify(formData.ticketTypes)
-      );
-
-      // Add banner image if exists
-      if (formData.bannerImage) {
-        formDataToSend.append("bannerImage", formData.bannerImage);
-      }
-
-      const response = await fetch("/api/events/create", {
-        method: "POST",
-        body: formDataToSend,
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create event");
-      }
-
-      // Reset form and redirect or show success message
+      // Reset form after successful creation
       resetForm();
-      // You might want to redirect to event dashboard or show success message
     } catch (error) {
-      setSubmitError("Failed to create event. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create event. Please try again."
+      );
     }
   };
 
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          formData.eventName && formData.eventCategory && formData.location
-        );
-      case 2:
-        return true; // Banner is optional
-      case 3:
-        return formData.ticketTypes.every(
-          (ticket) => ticket.name.trim() !== ""
-        );
-      case 4:
-        return true;
-      default:
-        return false;
+  const handleAddCustomTag = () => {
+    if (tagInput.trim()) {
+      addTag(tagInput.trim());
+      setTagInput("");
     }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddCustomTag();
+    }
+  };
+
+  const renderError = (field: string) => {
+    if (errors[field]) {
+      return (
+        <div className="flex items-center mt-1 text-red-600 text-sm">
+          <AlertCircle className="w-4 h-4 mr-1" />
+          {errors[field]}
+        </div>
+      );
+    }
+    return null;
   };
 
   return (
@@ -108,7 +131,10 @@ const CreateEvent: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
-            <ChevronLeft className="w-6 h-6 text-gray-600 mr-2" />
+            <ChevronLeft
+              className="w-6 h-6 text-gray-600 mr-2 cursor-pointer"
+              onClick={() => router.back()}
+            />
             <h1 className="text-2xl font-bold text-gray-900">
               Create a New Event
             </h1>
@@ -166,17 +192,21 @@ const CreateEvent: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Event Name *
+                      Event Title *
                     </label>
                     <input
                       type="text"
-                      value={formData.eventName}
-                      onChange={(e) =>
-                        updateFormData({ eventName: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Enter event name"
+                      value={formData.title}
+                      onChange={(e) => {
+                        updateFormData({ title: e.target.value });
+                        clearError("title");
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.title ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="Enter event title"
                     />
+                    {renderError("title")}
                   </div>
 
                   <div>
@@ -184,11 +214,15 @@ const CreateEvent: React.FC = () => {
                       Event Category *
                     </label>
                     <select
-                      value={formData.eventCategory}
-                      onChange={(e) =>
-                        updateFormData({ eventCategory: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      title="category"
+                      value={formData.category}
+                      onChange={(e) => {
+                        updateFormData({ category: e.target.value });
+                        clearError("category");
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.category ? "border-red-500" : "border-gray-300"
+                      }`}
                     >
                       <option value="">Please select one</option>
                       {CATEGORIES.map((category) => (
@@ -197,6 +231,28 @@ const CreateEvent: React.FC = () => {
                         </option>
                       ))}
                     </select>
+                    {renderError("category")}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Event Description *
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => {
+                        updateFormData({ description: e.target.value });
+                        clearError("description");
+                      }}
+                      rows={4}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.description
+                          ? "border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      placeholder="Provide a detailed description of your event..."
+                    />
+                    {renderError("description")}
                   </div>
                 </div>
               </div>
@@ -204,57 +260,27 @@ const CreateEvent: React.FC = () => {
               <div>
                 <h2 className="text-lg font-semibold mb-4">Date & Time</h2>
 
-                <div className="flex items-center space-x-4 mb-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="eventType"
-                      value="single"
-                      checked={formData.eventType === "single"}
-                      onChange={(e) =>
-                        updateFormData({
-                          eventType: e.target.value as "single" | "recurring",
-                        })
-                      }
-                      className="mr-2"
-                    />
-                    Single Event
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="eventType"
-                      value="recurring"
-                      checked={formData.eventType === "recurring"}
-                      onChange={(e) =>
-                        updateFormData({
-                          eventType: e.target.value as "single" | "recurring",
-                        })
-                      }
-                      className="mr-2"
-                    />
-                    Recurring Event
-                  </label>
-                </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Date *
+                      Event Date *
                     </label>
                     <input
                       type="date"
-                      value={formData.sessions[0]?.startDate || ""}
+                      value={
+                        formData.date
+                          ? formData.date.toISOString().split("T")[0]
+                          : ""
+                      }
                       onChange={(e) => {
-                        const newSessions = [...formData.sessions];
-                        newSessions[0] = {
-                          ...newSessions[0],
-                          startDate: e.target.value,
-                        };
-                        updateFormData({ sessions: newSessions });
+                        updateFormData({ date: new Date(e.target.value) });
+                        clearError("date");
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.date ? "border-red-500" : "border-gray-300"
+                      }`}
                     />
+                    {renderError("date")}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -262,17 +288,16 @@ const CreateEvent: React.FC = () => {
                     </label>
                     <input
                       type="time"
-                      value={formData.sessions[0]?.startTime || ""}
+                      value={formData.startTime}
                       onChange={(e) => {
-                        const newSessions = [...formData.sessions];
-                        newSessions[0] = {
-                          ...newSessions[0],
-                          startTime: e.target.value,
-                        };
-                        updateFormData({ sessions: newSessions });
+                        updateFormData({ startTime: e.target.value });
+                        clearError("startTime");
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.startTime ? "border-red-500" : "border-gray-300"
+                      }`}
                     />
+                    {renderError("startTime")}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -280,56 +305,142 @@ const CreateEvent: React.FC = () => {
                     </label>
                     <input
                       type="time"
-                      value={formData.sessions[0]?.endTime || ""}
+                      value={formData.endTime}
                       onChange={(e) => {
-                        const newSessions = [...formData.sessions];
-                        newSessions[0] = {
-                          ...newSessions[0],
-                          endTime: e.target.value,
-                        };
-                        updateFormData({ sessions: newSessions });
+                        updateFormData({ endTime: e.target.value });
+                        clearError("endTime");
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.endTime ? "border-red-500" : "border-gray-300"
+                      }`}
                     />
+                    {renderError("endTime")}
                   </div>
                 </div>
               </div>
 
               <div>
                 <h2 className="text-lg font-semibold mb-4">Location</h2>
-                <div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Location/City *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => {
+                        updateFormData({ location: e.target.value });
+                        clearError("location");
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        errors.location ? "border-red-500" : "border-gray-300"
+                      }`}
+                      placeholder="Enter city or location"
+                    />
+                    {renderError("location")}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Venue (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.venue}
+                      onChange={(e) =>
+                        updateFormData({ venue: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter venue name"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Where will your event take place? *
+                    Address (Optional)
                   </label>
                   <input
                     type="text"
-                    value={formData.location}
+                    value={formData.address}
                     onChange={(e) =>
-                      updateFormData({ location: e.target.value })
+                      updateFormData({ address: e.target.value })
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Enter location"
+                    placeholder="Enter full address"
                   />
                 </div>
               </div>
 
               <div>
-                <h2 className="text-lg font-semibold mb-4">
-                  Additional Information
-                </h2>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Event Description
-                  </label>
-                  <textarea
-                    value={formData.eventDescription}
-                    onChange={(e) =>
-                      updateFormData({ eventDescription: e.target.value })
-                    }
-                    rows={6}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Provide a detailed description of your event, including important details..."
-                  />
+                <h2 className="text-lg font-semibold mb-4">Tags *</h2>
+                <div className="space-y-4">
+                  {/* Selected Tags */}
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                        >
+                          <Tag className="w-3 h-3 mr-1" />
+                          {tag}
+                          <button
+                            title="removeTag"
+                            onClick={() => removeTag(tag)}
+                            className="ml-2 text-blue-600 hover:text-blue-800"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Predefined Tags */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Popular Tags
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {PREDEFINED_TAGS.filter(
+                        (tag) => !formData.tags.includes(tag)
+                      ).map((tag) => (
+                        <button
+                          key={tag}
+                          onClick={() => addTag(tag)}
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Tag Input */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Add Custom Tag
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Enter custom tag"
+                      />
+                      <button
+                        onClick={handleAddCustomTag}
+                        disabled={!tagInput.trim()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                  {renderError("tags")}
                 </div>
               </div>
             </div>
@@ -339,24 +450,27 @@ const CreateEvent: React.FC = () => {
           {currentStep === 2 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold mb-4">Upload Image</h2>
+                <h2 className="text-lg font-semibold mb-4">Event Banner</h2>
 
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  {formData.bannerImageUrl ? (
+                <div
+                  className={`border-2 border-dashed rounded-lg p-8 text-center ${
+                    errors.bannerImage ? "border-red-500" : "border-gray-300"
+                  }`}
+                >
+                  {formData.imageUrl ? (
                     <div className="relative">
                       <img
-                        src={formData.bannerImageUrl}
+                        src={formData.imageUrl}
                         alt="Event banner"
                         className="max-w-full h-48 object-cover mx-auto rounded-lg"
                       />
                       <button
-                        onClick={() =>
-                          updateFormData({
-                            bannerImage: null,
-                            bannerImageUrl: "",
-                          })
-                        }
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1"
+                        title="delete EventBanner"
+                        onClick={() => {
+                          updateFormData({ bannerImage: null, imageUrl: "" });
+                          clearError("bannerImage");
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -365,9 +479,9 @@ const CreateEvent: React.FC = () => {
                     <div>
                       <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 mb-2">Choose file</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 mb-4">
                         Upload images must be at least 1792 pixels wide by 1024
-                        pixels high. Valid file formats: JPG, GIF, PNG.
+                        pixels high. Valid file formats: JPG, PNG, WebP.
                       </p>
                       <input
                         type="file"
@@ -377,14 +491,16 @@ const CreateEvent: React.FC = () => {
                           if (file) {
                             updateFormData({ bannerImage: file });
                             const url = URL.createObjectURL(file);
-                            updateFormData({ bannerImageUrl: url });
+                            updateFormData({ imageUrl: url });
+                            clearError("bannerImage");
                           }
                         }}
-                        className="mt-4"
+                        className="block mx-auto"
                       />
                     </div>
                   )}
                 </div>
+                {renderError("bannerImage")}
               </div>
             </div>
           )}
@@ -399,49 +515,33 @@ const CreateEvent: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div
-                    className={`border-2 rounded-lg p-4 cursor-pointer ${
-                      formData.ticketingType === "paid"
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
+                      formData.eventType === EventType.PAID
                         ? "border-blue-500 bg-blue-50"
-                        : "border-gray-300"
+                        : "border-gray-300 hover:border-gray-400"
                     }`}
-                    onClick={() => {
-                      updateFormData({ ticketingType: "paid" });
-                      // Update existing tickets to have non-zero prices
-                      const updatedTickets = formData.ticketTypes.map(
-                        (ticket) => ({
-                          ...ticket,
-                          price: ticket.price === 0 ? 10 : ticket.price,
-                        })
-                      );
-                      updateFormData({ ticketTypes: updatedTickets });
-                    }}
+                    onClick={() =>
+                      updateFormData({ eventType: EventType.PAID })
+                    }
                   >
                     <div className="text-center">
                       <div className="text-2xl mb-2">🎟️</div>
-                      <h3 className="font-semibold">Ticketed Event</h3>
+                      <h3 className="font-semibold">Paid Event</h3>
                       <p className="text-sm text-gray-600">
-                        My event requires tickets for entry
+                        My event requires payment for entry
                       </p>
                     </div>
                   </div>
 
                   <div
-                    className={`border-2 rounded-lg p-4 cursor-pointer ${
-                      formData.ticketingType === "free"
+                    className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
+                      formData.eventType === EventType.FREE
                         ? "border-blue-500 bg-blue-50"
-                        : "border-gray-300"
+                        : "border-gray-300 hover:border-gray-400"
                     }`}
-                    onClick={() => {
-                      updateFormData({ ticketingType: "free" });
-                      // Update existing tickets to have zero prices
-                      const updatedTickets = formData.ticketTypes.map(
-                        (ticket) => ({
-                          ...ticket,
-                          price: 0,
-                        })
-                      );
-                      updateFormData({ ticketTypes: updatedTickets });
-                    }}
+                    onClick={() =>
+                      updateFormData({ eventType: EventType.FREE })
+                    }
                   >
                     <div className="text-center">
                       <div className="text-2xl mb-2">🆓</div>
@@ -454,61 +554,102 @@ const CreateEvent: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="font-semibold mb-4">
-                    What tickets are you selling?
-                  </h3>
+                  <h3 className="font-semibold mb-4">Ticket Types</h3>
 
                   <div className="space-y-4">
                     {formData.ticketTypes.map((ticket, index) => (
                       <div
                         key={ticket.id}
-                        className="flex items-center space-x-4"
+                        className={`border rounded-lg p-4 ${
+                          errors[`ticket_${ticket.id}_name`] ||
+                          errors[`ticket_${ticket.id}_price`] ||
+                          errors[`ticket_${ticket.id}_quantity`]
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
                       >
-                        <div className="flex-1">
-                          <input
-                            type="text"
-                            value={ticket.name}
-                            onChange={(e) =>
-                              updateTicketType(ticket.id, {
-                                name: e.target.value,
-                              })
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ticket Name (e.g. General Admission)"
-                          />
-                        </div>
-
-                        {formData.ticketingType === "paid" && (
-                          <div className="w-32">
-                            <div className="relative">
-                              <span className="absolute left-3 top-2 text-gray-500">
-                                $
-                              </span>
-                              <input
-                                type="number"
-                                value={ticket.price}
-                                onChange={(e) =>
-                                  updateTicketType(ticket.id, {
-                                    price: Number(e.target.value),
-                                  })
-                                }
-                                className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                placeholder="0.00"
-                                min="0"
-                                step="0.01"
-                              />
-                            </div>
+                        <div className="flex items-start space-x-4">
+                          <div className="flex-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Ticket Name *
+                            </label>
+                            <input
+                              type="text"
+                              value={ticket.name}
+                              onChange={(e) => {
+                                updateTicketType(ticket.id, {
+                                  name: e.target.value,
+                                });
+                                clearError(`ticket_${ticket.id}_name`);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="e.g., General Admission"
+                            />
+                            {renderError(`ticket_${ticket.id}_name`)}
                           </div>
-                        )}
 
-                        {formData.ticketTypes.length > 1 && (
-                          <button
-                            onClick={() => removeTicketType(ticket.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <X className="w-5 h-5" />
-                          </button>
-                        )}
+                          {formData.eventType === EventType.PAID && (
+                            <div className="w-32">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Price *
+                              </label>
+                              <div className="relative">
+                                <span className="absolute left-3 top-2 text-gray-500">
+                                  ₦
+                                </span>
+                                <input
+                                  type="number"
+                                  value={ticket.price}
+                                  onChange={(e) => {
+                                    updateTicketType(ticket.id, {
+                                      price: Number(e.target.value),
+                                    });
+                                    clearError(`ticket_${ticket.id}_price`);
+                                  }}
+                                  className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="0.00"
+                                  min="0"
+                                  step="0.01"
+                                />
+                              </div>
+                              {renderError(`ticket_${ticket.id}_price`)}
+                            </div>
+                          )}
+
+                          <div className="w-32">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Quantity
+                            </label>
+                            <input
+                              type="number"
+                              value={ticket.quantity || ""}
+                              onChange={(e) => {
+                                const value =
+                                  e.target.value === ""
+                                    ? undefined
+                                    : Number(e.target.value);
+                                updateTicketType(ticket.id, {
+                                  quantity: value,
+                                });
+                                clearError(`ticket_${ticket.id}_quantity`);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              placeholder="Unlimited"
+                              min="1"
+                            />
+                            {renderError(`ticket_${ticket.id}_quantity`)}
+                          </div>
+
+                          {formData.ticketTypes.length > 1 && (
+                            <button
+                              title="ticketQuantity"
+                              onClick={() => removeTicketType(ticket.id)}
+                              className="mt-6 text-red-500 hover:text-red-700"
+                            >
+                              <X className="w-5 h-5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
 
@@ -520,6 +661,7 @@ const CreateEvent: React.FC = () => {
                       Add another ticket type
                     </button>
                   </div>
+                  {renderError("ticketTypes")}
                 </div>
               </div>
             </div>
@@ -535,10 +677,10 @@ const CreateEvent: React.FC = () => {
 
                 <div className="bg-gray-50 rounded-lg p-6">
                   {/* Event Banner */}
-                  {formData.bannerImageUrl && (
+                  {formData.imageUrl && (
                     <div className="mb-6">
                       <img
-                        src={formData.bannerImageUrl}
+                        src={formData.imageUrl}
                         alt="Event banner"
                         className="w-full h-48 object-cover rounded-lg"
                       />
@@ -549,20 +691,20 @@ const CreateEvent: React.FC = () => {
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-xl font-bold text-gray-900">
-                        {formData.eventName}
+                        {formData.title}
                       </h3>
-                      <p className="text-gray-600">{formData.eventCategory}</p>
+                      <p className="text-gray-600">{formData.category}</p>
                     </div>
 
                     <div className="flex items-center text-gray-600">
                       <Calendar className="w-4 h-4 mr-2" />
-                      <span>{formData.sessions[0]?.startDate}</span>
-                      {formData.sessions[0]?.startTime && (
+                      <span>{formData.date?.toLocaleDateString()}</span>
+                      {formData.startTime && (
                         <>
                           <Clock className="w-4 h-4 ml-4 mr-2" />
-                          <span>{formData.sessions[0].startTime}</span>
-                          {formData.sessions[0].endTime && (
-                            <span> - {formData.sessions[0].endTime}</span>
+                          <span>{formData.startTime}</span>
+                          {formData.endTime && (
+                            <span> - {formData.endTime}</span>
                           )}
                         </>
                       )}
@@ -571,15 +713,31 @@ const CreateEvent: React.FC = () => {
                     <div className="flex items-center text-gray-600">
                       <MapPin className="w-4 h-4 mr-2" />
                       <span>{formData.location}</span>
+                      {formData.venue && <span> • {formData.venue}</span>}
                     </div>
 
-                    {formData.eventDescription && (
+                    {formData.tags.length > 0 && (
                       <div>
-                        <h4 className="font-semibold mb-2">
-                          Event Description
-                        </h4>
+                        <h4 className="font-semibold mb-2">Tags</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {formData.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
+                            >
+                              <Tag className="w-3 h-3 mr-1" />
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.description && (
+                      <div>
+                        <h4 className="font-semibold mb-2">Description</h4>
                         <p className="text-gray-700 whitespace-pre-wrap">
-                          {formData.eventDescription}
+                          {formData.description}
                         </p>
                       </div>
                     )}
@@ -592,11 +750,18 @@ const CreateEvent: React.FC = () => {
                             key={ticket.id}
                             className="flex justify-between items-center bg-white p-3 rounded border"
                           >
-                            <span>{ticket.name}</span>
+                            <div>
+                              <span className="font-medium">{ticket.name}</span>
+                              {ticket.quantity && (
+                                <span className="text-sm text-gray-500 ml-2">
+                                  (Qty: {ticket.quantity})
+                                </span>
+                              )}
+                            </div>
                             <span className="font-medium">
-                              {formData.ticketingType === "free"
+                              {formData.eventType === EventType.FREE
                                 ? "Free"
-                                : `$${ticket.price.toFixed(2)}`}
+                                : `₦${ticket.price.toLocaleString()}`}
                             </span>
                           </div>
                         ))}
@@ -608,7 +773,10 @@ const CreateEvent: React.FC = () => {
 
               {submitError && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                  <p className="text-red-700">{submitError}</p>
+                  <div className="flex items-center">
+                    <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+                    <p className="text-red-700">{submitError}</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -618,12 +786,12 @@ const CreateEvent: React.FC = () => {
         {/* Navigation */}
         <div className="flex justify-between items-center">
           <button
-            onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-            disabled={currentStep === 1}
+            onClick={prevStep}
+            disabled={!canGoPrev() || isLoading}
             className={`px-4 py-2 rounded-md ${
-              currentStep === 1
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              canGoPrev() && !isLoading
+                ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                : "bg-gray-200 text-gray-400 cursor-not-allowed"
             }`}
           >
             Go back
@@ -632,10 +800,10 @@ const CreateEvent: React.FC = () => {
           <div className="flex space-x-3">
             {currentStep < 4 ? (
               <button
-                onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={!canProceed()}
+                onClick={nextStep}
+                disabled={!canGoNext() || isLoading}
                 className={`px-6 py-2 rounded-md font-medium ${
-                  canProceed()
+                  canGoNext() && !isLoading
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
@@ -645,14 +813,14 @@ const CreateEvent: React.FC = () => {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !canProceed()}
+                disabled={!canGoNext() || isLoading}
                 className={`px-6 py-2 rounded-md font-medium ${
-                  canProceed() && !isSubmitting
+                  canGoNext() && !isLoading
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
-                {isSubmitting ? "Publishing..." : "Publish Event"}
+                {isLoading ? "Publishing..." : "Publish Event"}
               </button>
             )}
           </div>
