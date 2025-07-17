@@ -3,14 +3,16 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import EventSuccessPage from "@/components/event/EventSuccessPage";
-import { EventType } from "@/generated/prisma";
+import { EventType, EventStatus } from "@/generated/prisma";
 
+// Updated type to match API response exactly
 type Event = {
   id: string;
   slug: string;
   title: string;
   category: string;
-  date: Date;
+  date: string;
+  endDate?: string;
   startTime: string;
   endTime?: string;
   location: string;
@@ -20,6 +22,28 @@ type Event = {
   imageUrl?: string;
   description: string;
   eventType: EventType;
+  isPublic: boolean;
+  status: EventStatus;
+  ticketTypes: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity?: number | null; // Handle null from database
+  }>;
+  organizer?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+};
+
+// Define the transformed event type for the component
+type TransformedEvent = Omit<Event, "date" | "endDate" | "ticketTypes"> & {
+  date: Date;
+  endDate?: Date;
   ticketTypes: Array<{
     id: string;
     name: string;
@@ -28,10 +52,23 @@ type Event = {
   }>;
 };
 
+// Transform API response to component props
+const transformEventData = (apiEvent: Event): TransformedEvent => {
+  return {
+    ...apiEvent,
+    date: new Date(apiEvent.date),
+    endDate: apiEvent.endDate ? new Date(apiEvent.endDate) : undefined,
+    ticketTypes: apiEvent.ticketTypes.map((ticket) => ({
+      ...ticket,
+      quantity: ticket.quantity ?? undefined,
+    })),
+  };
+};
+
 export default function EventSuccessPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [event, setEvent] = useState<Event | null>(null);
+  const [event, setEvent] = useState<TransformedEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +86,8 @@ export default function EventSuccessPageClient() {
         if (!response.ok) {
           throw new Error("Failed to fetch event");
         }
-        const eventData = await response.json();
-        setEvent(eventData);
+        const eventData: Event = await response.json();
+        setEvent(transformEventData(eventData));
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);

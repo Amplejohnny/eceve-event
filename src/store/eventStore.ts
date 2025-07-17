@@ -574,6 +574,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }
   },
 
+  // Updated loadEvent method for EventStore
   loadEvent: async (eventId: string) => {
     const { setLoading, setFormData } = get();
     setLoading(true);
@@ -589,32 +590,44 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
       // Convert the event data to form data format
       const formData: EventFormData = {
-        title: event.title,
-        description: event.description,
-        eventType: event.eventType,
-        date: new Date(event.date),
+        title: event.title || "",
+        description: event.description || "",
+        eventType: event.eventType || EventType.FREE,
+        date: event.date ? new Date(event.date) : null,
         endDate: event.endDate ? new Date(event.endDate) : null,
         startTime: event.startTime || "",
         endTime: event.endTime || "",
-        location: event.location,
+        location: event.location || "",
         venue: event.venue || "",
         address: event.address || "",
-        tags: event.tags || [],
+        tags: Array.isArray(event.tags) ? event.tags : [],
         category: event.category || "",
         imageUrl: event.imageUrl || "",
-        bannerImage: null,
-        ticketTypes: event.ticketTypes.map((ticket: any) => ({
-          id: ticket.id,
-          name: ticket.name,
-          price: ticket.price,
-          quantity: ticket.quantity,
-        })),
-        isPublic: event.isPublic,
-        status: event.status,
-        slug: event.slug,
+        bannerImage: null, // Cannot reconstruct file from URL
+        ticketTypes: Array.isArray(event.ticketTypes)
+          ? event.ticketTypes.map((ticket: any) => ({
+              id: ticket.id || `ticket_${Date.now()}`,
+              name: ticket.name || "",
+              price: typeof ticket.price === "number" ? ticket.price : 0,
+              quantity:
+                typeof ticket.quantity === "number"
+                  ? ticket.quantity
+                  : undefined,
+            }))
+          : [
+              {
+                id: "default",
+                name: "Standard",
+                price: 0,
+              },
+            ],
+        isPublic: event.isPublic ?? true,
+        status: event.status || EventStatus.DRAFT,
+        slug: event.slug || "",
       };
 
       setFormData(formData);
+      return event;
     } catch (error) {
       console.error("Error loading event:", error);
       throw error;
