@@ -29,19 +29,23 @@ export async function GET(
         ticketTypes: {
           orderBy: { price: "asc" },
         },
-        creator: {
+        organizer: {
           select: {
             id: true,
             name: true,
             email: true,
-            // Don't include sensitive data
+            image: true,
           },
         },
-        // Include other relations as needed
         _count: {
           select: {
-            bookings: true,
-            // Other counts you might need
+            tickets: {
+              where: {
+                status: {
+                  in: ["ACTIVE", "USED"],
+                },
+              },
+            },
           },
         },
       },
@@ -51,7 +55,7 @@ export async function GET(
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    // Transform the data for consistent API response
+    // Transform the data to match EventStore's loadEvent expectations
     const transformedEvent = {
       id: event.id,
       slug: event.slug,
@@ -61,6 +65,7 @@ export async function GET(
       date: event.date,
       startTime: event.startTime,
       endTime: event.endTime,
+      endDate: event.endDate,
       location: event.location,
       venue: event.venue,
       address: event.address,
@@ -68,22 +73,14 @@ export async function GET(
       tags: event.tags,
       eventType: event.eventType,
       status: event.status,
-      maxAttendees: event.maxAttendees,
+      isPublic: event.isPublic,
       ticketTypes: event.ticketTypes.map((ticket) => ({
         id: ticket.id,
         name: ticket.name,
         price: ticket.price,
         quantity: ticket.quantity,
-        sold: ticket.sold || 0,
-        available: ticket.quantity
-          ? ticket.quantity - (ticket.sold || 0)
-          : null,
       })),
-      creator: event.creator,
-      stats: {
-        totalBookings: event._count.bookings,
-        // Add other stats as needed
-      },
+      organizer: event.organizer,
       createdAt: event.createdAt,
       updatedAt: event.updatedAt,
     };
@@ -96,21 +93,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
-
-// Optional: Handle other HTTP methods if needed
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { eventId: string } }
-) {
-  // Handle event updates
-  // Add authentication/authorization checks here
-}
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { eventId: string } }
-) {
-  // Handle event deletion
-  // Add authentication/authorization checks here
 }
