@@ -53,7 +53,6 @@ const CreateEvent: React.FC = () => {
     formData,
     errors,
     isLoading,
-    setCurrentStep,
     updateFormData,
     addTag,
     removeTag,
@@ -80,11 +79,7 @@ const CreateEvent: React.FC = () => {
 
     try {
       setSubmitError("");
-      // Assuming we have session/user data - you might need to get this from your auth system
-      const organizerId = "current-user-id"; // Replace with actual user ID from session
-
-      const result = await createEvent(organizerId);
-
+      const result = await createEvent();
       // Success! Redirect to event page or dashboard
       router.push(`/events/${result.slug}`);
 

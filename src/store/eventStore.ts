@@ -82,7 +82,7 @@ interface EventStore {
   setLoading: (loading: boolean) => void;
 
   // Event management
-  createEvent: (organizerId: string) => Promise<any>;
+  createEvent: () => Promise<any>;
   updateEvent: (eventId: string) => Promise<any>;
   loadEvent: (eventId: string) => Promise<void>;
 }
@@ -442,7 +442,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   setLoading: (loading: boolean) => set({ isLoading: loading }),
 
   // Event management
-  createEvent: async (organizerId: string) => {
+  createEvent: async () => {
     const { formData, setLoading } = get();
     setLoading(true);
 
