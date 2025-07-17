@@ -112,9 +112,8 @@ const initialFormData: EventFormData = {
   ticketTypes: [
     {
       id: "default",
-      name: "General Admission",
+      name: "Standard",
       price: 0,
-      // quantity: 100,
     },
   ],
   isPublic: true,

@@ -81,8 +81,8 @@ const CreateEvent: React.FC = () => {
       setSubmitError("");
       const result = await createEvent();
       // Success! Redirect to event page or dashboard
-      router.push(`/events/${result.slug}`);
-
+      // router.push(`/events/${result.slug}`);
+      router.push(`/event-success?eventId=${result.id}`);
       // Reset form after successful creation
       resetForm();
     } catch (error) {
