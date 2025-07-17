@@ -185,6 +185,17 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
                       month: "long",
                       day: "numeric",
                     })}
+                    {event.endDate && (
+                      <span>
+                        {" - "}
+                        {event.endDate.toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                    )}
                   </div>
                   <div className="text-sm flex items-center">
                     <Clock className="w-4 h-4 mr-1" />
