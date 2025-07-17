@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { FaXTwitter, FaFacebook } from "react-icons/fa6";
 import { EventType } from "@/generated/prisma";
+import { getEventUrl } from "@/lib/utils";
 
 interface EventSuccessPageProps {
   event: {
@@ -49,7 +50,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
   const [copied, setCopied] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
 
-  const eventUrl = `${window.location.origin}/events/${event.slug}`;
+  const eventUrl = getEventUrl(event.slug);
 
   // Countdown timer
   useEffect(() => {
@@ -82,6 +83,27 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
   const handleGoHome = () => {
     router.push("/");
+  };
+
+  // Check if Web Share API is supported
+  const isWebShareSupported =
+    typeof navigator !== "undefined" && "share" in navigator;
+
+  const handleNativeShare = async () => {
+    if (isWebShareSupported) {
+      try {
+        await navigator.share({
+          title: event.title,
+          text: `Check out this amazing event: ${event.title}`,
+          url: eventUrl,
+        });
+      } catch (err) {
+        console.log("Error sharing:", err);
+        setShowShareOptions(true);
+      }
+    } else {
+      setShowShareOptions(true);
+    }
   };
 
   const shareToTwitter = () => {
@@ -248,18 +270,73 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
           </button>
 
           <button
-            onClick={() => setShowShareOptions(!showShareOptions)}
+            onClick={handleNativeShare}
             className="flex items-center justify-center px-6 py-4 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-medium shadow-lg hover:shadow-xl"
           >
             <Share2 className="w-5 h-5 mr-2" />
-            Share Event
-            {showShareOptions ? (
-              <ChevronUp className="w-4 h-4 ml-2" />
-            ) : (
-              <ChevronDown className="w-4 h-4 ml-2" />
-            )}
+            {isWebShareSupported ? "Share Event" : "Share Options"}
+            {!isWebShareSupported &&
+              (showShareOptions ? (
+                <ChevronUp className="w-4 h-4 ml-2" />
+              ) : (
+                <ChevronDown className="w-4 h-4 ml-2" />
+              ))}
           </button>
         </div>
+
+        {/* Share Options - Only show if Web Share API is not supported or user prefers manual sharing */}
+        {(!isWebShareSupported || showShareOptions) && showShareOptions && (
+          <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 animate-in slide-in-from-top-2 duration-300">
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">
+              Share your event
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <button
+                onClick={shareToTwitter}
+                className="flex items-center justify-center px-4 py-3 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors"
+              >
+                <FaXTwitter className="w-5 h-5 mr-2" />X
+              </button>
+
+              <button
+                onClick={shareToFacebook}
+                className="flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <FaFacebook className="w-5 h-5 mr-2" />
+                Facebook
+              </button>
+
+              <button
+                onClick={shareToWhatsApp}
+                className="flex items-center justify-center px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+              >
+                <MessageCircle className="w-5 h-5 mr-2" />
+                WhatsApp
+              </button>
+            </div>
+
+            <div className="border-t pt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Event Link
+              </label>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  value={eventUrl}
+                  readOnly
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm"
+                />
+                <button
+                  onClick={handleCopyLink}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Share Options */}
         {showShareOptions && (
