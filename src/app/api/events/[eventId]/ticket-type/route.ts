@@ -14,7 +14,10 @@ const updateTicketsSchema = z.object({
         id: z.string().optional(), // Optional for new tickets
         name: z.string().min(1, "Ticket name is required"),
         price: z.number().min(0, "Ticket price must be non-negative"),
-        quantity: z.number().min(1, "Ticket quantity must be greater than 0"),
+        quantity: z
+          .number()
+          .min(1, "Ticket quantity must be greater than 0")
+          .optional(), // Made optional
       })
     )
     .min(1, "At least one ticket type is required"),
@@ -43,7 +46,7 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Check if event has started or has ticket sales
+    // Check if event has started
     if (existingEvent.date < new Date()) {
       return NextResponse.json(
         { error: "Cannot update tickets for events that have already started" },
@@ -82,6 +85,25 @@ export async function PUT(
       }
     }
 
+    // Check for tickets that have already been sold before allowing quantity reduction
+    const soldTicketsCounts = await prisma.ticket.groupBy({
+      by: ["ticketTypeId"],
+      where: {
+        eventId,
+        status: {
+          in: ["ACTIVE", "USED"],
+        },
+      },
+      _count: {
+        id: true,
+      },
+    });
+
+    // Create a map of sold tickets count per ticket type
+    const soldCountMap = new Map(
+      soldTicketsCounts.map((item) => [item.ticketTypeId, item._count.id])
+    );
+
     // Use a transaction to update tickets
     const updatedEvent = await prisma.$transaction(async (tx) => {
       // Get existing ticket types
@@ -99,6 +121,20 @@ export async function PUT(
         (id) => !incomingTicketIds.includes(id)
       );
 
+      // Check if we're trying to delete tickets that have been sold
+      for (const ticketId of ticketsToDelete) {
+        const soldCount = soldCountMap.get(ticketId) || 0;
+        if (soldCount > 0) {
+          const ticketType = existingTickets.find((t) => t.id === ticketId);
+          return NextResponse.json(
+            {
+              error: `Cannot delete ticket type "${ticketType?.name}" because ${soldCount} tickets have already been sold`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+
       if (ticketsToDelete.length > 0) {
         await tx.ticketType.deleteMany({
           where: {
@@ -111,13 +147,29 @@ export async function PUT(
       // Update or create tickets
       for (const ticket of validatedData.ticketTypes) {
         if (ticket.id) {
+          // For existing tickets, check if new quantity is less than sold tickets
+          const soldCount = soldCountMap.get(ticket.id) || 0;
+          if (ticket.quantity && ticket.quantity < soldCount) {
+            const existingTicket = existingTickets.find(
+              (t) => t.id === ticket.id
+            );
+            return NextResponse.json(
+              {
+                error: `Cannot set quantity to ${ticket.quantity} for "${existingTicket?.name}" because ${soldCount} tickets have already been sold`,
+              },
+              { status: 400 }
+            );
+          }
+
           // Update existing ticket
           await tx.ticketType.update({
             where: { id: ticket.id },
             data: {
               name: ticket.name,
               price: ticket.price,
-              quantity: ticket.quantity,
+              ...(ticket.quantity !== undefined && {
+                quantity: ticket.quantity,
+              }),
             },
           });
         } else {
@@ -126,8 +178,10 @@ export async function PUT(
             data: {
               name: ticket.name,
               price: ticket.price,
-              quantity: ticket.quantity,
               eventId,
+              ...(ticket.quantity !== undefined && {
+                quantity: ticket.quantity,
+              }),
             },
           });
         }
@@ -136,7 +190,23 @@ export async function PUT(
       // Return updated event with ticket types
       return await tx.event.findUnique({
         where: { id: eventId },
-        include: { ticketTypes: true },
+        include: {
+          ticketTypes: {
+            include: {
+              _count: {
+                select: {
+                  tickets: {
+                    where: {
+                      status: {
+                        in: ["ACTIVE", "USED"],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       });
     });
 
@@ -163,9 +233,6 @@ export async function PUT(
     );
   }
 }
-
-
-
 
 // import { NextRequest, NextResponse } from "next/server";
 // import { getServerSession } from "next-auth";
@@ -197,7 +264,7 @@ export async function PUT(
 //     }
 
 //     const { eventId } = params;
-    
+
 //     // Check if event exists and user owns it
 //     const existingEvent = await getEventById(eventId);
 //     if (!existingEvent) {
@@ -276,8 +343,8 @@ export async function PUT(
 
 //     if (error instanceof z.ZodError) {
 //       return NextResponse.json(
-//         { 
-//           error: "Invalid input", 
+//         {
+//           error: "Invalid input",
 //           details: error.errors.map(err => ({
 //             field: err.path.join('.'),
 //             message: err.message

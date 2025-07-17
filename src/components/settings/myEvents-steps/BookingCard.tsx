@@ -18,7 +18,7 @@ interface Ticket {
     currentPrice: number;
   };
   price: number;
-  quantity: number;
+  quantity: number | null;
   attendeeName: string;
   attendeeEmail: string;
   attendeePhone?: string;
@@ -154,7 +154,19 @@ export default function BookingCard({ ticket }: BookingCardProps) {
                   </div>
                   <div>
                     <span className="font-medium text-gray-900">
-                      Total: {formatCurrency(ticket.price * ticket.quantity)}
+                      {ticket.ticketType.name}
+                    </span>
+                    <p className="text-gray-600">
+                      {formatCurrency(ticket.price)} ×{" "}
+                      {ticket.quantity ?? "Unlimited"}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-900">
+                      Total:{" "}
+                      {ticket.quantity
+                        ? formatCurrency(ticket.price * ticket.quantity)
+                        : formatCurrency(ticket.price)}
                     </span>
                     <p className="text-gray-600">
                       Booked {getRelativeTime(ticket.createdAt)}

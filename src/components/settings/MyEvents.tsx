@@ -13,7 +13,7 @@ interface TicketType {
   id: string;
   name: string;
   price: number;
-  quantity: number;
+  quantity: number | null;
   sold: number;
   currentPrice?: number;
 }

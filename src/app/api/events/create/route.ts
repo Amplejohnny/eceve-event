@@ -29,7 +29,10 @@ const createEventSchema = z.object({
       z.object({
         name: z.string().min(1, "Ticket name is required"),
         price: z.number().min(0, "Ticket price must be non-negative"),
-        quantity: z.number().min(1, "Ticket quantity must be greater than 0"),
+        quantity: z
+          .number()
+          .min(1, "Ticket quantity must be greater than 0")
+          .optional(), // Made optional
       })
     )
     .min(1, "At least one ticket type is required"),
@@ -127,9 +130,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Transform ticket types to handle optional quantity
+    const transformedTicketTypes = validatedData.ticketTypes.map((ticket) => ({
+      name: ticket.name,
+      price: ticket.price,
+      quantity: ticket.quantity || null, // NULL means unlimited
+    }));
+
     // Use the event library function
     const event = await createEvent({
       ...validatedData,
+      ticketTypes: transformedTicketTypes,
       organizerId: session.user.id,
     });
 

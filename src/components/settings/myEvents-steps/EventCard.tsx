@@ -15,7 +15,7 @@ interface TicketType {
   id: string;
   name: string;
   price: number;
-  quantity: number;
+  quantity: number | null;
   sold: number;
   currentPrice?: number;
 }
@@ -64,6 +64,30 @@ const calculateRevenue = (event: Event) => {
   return event.ticketTypes.reduce((total, ticketType) => {
     return total + ticketType.sold * ticketType.price;
   }, 0);
+};
+
+const getQuantityDisplay = (quantity: number | null, sold: number) => {
+  if (quantity === null) {
+    return `${sold} sold (Unlimited)`;
+  }
+  return `${sold} / ${quantity} sold`;
+};
+
+// Replace availability calculation
+const getAvailability = (quantity: number | null, sold: number) => {
+  if (quantity === null) {
+    return "Available"; // or "Unlimited available"
+  }
+  const available = quantity - sold;
+  return available > 0 ? `${available} available` : "Sold out";
+};
+
+// Replace progress bar calculation
+const getProgressPercentage = (quantity: number | null, sold: number) => {
+  if (quantity === null) {
+    return 0; // Don't show progress bar for unlimited
+  }
+  return (sold / quantity) * 100;
 };
 
 const handleShare = async (event: Event) => {
@@ -206,18 +230,28 @@ export default function EventCard({ event }: EventCardProps) {
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-gray-600">
-                        {ticketType.sold}/{ticketType.quantity}
+                        {getQuantityDisplay(
+                          ticketType.quantity,
+                          ticketType.sold
+                        )}
                       </p>
-                      <div className="w-12 bg-gray-200 rounded-full h-1.5 mt-1">
-                        <div
-                          className="bg-blue-600 h-1.5 rounded-full"
-                          style={{
-                            width: `${
-                              (ticketType.sold / ticketType.quantity) * 100
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {getAvailability(ticketType.quantity, ticketType.sold)}
+                      </p>
+                      {/* Only show progress bar if quantity is not null */}
+                      {ticketType.quantity !== null && (
+                        <div className="w-12 bg-gray-200 rounded-full h-1.5 mt-1">
+                          <div
+                            className="bg-blue-600 h-1.5 rounded-full"
+                            style={{
+                              width: `${getProgressPercentage(
+                                ticketType.quantity,
+                                ticketType.sold
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

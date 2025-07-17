@@ -5,7 +5,7 @@ export interface TicketType {
   id: string;
   name: string;
   price: number;
-  quantity: number;
+  quantity?: number;
 }
 
 export interface EventFormData {
@@ -114,7 +114,7 @@ const initialFormData: EventFormData = {
       id: "default",
       name: "General Admission",
       price: 0,
-      quantity: 100,
+      // quantity: 100,
     },
   ],
   isPublic: true,
@@ -226,7 +226,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
       id: `ticket_${Date.now()}`,
       name: "",
       price: formData.eventType === EventType.FREE ? 0 : 1000, // 1000 kobo = ₦10
-      quantity: 50,
+      // quantity: 50,
     };
     set((state) => ({
       formData: {
@@ -343,7 +343,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
         if (formData.eventType === EventType.PAID) {
           const hasValidTickets = formData.ticketTypes.some(
             (ticket) =>
-              ticket.name.trim() && ticket.price > 0 && ticket.quantity > 0
+              ticket.name.trim() &&
+              ticket.price > 0 &&
+              (ticket.quantity === undefined || ticket.quantity > 0)
           );
           if (!hasValidTickets) {
             setError(
@@ -360,7 +362,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
             setError(`ticket_${ticket.id}_name`, "Ticket name is required");
             return false;
           }
-          if (ticket.quantity <= 0) {
+          // Only validate quantity if it's provided and not undefined
+          if (ticket.quantity !== undefined && ticket.quantity <= 0) {
             setError(
               `ticket_${ticket.id}_quantity`,
               "Ticket quantity must be greater than 0"
@@ -462,7 +465,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
         ticketTypes: formData.ticketTypes.map(({ id, ...ticket }) => ({
           name: ticket.name,
           price: ticket.price,
-          quantity: ticket.quantity,
+          ...(ticket.quantity !== undefined && { quantity: ticket.quantity }), // Only include if defined
         })),
       };
 
@@ -542,10 +545,10 @@ export const useEventStore = create<EventStore>((set, get) => ({
     try {
       const ticketData = {
         ticketTypes: formData.ticketTypes.map((ticket) => ({
-          id: ticket.id === "default" ? undefined : ticket.id, // Don't send 'default' id for new tickets
+          id: ticket.id === "default" ? undefined : ticket.id,
           name: ticket.name,
           price: ticket.price,
-          quantity: ticket.quantity,
+          ...(ticket.quantity !== undefined && { quantity: ticket.quantity }), // Only include if defined
         })),
       };
 

@@ -146,7 +146,7 @@ export async function createEvent(data: {
   ticketTypes: Array<{
     name: string;
     price: number;
-    quantity: number;
+    quantity: number | null;
   }>;
   maxAttendees?: number;
   organizerId: string;
@@ -459,7 +459,7 @@ export async function getEventAnalytics(eventId: string) {
       id: stat.ticketTypeId,
       name: ticketType?.name || "Unknown",
       price: ticketType?.price || 0,
-      totalQuantity: ticketType?.quantity || 0,
+      totalQuantity: ticketType?.quantity || null,
       soldCount: stat._count.ticketTypeId,
       revenue: stat._sum.price || 0,
     };
@@ -471,7 +471,6 @@ export async function getEventAnalytics(eventId: string) {
     ticketTypes,
   };
 }
-
 // Additional utility functions
 export async function getAvailableTicketTypes(eventId: string) {
   const ticketTypes = await db.ticketType.findMany({
@@ -491,8 +490,8 @@ export async function getAvailableTicketTypes(eventId: string) {
 
   return ticketTypes.map((ticketType) => ({
     ...ticketType,
-    available: ticketType.quantity - ticketType._count.tickets,
-    soldOut: ticketType.quantity <= ticketType._count.tickets,
+    available: ticketType.quantity ? ticketType.quantity - ticketType._count.tickets : null, 
+    soldOut: ticketType.quantity ? ticketType.quantity <= ticketType._count.tickets : false,
   }));
 }
 

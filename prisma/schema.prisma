@@ -128,7 +128,7 @@ model TicketType {
   id        String   @id @default(cuid())
   name      String   @db.VarChar(100)
   price     Int // Current price
-  quantity  Int // Total available
+  quantity  Int? // Total available - NULL means unlimited
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
