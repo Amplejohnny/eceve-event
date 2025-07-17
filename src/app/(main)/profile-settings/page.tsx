@@ -70,5 +70,5 @@ export default function ProfileSettingsPage() {
     return <ProfileSettingsSkeleton />;
   }
 
-  return <ProfileSettings initialData={profileData} />;
+  return <ProfileSettings />;
 }

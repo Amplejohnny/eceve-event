@@ -1,5 +1,5 @@
 import MyEvents from "@/components/settings/MyEvents";
 
-export default function Page() {
+export default function MyEventPage() {
   return <MyEvents />;
 }
