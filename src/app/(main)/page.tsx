@@ -15,12 +15,10 @@ interface Event {
   price?: number;
   image: string;
   location?: string;
-  isOnline?: boolean;
 }
 
 const EventCard: React.FC<{ event: Event }> = ({ event }) => {
   const [isFavorite, setIsFavorite] = useState(false);
-
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
@@ -83,7 +81,8 @@ const HomePage: React.FC = () => {
   const [location, setLocation] = useState("Lagos");
   const [email, setEmail] = useState("");
   const [showMoreLocal, setShowMoreLocal] = useState(false);
-  const [showMoreOnline, setShowMoreOnline] = useState(false);
+  const [showMoreUpcoming, setShowMoreUpcoming] = useState(false);
+  const [showMoreTrendy, setShowMoreTrendy] = useState(false);
   const router = Router;
 
   const categories = [
@@ -160,7 +159,7 @@ const HomePage: React.FC = () => {
     },
   ];
 
-  const onlineEvents: Event[] = [
+  const upcomingEvents: Event[] = [
     {
       id: "7",
       title: "The Road to Jobs and Internships: Starting with LinkedIn",
@@ -168,16 +167,14 @@ const HomePage: React.FC = () => {
       date: "JAN 18",
       startTime: "07:00 PM",
       image: "/api/placeholder/300/200",
-      isOnline: true,
     },
     {
       id: "8",
-      title: "Online Zumba Dance Fitness Class over Zoom",
+      title: "Zumba Dance Fitness Class over Zoom",
       category: "Sports & Fitness",
       date: "NOV 29",
       startTime: "07:00 PM",
       image: "/api/placeholder/300/200",
-      isOnline: true,
     },
     {
       id: "9",
@@ -187,7 +184,6 @@ const HomePage: React.FC = () => {
       startTime: "03:00 PM",
       price: 299,
       image: "/api/placeholder/300/200",
-      isOnline: true,
     },
     {
       id: "10",
@@ -196,7 +192,6 @@ const HomePage: React.FC = () => {
       date: "DEC 14",
       startTime: "10:00 AM",
       image: "/api/placeholder/300/200",
-      isOnline: true,
     },
     {
       id: "11",
@@ -205,7 +200,6 @@ const HomePage: React.FC = () => {
       date: "NOV 29",
       startTime: "06:00 PM",
       image: "/api/placeholder/300/200",
-      isOnline: true,
     },
     {
       id: "12",
@@ -214,7 +208,68 @@ const HomePage: React.FC = () => {
       date: "DEC 07",
       startTime: "02:00 PM",
       image: "/api/placeholder/300/200",
-      isOnline: true,
+    },
+  ];
+
+  const trendyEvents: Event[] = [
+    {
+      id: "13",
+      title: "Lakeside Camping at Pawna",
+      category: "Travel & Adventure",
+      date: "DEC 25-26",
+      startTime: "06:00 AM",
+      endTime: "06:00 PM",
+      price: 1299,
+      image:
+        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
+    },
+    {
+      id: "14",
+      title: "Spirit Of Christmas 2024",
+      category: "Entertainment",
+      date: "DEC 02",
+      startTime: "07:00 PM",
+      price: 599,
+      image:
+        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
+    },
+    {
+      id: "15",
+      title: "Meet the Royal College of Art in Mumbai 2024",
+      category: "Educational & Business",
+      date: "DEC 02",
+      startTime: "11:00 AM",
+      image:
+        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
+    },
+    {
+      id: "16",
+      title: "Global Engineering Education Expo 2024",
+      category: "Educational & Business",
+      date: "DEC 01",
+      startTime: "10:00 AM",
+      endTime: "06:00 PM",
+      image:
+        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
+    },
+    {
+      id: "17",
+      title: "Cricket Business Meetup",
+      category: "Sports & Fitness",
+      date: "DEC 09",
+      startTime: "06:00 PM",
+      image:
+        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
+    },
+    {
+      id: "18",
+      title: "Valentine's Day Sail at Yacht Club Mumbai",
+      category: "Entertainment",
+      date: "FEB 14",
+      startTime: "06:00 PM",
+      price: 2500,
+      image:
+        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
     },
   ];
 
@@ -234,9 +289,12 @@ const HomePage: React.FC = () => {
   const displayedLocalEvents = showMoreLocal
     ? localEvents
     : localEvents.slice(0, 6);
-  const displayedOnlineEvents = showMoreOnline
-    ? onlineEvents
-    : onlineEvents.slice(0, 6);
+  const displayedUpcomingEvents = showMoreUpcoming
+    ? upcomingEvents
+    : upcomingEvents.slice(0, 6);
+  const displayedTrendyEvents = showMoreTrendy
+    ? trendyEvents.slice(0, 6)
+    : trendyEvents;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -323,7 +381,7 @@ const HomePage: React.FC = () => {
           {/* Mobile CTA */}
           <div className="md:hidden mt-6">
             <button
-            //changed (filter page)
+              //changed (filter page)
               onClick={() => router.push("/")}
               className="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-700 transition-colors font-semibold"
             >
@@ -359,7 +417,7 @@ const HomePage: React.FC = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
-            Popular Events Near You
+            Popular Events
           </h2>
           <div className="flex flex-wrap gap-2">
             {filters.map((filter) => (
@@ -396,23 +454,23 @@ const HomePage: React.FC = () => {
         )}
       </div>
 
-      {/* Discover Best of Online Events */}
+      {/* Discover Upcoming Events */}
       <div className="bg-white py-12">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
-            Discover Best of Online Events
+            Upcoming Events
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {displayedOnlineEvents.map((event) => (
+            {displayedUpcomingEvents.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
           </div>
 
-          {!showMoreOnline && onlineEvents.length > 6 && (
+          {!showMoreUpcoming && upcomingEvents.length > 6 && (
             <div className="text-center">
               <button
-                onClick={() => setShowMoreOnline(true)}
+                onClick={() => setShowMoreUpcoming(true)}
                 className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               >
                 See More
@@ -457,44 +515,29 @@ const HomePage: React.FC = () => {
       </div>
 
       {/* Trendy Events around the world */}
-      <div className="container mx-auto px-4 py-12">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
-            Trendy Events around the world
+      <div className="bg-white py-12">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+            Trendy Events Near You
           </h2>
-          <div className="flex flex-wrap gap-2">
-            {filters.map((filter) => (
-              <button
-                key={filter.key}
-                onClick={() => setActiveFilter(filter.key)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                  activeFilter === filter.key
-                    ? "bg-purple-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                {filter.label}
-              </button>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {displayedTrendyEvents.map((event) => (
+              <EventCard key={event.id} event={event} />
             ))}
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {displayedLocalEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
+          {!showMoreTrendy && trendyEvents.length > 6 && (
+            <div className="text-center">
+              <button
+                onClick={() => setShowMoreTrendy(true)}
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                See More
+              </button>
+            </div>
+          )}
         </div>
-
-        {!showMoreLocal && localEvents.length > 6 && (
-          <div className="text-center">
-            <button
-              onClick={() => setShowMoreLocal(true)}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              See More
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Newsletter Section */}
@@ -524,8 +567,7 @@ const HomePage: React.FC = () => {
                 />
                 <button
                   onClick={handleSubscribe}
-                  className="bg-gray-900 text-white px-4 py-3 rounded-r-md hover:bg-gray-800 transition-colors font-medium whitespace-nowrap min-w-[100px]"
-                  style={{ flexShrink: 0 }}
+                  className="bg-gray-900 text-white px-4 py-3 rounded-r-md hover:bg-gray-800 transition-colors font-medium whitespace-nowrap min-w-[100px] flex-shrink-0"
                 >
                   Subscribe
                 </button>
