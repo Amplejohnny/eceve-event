@@ -3,73 +3,12 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import EventSuccessPage from "@/components/event/EventSuccessPage";
-import { EventType, EventStatus } from "@/generated/prisma";
-
-// Updated type to match API response exactly
-type Event = {
-  id: string;
-  slug: string;
-  title: string;
-  category: string;
-  date: string;
-  endDate?: string;
-  startTime: string;
-  endTime?: string;
-  location: string;
-  venue?: string;
-  address?: string;
-  tags: string[];
-  imageUrl?: string;
-  description: string;
-  eventType: EventType;
-  isPublic: boolean;
-  status: EventStatus;
-  ticketTypes: Array<{
-    id: string;
-    name: string;
-    price: number;
-    quantity?: number | null; // Handle null from database
-  }>;
-  organizer?: {
-    id: string;
-    name: string;
-    email: string;
-    image?: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-};
-
-// Define the transformed event type for the component
-type TransformedEvent = Omit<Event, "date" | "endDate" | "ticketTypes"> & {
-  date: Date;
-  endDate?: Date;
-  ticketTypes: Array<{
-    id: string;
-    name: string;
-    price: number;
-    quantity?: number;
-  }>;
-};
-
-// Transform API response to component props
-const transformEventData = (apiEvent: Event): TransformedEvent => {
-  return {
-    ...apiEvent,
-    date: new Date(apiEvent.date),
-    endDate: apiEvent.endDate ? new Date(apiEvent.endDate) : undefined,
-    ticketTypes: apiEvent.ticketTypes.map((ticket) => ({
-      ...ticket,
-      quantity: ticket.quantity ?? undefined,
-    })),
-  };
-};
+import { useEventStore } from "@/store/eventStore";
 
 export default function EventSuccessPageClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [event, setEvent] = useState<TransformedEvent | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { loadEvent, formData, isLoading } = useEventStore();
   const [error, setError] = useState<string | null>(null);
 
   const eventId = searchParams.get("eventId");
@@ -82,12 +21,8 @@ export default function EventSuccessPageClient() {
 
     const fetchEvent = async () => {
       try {
-        const response = await fetch(`/api/events/${eventId}`);
-        if (!response.ok) {
-          throw new Error("Failed to fetch event");
-        }
-        const eventData: Event = await response.json();
-        setEvent(transformEventData(eventData));
+        setError(null);
+        await loadEvent(eventId);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
@@ -96,15 +31,13 @@ export default function EventSuccessPageClient() {
           setError("An unknown error occurred");
           console.error("Unexpected error:", err);
         }
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchEvent();
-  }, [eventId, router]);
+  }, [eventId, router, loadEvent]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -112,7 +45,7 @@ export default function EventSuccessPageClient() {
     );
   }
 
-  if (error || !event) {
+  if (error || !formData.title) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -129,5 +62,25 @@ export default function EventSuccessPageClient() {
     );
   }
 
-  return <EventSuccessPage event={event} />;
+  // Transform the store formData to match EventSuccessPage props
+  const eventForDisplay = {
+    id: eventId!,
+    slug: formData.slug,
+    title: formData.title,
+    category: formData.category,
+    date: formData.date!,
+    endDate: formData.endDate || undefined,
+    startTime: formData.startTime,
+    endTime: formData.endTime || undefined,
+    location: formData.location,
+    venue: formData.venue || undefined,
+    address: formData.address || undefined,
+    tags: formData.tags,
+    imageUrl: formData.imageUrl || undefined,
+    description: formData.description,
+    eventType: formData.eventType,
+    ticketTypes: formData.ticketTypes,
+  };
+
+  return <EventSuccessPage event={eventForDisplay} />;
 }
