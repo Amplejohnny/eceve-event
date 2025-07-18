@@ -54,24 +54,6 @@ export async function getUserById(id: string) {
   });
 }
 
-export async function createUser(data: {
-  email: string;
-  password?: string;
-  name?: string;
-  role?: "USER" | "ORGANIZER";
-  emailVerified?: Date;
-  image?: string;
-}) {
-  return await db.user.create({
-    data: {
-      ...data,
-      role: data.role || "USER",
-    },
-  });
-}
-
-
-
 export async function deleteUser(id: string) {
   return await db.user.delete({
     where: { id },

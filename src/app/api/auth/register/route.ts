@@ -1,6 +1,6 @@
 // app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { registerUser, getUserStatus } from "@/lib/auth";
+import { createUser, getUserStatus } from "@/lib/auth";
 import { z } from "zod";
 
 // Enhanced logging utility
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new user
-    const newUser = await registerUser(email, password, name);
+    const newUser = await createUser(email, password, name);
 
     const processingTime = Date.now() - startTime;
 

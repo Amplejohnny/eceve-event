@@ -111,7 +111,7 @@ export async function resetPasswordWithToken(
 }
 
 // Registration function - creates user and triggers NextAuth email verification
-export async function registerUser(
+export async function createUser(
   email: string,
   password: string,
   name?: string

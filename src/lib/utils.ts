@@ -182,7 +182,7 @@ export function getEventImageUrl(imageUrl?: string): string {
   if (imageUrl) return imageUrl;
 
   // Default event placeholder image
-  return `https://images.unsplash.com/photo-1492684223066-81342ee5ff30?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80`;
+  return `https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D`;
 }
 
 // Location utilities
