@@ -113,32 +113,6 @@ export async function getPaymentByReference(paystackRef: string) {
   });
 }
 
-export async function getUserFavorites(userId: string) {
-  return await db.eventFavorite.findMany({
-    where: { userId },
-    include: {
-      event: {
-        include: {
-          organizer: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          _count: {
-            select: {
-              tickets: true,
-              favorites: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-}
-
 export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
   if (imageUrl) return imageUrl;
 

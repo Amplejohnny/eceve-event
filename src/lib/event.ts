@@ -135,13 +135,15 @@ export async function createEvent(data: {
   eventType: "FREE" | "PAID";
   date: Date;
   endDate?: Date;
+  startTime: string;
+  endTime?: string;
   location: string;
   venue?: string;
   address?: string;
   latitude?: number;
   longitude?: number;
   tags: string[];
-  category?: string;
+  category: string;
   imageUrl?: string;
   ticketTypes: Array<{
     name: string;
@@ -386,6 +388,32 @@ export async function getTicketByConfirmationId(confirmationId: string) {
         },
       },
     },
+  });
+}
+
+export async function getUserFavorites(userId: string) {
+  return await db.eventFavorite.findMany({
+    where: { userId },
+    include: {
+      event: {
+        include: {
+          organizer: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          _count: {
+            select: {
+              tickets: true,
+              favorites: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
   });
 }
 
