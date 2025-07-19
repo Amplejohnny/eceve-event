@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { Search, MapPin, Star, Calendar, Clock } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, MapPin, Star, Calendar, Clock, User, MapPinIcon } from "lucide-react";
 import Image from "next/image";
-import Router from "next/router";
+import { useRouter } from "next/navigation";
 
 interface Event {
   id: string;
@@ -12,33 +12,90 @@ interface Event {
   date: string;
   startTime: string;
   endTime?: string;
-  price?: number;
-  image: string;
-  location?: string;
+  location: string;
+  venue?: string;
+  imageUrl?: string;
+  eventType: "FREE" | "PAID";
+  slug: string;
+  organizer?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string;
+  };
+  ticketTypes?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity?: number;
+  }>;
+  _count?: {
+    tickets: number;
+    favorites: number;
+  };
+  createdAt: string;
 }
 
-const EventCard: React.FC<{ event: Event }> = ({ event }) => {
-  const [isFavorite, setIsFavorite] = useState(false);
+interface EventCardProps {
+  event: Event;
+  onFavoriteToggle?: (eventId: string) => void;
+  isFavorite?: boolean;
+}
+
+const EventCard: React.FC<EventCardProps> = ({ event, onFavoriteToggle, isFavorite = false }) => {
+  const router = useRouter();
+  const [localFavorite, setLocalFavorite] = useState(isFavorite);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLocalFavorite(!localFavorite);
+    onFavoriteToggle?.(event.id);
+  };
+
+  const handleCardClick = () => {
+    router.push(`/events/${event.slug}`);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    }).toUpperCase();
+  };
+
+  const getLowestPrice = () => {
+    if (!event.ticketTypes || event.ticketTypes.length === 0) return null;
+    if (event.eventType === "FREE") return 0;
+    
+    const prices = event.ticketTypes.map(ticket => ticket.price).filter(price => price > 0);
+    return prices.length > 0 ? Math.min(...prices) : null;
+  };
+
+  const lowestPrice = getLowestPrice();
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+    <div 
+      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+      onClick={handleCardClick}
+    >
       <div className="h-48 relative overflow-hidden">
         <Image
-          src={event.image}
+          src={event.imageUrl || "/api/placeholder/300/200"}
           alt={event.title}
           fill
           className="object-cover"
         />
         <button
-          onClick={() => setIsFavorite(!isFavorite)}
+          onClick={handleFavoriteClick}
           className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors z-10"
-          title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          title={localFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={localFavorite ? "Remove from favorites" : "Add to favorites"}
         >
           <Star
             size={16}
             className={
-              isFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
+              localFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
             }
           />
         </button>
@@ -51,7 +108,7 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
 
         <div className="flex items-center text-blue-600 text-sm font-semibold mb-2">
           <Calendar size={14} className="mr-1" />
-          {event.date}
+          {formatDate(event.date)}
         </div>
 
         <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight">
@@ -65,9 +122,21 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
             : event.startTime}
         </div>
 
-        {event.price && (
+        <div className="flex items-center text-gray-600 text-sm mb-2">
+          <MapPinIcon size={14} className="mr-1" />
+          <span className="truncate">{event.location}</span>
+        </div>
+
+        {event.organizer && (
+          <div className="flex items-center text-gray-600 text-sm mb-2">
+            <User size={14} className="mr-1" />
+            <span className="truncate">{event.organizer.name}</span>
+          </div>
+        )}
+
+        {lowestPrice !== null && (
           <div className="flex items-center text-green-600 font-semibold">
-            ₦{event.price}
+            {lowestPrice === 0 ? "Free" : `₦${(lowestPrice / 100).toLocaleString()}`}
           </div>
         )}
       </div>
@@ -76,14 +145,22 @@ const EventCard: React.FC<{ event: Event }> = ({ event }) => {
 };
 
 const HomePage: React.FC = () => {
+  const router = useRouter();
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [location, setLocation] = useState("Lagos");
+  const [userLocation, setUserLocation] = useState("Lagos");
   const [email, setEmail] = useState("");
-  const [showMoreLocal, setShowMoreLocal] = useState(false);
+  const [showMorePopular, setShowMorePopular] = useState(false);
   const [showMoreUpcoming, setShowMoreUpcoming] = useState(false);
   const [showMoreTrendy, setShowMoreTrendy] = useState(false);
-  const router = Router;
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Event state
+  const [popularEvents, setPopularEvents] = useState<Event[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [trendyEvents, setTrendyEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [locationPermission, setLocationPermission] = useState<string | null>(null);
 
   const categories = [
     { icon: "🎵", label: "Entertainment" },
@@ -103,198 +180,185 @@ const HomePage: React.FC = () => {
     { key: "paid", label: "Paid" },
   ];
 
-  const localEvents: Event[] = [
-    {
-      id: "1",
-      title: "Lakeside Camping at Pawna",
-      category: "Travel & Adventure",
-      date: "DEC 25-26",
-      startTime: "06:00 AM",
-      endTime: "06:00 PM",
-      price: 1299,
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "2",
-      title: "Spirit Of Christmas 2024",
-      category: "Entertainment",
-      date: "DEC 02",
-      startTime: "07:00 PM",
-      price: 599,
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "3",
-      title: "Meet the Royal College of Art in Mumbai 2024",
-      category: "Educational & Business",
-      date: "DEC 02",
-      startTime: "11:00 AM",
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "4",
-      title: "Global Engineering Education Expo 2024",
-      category: "Educational & Business",
-      date: "DEC 01",
-      startTime: "10:00 AM",
-      endTime: "06:00 PM",
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "5",
-      title: "Cricket Business Meetup",
-      category: "Sports & Fitness",
-      date: "DEC 09",
-      startTime: "06:00 PM",
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "6",
-      title: "Valentine's Day Sail at Yacht Club Mumbai",
-      category: "Entertainment",
-      date: "FEB 14",
-      startTime: "06:00 PM",
-      price: 2500,
-      image: "/api/placeholder/300/200",
-    },
-  ];
+  // Nigerian major cities for trendy events
+  const majorNigerianCities = ["Lagos", "Abuja", "Kano", "Rivers", "Port Harcourt", "Ibadan", "Oyo", "Ogun"];
 
-  const upcomingEvents: Event[] = [
-    {
-      id: "7",
-      title: "The Road to Jobs and Internships: Starting with LinkedIn",
-      category: "Educational & Business",
-      date: "JAN 18",
-      startTime: "07:00 PM",
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "8",
-      title: "Zumba Dance Fitness Class over Zoom",
-      category: "Sports & Fitness",
-      date: "NOV 29",
-      startTime: "07:00 PM",
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "9",
-      title: "Easy Book Folding: Christmas Edition",
-      category: "Cultural & Arts",
-      date: "DEC 12",
-      startTime: "03:00 PM",
-      price: 299,
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "10",
-      title: "Synod at Chetek 2024",
-      category: "Cultural & Arts",
-      date: "DEC 14",
-      startTime: "10:00 AM",
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "11",
-      title: "HackerX - Zurich (Full-Stack) Salary 11/29 (Virtual)",
-      category: "Technology & Innovation",
-      date: "NOV 29",
-      startTime: "06:00 PM",
-      image: "/api/placeholder/300/200",
-    },
-    {
-      id: "12",
-      title: "FRIENDS OF THE FACYWEST: Season of Innovation 2024",
-      category: "Technology & Innovation",
-      date: "DEC 07",
-      startTime: "02:00 PM",
-      image: "/api/placeholder/300/200",
-    },
-  ];
+  // Check if screen is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-  const trendyEvents: Event[] = [
-    {
-      id: "13",
-      title: "Lakeside Camping at Pawna",
-      category: "Travel & Adventure",
-      date: "DEC 25-26",
-      startTime: "06:00 AM",
-      endTime: "06:00 PM",
-      price: 1299,
-      image:
-        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
-    },
-    {
-      id: "14",
-      title: "Spirit Of Christmas 2024",
-      category: "Entertainment",
-      date: "DEC 02",
-      startTime: "07:00 PM",
-      price: 599,
-      image:
-        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
-    },
-    {
-      id: "15",
-      title: "Meet the Royal College of Art in Mumbai 2024",
-      category: "Educational & Business",
-      date: "DEC 02",
-      startTime: "11:00 AM",
-      image:
-        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
-    },
-    {
-      id: "16",
-      title: "Global Engineering Education Expo 2024",
-      category: "Educational & Business",
-      date: "DEC 01",
-      startTime: "10:00 AM",
-      endTime: "06:00 PM",
-      image:
-        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
-    },
-    {
-      id: "17",
-      title: "Cricket Business Meetup",
-      category: "Sports & Fitness",
-      date: "DEC 09",
-      startTime: "06:00 PM",
-      image:
-        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
-    },
-    {
-      id: "18",
-      title: "Valentine's Day Sail at Yacht Club Mumbai",
-      category: "Entertainment",
-      date: "FEB 14",
-      startTime: "06:00 PM",
-      price: 2500,
-      image:
-        "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D",
-    },
-  ];
+  // Get user location
+  useEffect(() => {
+    const getUserLocation = async () => {
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject);
+          });
+
+          // Use reverse geocoding to get city name (you might want to implement this)
+          // For now, we'll use a default based on coordinates
+          const { latitude, longitude } = position.coords;
+          
+          // You can integrate with a geocoding service here
+          // For now, we'll keep Lagos as default
+          setUserLocation("Lagos");
+          setLocationPermission("granted");
+        } catch (error) {
+          console.error("Error getting location:", error);
+          setLocationPermission("denied");
+          setUserLocation("Lagos");
+        }
+      } else {
+        setLocationPermission("unsupported");
+        setUserLocation("Lagos");
+      }
+    };
+
+    getUserLocation();
+  }, []);
+
+  // Fetch events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/events');
+        if (!response.ok) throw new Error('Failed to fetch events');
+        
+        const events: Event[] = await response.json();
+        
+        // Filter and sort events
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+        const weekEnd = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+        // Popular events (active events ordered by creation time)
+        let popular = events
+          .filter(event => {
+            const eventDate = new Date(event.date);
+            return eventDate >= today; // Only future events
+          })
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        // Apply filters
+        if (activeFilter !== "all") {
+          popular = popular.filter(event => {
+            const eventDate = new Date(event.date);
+            
+            switch (activeFilter) {
+              case "today":
+                return eventDate.toDateString() === today.toDateString();
+              case "tomorrow":
+                return eventDate.toDateString() === tomorrow.toDateString();
+              case "weekend":
+                return eventDate >= today && eventDate <= weekEnd;
+              case "free":
+                return event.eventType === "FREE";
+              case "paid":
+                return event.eventType === "PAID";
+              default:
+                return true;
+            }
+          });
+        }
+
+        // Upcoming events (events near current date/time)
+        const upcoming = events
+          .filter(event => {
+            const eventDate = new Date(event.date);
+            const timeDiff = eventDate.getTime() - now.getTime();
+            const daysDiff = timeDiff / (1000 * 3600 * 24);
+            return daysDiff >= 0 && daysDiff <= 30; // Events within next 30 days
+          })
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        // Trendy events (events in major Nigerian cities)
+        const trendy = events
+          .filter(event => {
+            return majorNigerianCities.some(city => 
+              event.location.toLowerCase().includes(city.toLowerCase())
+            );
+          })
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+        setPopularEvents(popular);
+        setUpcomingEvents(upcoming);
+        setTrendyEvents(trendy);
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, [activeFilter]);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Navigate to filter page with search query
-    console.log("Searching for:", searchQuery, "in", location);
+    router.push(`/events?q=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(userLocation)}`);
   };
 
-  const handleSubscribe = () => {
+  const handleSubscribe = async () => {
     if (email.trim()) {
-      console.log("Subscribing email:", email);
-      setEmail("");
+      try {
+        // Implement newsletter subscription
+        console.log("Subscribing email:", email);
+        setEmail("");
+        // You can add a success message here
+      } catch (error) {
+        console.error("Error subscribing:", error);
+      }
     }
   };
 
-  const displayedLocalEvents = showMoreLocal
-    ? localEvents
-    : localEvents.slice(0, 6);
-  const displayedUpcomingEvents = showMoreUpcoming
-    ? upcomingEvents
-    : upcomingEvents.slice(0, 6);
-  const displayedTrendyEvents = showMoreTrendy
-    ? trendyEvents.slice(0, 6)
-    : trendyEvents;
+  const handleFavoriteToggle = async (eventId: string) => {
+    try {
+      // Implement favorite toggle API call
+      await fetch(`/api/events/${eventId}/favorite`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+    }
+  };
+
+  const handleCategoryClick = (category: string) => {
+    router.push(`/events?category=${encodeURIComponent(category)}`);
+  };
+
+  const handleCreateEvent = () => {
+    router.push("/events/create");
+  };
+
+  // Determine how many events to show
+  const getDisplayCount = (showMore: boolean) => {
+    return isMobile ? (showMore ? Infinity : 3) : (showMore ? Infinity : 6);
+  };
+
+  const displayedPopularEvents = popularEvents.slice(0, getDisplayCount(showMorePopular));
+  const displayedUpcomingEvents = upcomingEvents.slice(0, getDisplayCount(showMoreUpcoming));
+  const displayedTrendyEvents = trendyEvents.slice(0, getDisplayCount(showMoreTrendy));
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-purple-600 mb-4"></div>
+          <p className="text-gray-600">Loading events...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -323,9 +387,7 @@ const HomePage: React.FC = () => {
           {/* Search form - visible only on md+ screens */}
           <div className="hidden md:block max-w-2xl mx-auto">
             <form
-              onSubmit={(e) => {
-                handleSearch(e);
-              }}
+              onSubmit={handleSearch}
               className="bg-white rounded-2xl p-2 shadow-lg flex flex-col md:flex-row gap-2"
               role="search"
               aria-label="Search for events"
@@ -350,7 +412,7 @@ const HomePage: React.FC = () => {
                 />
               </div>
 
-              {/* Location input (static) */}
+              {/* Location input */}
               <div className="relative w-full md:w-auto">
                 <label htmlFor="location" className="sr-only">
                   Location
@@ -362,9 +424,10 @@ const HomePage: React.FC = () => {
                 <input
                   id="location"
                   type="text"
-                  value="Lagos"
-                  disabled
-                  className="pl-10 pr-4 py-3 text-gray-500 bg-gray-100 rounded-md w-full cursor-not-allowed"
+                  value={userLocation}
+                  onChange={(e) => setUserLocation(e.target.value)}
+                  className="pl-10 pr-4 py-3 text-gray-900 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Enter location"
                 />
               </div>
 
@@ -381,11 +444,10 @@ const HomePage: React.FC = () => {
           {/* Mobile CTA */}
           <div className="md:hidden mt-6">
             <button
-              //changed (filter page)
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/events")}
               className="bg-purple-600 text-white px-6 py-3 rounded-md hover:bg-purple-700 transition-colors font-semibold"
             >
-              Book a space now
+              Explore Events
             </button>
           </div>
         </div>
@@ -400,6 +462,7 @@ const HomePage: React.FC = () => {
           {categories.map((category, index) => (
             <div
               key={index}
+              onClick={() => handleCategoryClick(category.label)}
               className="bg-white rounded-lg p-6 text-center shadow-md hover:shadow-lg transition-shadow cursor-pointer group"
             >
               <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">
@@ -413,7 +476,7 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Popular Events Near You */}
+      {/* Popular Events */}
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4 md:mb-0">
@@ -436,45 +499,69 @@ const HomePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {displayedLocalEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
+        {displayedPopularEvents.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {displayedPopularEvents.map((event) => (
+                <EventCard 
+                  key={event.id} 
+                  event={event} 
+                  onFavoriteToggle={handleFavoriteToggle}
+                />
+              ))}
+            </div>
 
-        {!showMoreLocal && localEvents.length > 6 && (
-          <div className="text-center">
-            <button
-              onClick={() => setShowMoreLocal(true)}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              See More
-            </button>
+            {!showMorePopular && popularEvents.length > getDisplayCount(false) && (
+              <div className="text-center">
+                <button
+                  onClick={() => setShowMorePopular(true)}
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                >
+                  See More
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No events found matching your criteria.</p>
           </div>
         )}
       </div>
 
-      {/* Discover Upcoming Events */}
+      {/* Upcoming Events */}
       <div className="bg-white py-12">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
             Upcoming Events
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {displayedUpcomingEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
+          {displayedUpcomingEvents.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {displayedUpcomingEvents.map((event) => (
+                  <EventCard 
+                    key={event.id} 
+                    event={event} 
+                    onFavoriteToggle={handleFavoriteToggle}
+                  />
+                ))}
+              </div>
 
-          {!showMoreUpcoming && upcomingEvents.length > 6 && (
-            <div className="text-center">
-              <button
-                onClick={() => setShowMoreUpcoming(true)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-              >
-                See More
-              </button>
+              {!showMoreUpcoming && upcomingEvents.length > getDisplayCount(false) && (
+                <div className="text-center">
+                  <button
+                    onClick={() => setShowMoreUpcoming(true)}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    See More
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No upcoming events found.</p>
             </div>
           )}
         </div>
@@ -505,7 +592,10 @@ const HomePage: React.FC = () => {
 
             {/* Create Event Button */}
             <div className="flex-shrink-0">
-              <button className="cursor-pointer bg-[#ffe047] text-black px-4 py-2 sm:px-6 sm:py-3 md:px-6 md:py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors text-xs sm:text-sm md:text-base whitespace-nowrap flex items-center gap-1 md:gap-2">
+              <button 
+                onClick={handleCreateEvent}
+                className="cursor-pointer bg-[#ffe047] text-black px-4 py-2 sm:px-6 sm:py-3 md:px-6 md:py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors text-xs sm:text-sm md:text-base whitespace-nowrap flex items-center gap-1 md:gap-2"
+              >
                 <Calendar size={16} />
                 Create Event
               </button>
@@ -514,27 +604,39 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Trendy Events around the world */}
+      {/* Trendy Events Near You */}
       <div className="bg-white py-12">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
             Trendy Events Near You
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {displayedTrendyEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
+          {displayedTrendyEvents.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {displayedTrendyEvents.map((event) => (
+                  <EventCard 
+                    key={event.id} 
+                    event={event} 
+                    onFavoriteToggle={handleFavoriteToggle}
+                  />
+                ))}
+              </div>
 
-          {!showMoreTrendy && trendyEvents.length > 6 && (
-            <div className="text-center">
-              <button
-                onClick={() => setShowMoreTrendy(true)}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-              >
-                See More
-              </button>
+              {!showMoreTrendy && trendyEvents.length > getDisplayCount(false) && (
+                <div className="text-center">
+                  <button
+                    onClick={() => setShowMoreTrendy(true)}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    See More
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-600">No trendy events found in major cities.</p>
             </div>
           )}
         </div>
