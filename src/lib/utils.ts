@@ -95,6 +95,32 @@ export function truncateText(text: string, maxLength: number = 100): string {
   return text.slice(0, maxLength).trim() + "...";
 }
 
+export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
+  if (imageUrl) return imageUrl;
+
+  if (email) {
+    // Generate a deterministic color based on email
+    const colors = [
+      "bg-red-500",
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-yellow-500",
+      "bg-purple-500",
+      "bg-pink-500",
+    ];
+    const colorIndex = email.charCodeAt(0) % colors.length;
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      email
+    )}&background=${colors[colorIndex]
+      .replace("bg-", "")
+      .replace("-500", "")}&color=fff&size=128`;
+  }
+
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    "Anonymous"
+  )}&background=6b7280&color=fff&size=128`;
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()

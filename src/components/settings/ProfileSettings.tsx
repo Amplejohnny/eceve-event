@@ -16,7 +16,15 @@ import {
 } from "lucide-react";
 import { RiTwitterXLine } from "react-icons/ri";
 import { PiInstagramLogo } from "react-icons/pi";
-import { isValidUrl, getErrorMessage, debounce } from "@/lib/utils";
+import { 
+  isValidUrl, 
+  getErrorMessage, 
+  debounce, 
+  isValidEmail,
+  truncateText,
+  getUserAvatarUrl 
+} from "@/lib/utils";
+import { getUserById } from "@/lib/db";
 
 interface ProfileData {
   image: string;
@@ -95,7 +103,7 @@ const ProfileSettings: React.FC = () => {
     instagram: 50,
   };
 
-  // Validation functions
+  // Enhanced validation functions using utils
   const validateProfileData = useCallback((): ValidationErrors => {
     const errors: ValidationErrors = {};
 
@@ -106,12 +114,12 @@ const ProfileSettings: React.FC = () => {
       errors.name = "Name must be at least 2 characters";
     }
 
-    // Website validation
+    // Website validation using isValidUrl from utils
     if (profileData.website && !isValidUrl(profileData.website)) {
       errors.website = "Please enter a valid website URL";
     }
 
-    // Bio validation
+    // Bio validation with truncation helper
     if (profileData.bio.length > limits.bio) {
       errors.bio = `Bio must not exceed ${limits.bio} characters`;
     }
@@ -156,7 +164,7 @@ const ProfileSettings: React.FC = () => {
     return errors;
   }, [passwordData]);
 
-  // Debounced validation
+  // Debounced validation using debounce from utils
   const debouncedValidateProfile = useCallback(
     debounce(() => {
       const errors = validateProfileData();
@@ -182,7 +190,7 @@ const ProfileSettings: React.FC = () => {
 
         if (data.success) {
           setProfileData({
-            image: data.data.image || "",
+            image: data.data.image || getUserAvatarUrl(undefined, session.user.email || ""),
             name: data.data.name || session.user.name || "",
             bio: data.data.bio || "",
             website: data.data.website || "",
@@ -194,9 +202,9 @@ const ProfileSettings: React.FC = () => {
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
-        // Set default values from session if API fails
+        // Set default values from session if API fails - using getUserAvatarUrl
         setProfileData({
-          image: "",
+          image: getUserAvatarUrl(undefined, session.user.email || ""),
           name: session.user.name || "",
           bio: "",
           website: "",
@@ -353,7 +361,7 @@ const ProfileSettings: React.FC = () => {
     } catch (error) {
       setProfileMessage({
         type: "error",
-        text: getErrorMessage(error),
+        text: getErrorMessage(error), // Using getErrorMessage from utils
       });
     } finally {
       setIsLoading(false);
@@ -408,7 +416,7 @@ const ProfileSettings: React.FC = () => {
     } catch (error) {
       setPasswordMessage({
         type: "error",
-        text: getErrorMessage(error),
+        text: getErrorMessage(error), // Using getErrorMessage from utils
       });
     } finally {
       setIsLoading(false);
@@ -526,6 +534,17 @@ const ProfileSettings: React.FC = () => {
     </div>
   );
 
+  // Enhanced bio display with truncation for preview
+  const renderBioPreview = () => {
+    if (!profileData.bio) return null;
+    
+    return (
+      <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-600">
+        <strong>Preview:</strong> {truncateText(profileData.bio, 100)}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 lg:bg-white">
       <div className="max-w-6xl mx-auto">
@@ -640,7 +659,7 @@ const ProfileSettings: React.FC = () => {
                   onSubmit={handleProfileSubmit}
                   className="space-y-4 lg:space-y-6"
                 >
-                  {/* Profile Image */}
+                  {/* Profile Image - Enhanced with getUserAvatarUrl fallback */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-6">
                     <div className="relative flex-shrink-0">
                       <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center border-2 border-gray-300">
@@ -651,7 +670,11 @@ const ProfileSettings: React.FC = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <User className="w-12 h-12 lg:w-14 lg:h-14 text-gray-500" />
+                          <img
+                            src={getUserAvatarUrl(undefined, session?.user?.email || "")}
+                            alt="Default Avatar"
+                            className="w-full h-full object-cover"
+                          />
                         )}
                       </div>
                       <label className="absolute bottom-0 right-0 bg-transparent border border-gray-300 text-gray-600 p-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors shadow-md">
@@ -696,7 +719,7 @@ const ProfileSettings: React.FC = () => {
                     {renderFieldError("name")}
                   </div>
 
-                  {/* Bio */}
+                  {/* Bio - Enhanced with preview */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Bio
@@ -730,6 +753,7 @@ const ProfileSettings: React.FC = () => {
                       </div>
                     </div>
                     {renderFieldError("bio")}
+                    {renderBioPreview()}
                   </div>
 
                   {/* Website */}
