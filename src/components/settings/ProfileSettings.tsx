@@ -9,22 +9,19 @@ import {
   EyeOff,
   Check,
   X,
-  User,
   Menu,
   Globe,
   MapPin,
 } from "lucide-react";
 import { RiTwitterXLine } from "react-icons/ri";
 import { PiInstagramLogo } from "react-icons/pi";
-import { 
-  isValidUrl, 
-  getErrorMessage, 
-  debounce, 
-  isValidEmail,
+import {
+  isValidUrl,
+  getErrorMessage,
+  debounce,
   truncateText,
-  getUserAvatarUrl 
+  getUserAvatarUrl,
 } from "@/lib/utils";
-import { getUserById } from "@/lib/db";
 
 interface ProfileData {
   image: string;
@@ -190,7 +187,9 @@ const ProfileSettings: React.FC = () => {
 
         if (data.success) {
           setProfileData({
-            image: data.data.image || getUserAvatarUrl(undefined, session.user.email || ""),
+            image:
+              data.data.image ||
+              getUserAvatarUrl(undefined, session.user.email || ""),
             name: data.data.name || session.user.name || "",
             bio: data.data.bio || "",
             website: data.data.website || "",
@@ -537,7 +536,7 @@ const ProfileSettings: React.FC = () => {
   // Enhanced bio display with truncation for preview
   const renderBioPreview = () => {
     if (!profileData.bio) return null;
-    
+
     return (
       <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-600">
         <strong>Preview:</strong> {truncateText(profileData.bio, 100)}
@@ -671,7 +670,10 @@ const ProfileSettings: React.FC = () => {
                           />
                         ) : (
                           <img
-                            src={getUserAvatarUrl(undefined, session?.user?.email || "")}
+                            src={getUserAvatarUrl(
+                              undefined,
+                              session?.user?.email || ""
+                            )}
                             alt="Default Avatar"
                             className="w-full h-full object-cover"
                           />
@@ -937,9 +939,9 @@ const ProfileSettings: React.FC = () => {
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         {showCurrentPassword ? (
-                          <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
-                        ) : (
                           <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
+                        ) : (
+                          <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
                         )}
                       </button>
                     </div>
@@ -975,9 +977,9 @@ const ProfileSettings: React.FC = () => {
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         {showNewPassword ? (
-                          <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
-                        ) : (
                           <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
+                        ) : (
+                          <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
                         )}
                       </button>
                     </div>
@@ -1016,9 +1018,9 @@ const ProfileSettings: React.FC = () => {
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
                         {showConfirmPassword ? (
-                          <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
-                        ) : (
                           <Eye className="w-4 h-4 lg:w-5 lg:h-5" />
+                        ) : (
+                          <EyeOff className="w-4 h-4 lg:w-5 lg:h-5" />
                         )}
                       </button>
                     </div>
