@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, Star, Calendar, Clock, User, MapPinIcon } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  Star,
+  Calendar,
+  Clock,
+  User,
+  MapPinIcon,
+} from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
@@ -42,7 +50,11 @@ interface EventCardProps {
   isFavorite?: boolean;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, onFavoriteToggle, isFavorite = false }) => {
+const EventCard: React.FC<EventCardProps> = ({
+  event,
+  onFavoriteToggle,
+  isFavorite = false,
+}) => {
   const router = useRouter();
   const [localFavorite, setLocalFavorite] = useState(isFavorite);
 
@@ -58,24 +70,28 @@ const EventCard: React.FC<EventCardProps> = ({ event, onFavoriteToggle, isFavori
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    }).toUpperCase();
+    return date
+      .toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })
+      .toUpperCase();
   };
 
   const getLowestPrice = () => {
     if (!event.ticketTypes || event.ticketTypes.length === 0) return null;
     if (event.eventType === "FREE") return 0;
-    
-    const prices = event.ticketTypes.map(ticket => ticket.price).filter(price => price > 0);
+
+    const prices = event.ticketTypes
+      .map((ticket) => ticket.price)
+      .filter((price) => price > 0);
     return prices.length > 0 ? Math.min(...prices) : null;
   };
 
   const lowestPrice = getLowestPrice();
 
   return (
-    <div 
+    <div
       className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer"
       onClick={handleCardClick}
     >
@@ -90,12 +106,16 @@ const EventCard: React.FC<EventCardProps> = ({ event, onFavoriteToggle, isFavori
           onClick={handleFavoriteClick}
           className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors z-10"
           title={localFavorite ? "Remove from favorites" : "Add to favorites"}
-          aria-label={localFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={
+            localFavorite ? "Remove from favorites" : "Add to favorites"
+          }
         >
           <Star
             size={16}
             className={
-              localFavorite ? "fill-yellow-400 text-yellow-400" : "text-gray-400"
+              localFavorite
+                ? "fill-yellow-400 text-yellow-400"
+                : "text-gray-400"
             }
           />
         </button>
@@ -136,7 +156,9 @@ const EventCard: React.FC<EventCardProps> = ({ event, onFavoriteToggle, isFavori
 
         {lowestPrice !== null && (
           <div className="flex items-center text-green-600 font-semibold">
-            {lowestPrice === 0 ? "Free" : `₦${(lowestPrice / 100).toLocaleString()}`}
+            {lowestPrice === 0
+              ? "Free"
+              : `₦${(lowestPrice / 100).toLocaleString()}`}
           </div>
         )}
       </div>
@@ -160,7 +182,9 @@ const HomePage: React.FC = () => {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [trendyEvents, setTrendyEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
-  const [locationPermission, setLocationPermission] = useState<string | null>(null);
+  const [locationPermission, setLocationPermission] = useState<string | null>(
+    null
+  );
 
   const categories = [
     { icon: "🎵", label: "Entertainment" },
@@ -181,17 +205,26 @@ const HomePage: React.FC = () => {
   ];
 
   // Nigerian major cities for trendy events
-  const majorNigerianCities = ["Lagos", "Abuja", "Kano", "Rivers", "Port Harcourt", "Ibadan", "Oyo", "Ogun"];
+  const majorNigerianCities = [
+    "Lagos",
+    "Abuja",
+    "Kano",
+    "Rivers",
+    "Port Harcourt",
+    "Ibadan",
+    "Oyo",
+    "Ogun",
+  ];
 
   // Check if screen is mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Get user location
@@ -199,14 +232,16 @@ const HomePage: React.FC = () => {
     const getUserLocation = async () => {
       if (navigator.geolocation) {
         try {
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject);
-          });
+          const position = await new Promise<GeolocationPosition>(
+            (resolve, reject) => {
+              navigator.geolocation.getCurrentPosition(resolve, reject);
+            }
+          );
 
           // Use reverse geocoding to get city name (you might want to implement this)
           // For now, we'll use a default based on coordinates
           const { latitude, longitude } = position.coords;
-          
+
           // You can integrate with a geocoding service here
           // For now, we'll keep Lagos as default
           setUserLocation("Lagos");
@@ -230,30 +265,37 @@ const HomePage: React.FC = () => {
     const fetchEvents = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/events');
-        if (!response.ok) throw new Error('Failed to fetch events');
-        
+        const response = await fetch("/api/events");
+        if (!response.ok) throw new Error("Failed to fetch events");
+
         const events: Event[] = await response.json();
-        
+
         // Filter and sort events
         const now = new Date();
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const today = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate()
+        );
         const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
         const weekEnd = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
         // Popular events (active events ordered by creation time)
         let popular = events
-          .filter(event => {
+          .filter((event) => {
             const eventDate = new Date(event.date);
             return eventDate >= today; // Only future events
           })
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
 
         // Apply filters
         if (activeFilter !== "all") {
-          popular = popular.filter(event => {
+          popular = popular.filter((event) => {
             const eventDate = new Date(event.date);
-            
+
             switch (activeFilter) {
               case "today":
                 return eventDate.toDateString() === today.toDateString();
@@ -273,28 +315,33 @@ const HomePage: React.FC = () => {
 
         // Upcoming events (events near current date/time)
         const upcoming = events
-          .filter(event => {
+          .filter((event) => {
             const eventDate = new Date(event.date);
             const timeDiff = eventDate.getTime() - now.getTime();
             const daysDiff = timeDiff / (1000 * 3600 * 24);
             return daysDiff >= 0 && daysDiff <= 30; // Events within next 30 days
           })
-          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          .sort(
+            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          );
 
         // Trendy events (events in major Nigerian cities)
         const trendy = events
-          .filter(event => {
-            return majorNigerianCities.some(city => 
+          .filter((event) => {
+            return majorNigerianCities.some((city) =>
               event.location.toLowerCase().includes(city.toLowerCase())
             );
           })
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
 
         setPopularEvents(popular);
         setUpcomingEvents(upcoming);
         setTrendyEvents(trendy);
       } catch (error) {
-        console.error('Error fetching events:', error);
+        console.error("Error fetching events:", error);
       } finally {
         setLoading(false);
       }
@@ -305,7 +352,11 @@ const HomePage: React.FC = () => {
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    router.push(`/events?q=${encodeURIComponent(searchQuery)}&location=${encodeURIComponent(userLocation)}`);
+    router.push(
+      `/events?q=${encodeURIComponent(
+        searchQuery
+      )}&location=${encodeURIComponent(userLocation)}`
+    );
   };
 
   const handleSubscribe = async () => {
@@ -325,7 +376,7 @@ const HomePage: React.FC = () => {
     try {
       // Implement favorite toggle API call
       await fetch(`/api/events/${eventId}/favorite`, {
-        method: 'POST',
+        method: "POST",
       });
     } catch (error) {
       console.error("Error toggling favorite:", error);
@@ -342,12 +393,21 @@ const HomePage: React.FC = () => {
 
   // Determine how many events to show
   const getDisplayCount = (showMore: boolean) => {
-    return isMobile ? (showMore ? Infinity : 3) : (showMore ? Infinity : 6);
+    return isMobile ? (showMore ? Infinity : 3) : showMore ? Infinity : 6;
   };
 
-  const displayedPopularEvents = popularEvents.slice(0, getDisplayCount(showMorePopular));
-  const displayedUpcomingEvents = upcomingEvents.slice(0, getDisplayCount(showMoreUpcoming));
-  const displayedTrendyEvents = trendyEvents.slice(0, getDisplayCount(showMoreTrendy));
+  const displayedPopularEvents = popularEvents.slice(
+    0,
+    getDisplayCount(showMorePopular)
+  );
+  const displayedUpcomingEvents = upcomingEvents.slice(
+    0,
+    getDisplayCount(showMoreUpcoming)
+  );
+  const displayedTrendyEvents = trendyEvents.slice(
+    0,
+    getDisplayCount(showMoreTrendy)
+  );
 
   if (loading) {
     return (
@@ -503,28 +563,31 @@ const HomePage: React.FC = () => {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {displayedPopularEvents.map((event) => (
-                <EventCard 
-                  key={event.id} 
-                  event={event} 
+                <EventCard
+                  key={event.id}
+                  event={event}
                   onFavoriteToggle={handleFavoriteToggle}
                 />
               ))}
             </div>
 
-            {!showMorePopular && popularEvents.length > getDisplayCount(false) && (
-              <div className="text-center">
-                <button
-                  onClick={() => setShowMorePopular(true)}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                >
-                  See More
-                </button>
-              </div>
-            )}
+            {!showMorePopular &&
+              popularEvents.length > getDisplayCount(false) && (
+                <div className="text-center">
+                  <button
+                    onClick={() => setShowMorePopular(true)}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    See More
+                  </button>
+                </div>
+              )}
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-gray-600">No events found matching your criteria.</p>
+            <p className="text-gray-600">
+              No events found matching your criteria.
+            </p>
           </div>
         )}
       </div>
@@ -540,24 +603,25 @@ const HomePage: React.FC = () => {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {displayedUpcomingEvents.map((event) => (
-                  <EventCard 
-                    key={event.id} 
-                    event={event} 
+                  <EventCard
+                    key={event.id}
+                    event={event}
                     onFavoriteToggle={handleFavoriteToggle}
                   />
                 ))}
               </div>
 
-              {!showMoreUpcoming && upcomingEvents.length > getDisplayCount(false) && (
-                <div className="text-center">
-                  <button
-                    onClick={() => setShowMoreUpcoming(true)}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    See More
-                  </button>
-                </div>
-              )}
+              {!showMoreUpcoming &&
+                upcomingEvents.length > getDisplayCount(false) && (
+                  <div className="text-center">
+                    <button
+                      onClick={() => setShowMoreUpcoming(true)}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    >
+                      See More
+                    </button>
+                  </div>
+                )}
             </>
           ) : (
             <div className="text-center py-12">
@@ -592,7 +656,7 @@ const HomePage: React.FC = () => {
 
             {/* Create Event Button */}
             <div className="flex-shrink-0">
-              <button 
+              <button
                 onClick={handleCreateEvent}
                 className="cursor-pointer bg-[#ffe047] text-black px-4 py-2 sm:px-6 sm:py-3 md:px-6 md:py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors text-xs sm:text-sm md:text-base whitespace-nowrap flex items-center gap-1 md:gap-2"
               >
@@ -615,28 +679,31 @@ const HomePage: React.FC = () => {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
                 {displayedTrendyEvents.map((event) => (
-                  <EventCard 
-                    key={event.id} 
-                    event={event} 
+                  <EventCard
+                    key={event.id}
+                    event={event}
                     onFavoriteToggle={handleFavoriteToggle}
                   />
                 ))}
               </div>
 
-              {!showMoreTrendy && trendyEvents.length > getDisplayCount(false) && (
-                <div className="text-center">
-                  <button
-                    onClick={() => setShowMoreTrendy(true)}
-                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    See More
-                  </button>
-                </div>
-              )}
+              {!showMoreTrendy &&
+                trendyEvents.length > getDisplayCount(false) && (
+                  <div className="text-center">
+                    <button
+                      onClick={() => setShowMoreTrendy(true)}
+                      className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    >
+                      See More
+                    </button>
+                  </div>
+                )}
             </>
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-600">No trendy events found in major cities.</p>
+              <p className="text-gray-600">
+                No trendy events found in major cities.
+              </p>
             </div>
           )}
         </div>
