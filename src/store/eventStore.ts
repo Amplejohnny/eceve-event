@@ -43,6 +43,9 @@ interface EventStore {
   formData: EventFormData;
   isLoading: boolean;
   errors: Record<string, string>;
+  allEvents: Event[];
+  eventsLoading: boolean;
+  eventsError: string | null;
 
   // Navigation
   setCurrentStep: (step: number) => void;
@@ -85,6 +88,21 @@ interface EventStore {
   createEvent: () => Promise<any>;
   updateEvent: (eventId: string) => Promise<any>;
   loadEvent: (eventId: string) => Promise<void>;
+
+  loadEvents: (params?: {
+    category?: string;
+    location?: string;
+    eventType?: string;
+    status?: string;
+    q?: string;
+    limit?: number;
+    offset?: number;
+  }) => Promise<{ events: Event[]; totalCount: number; hasMore: boolean }>;
+
+  setAllEvents: (events: Event[]) => void;
+  setEventsLoading: (loading: boolean) => void;
+  setEventsError: (error: string | null) => void;
+  clearEvents: () => void;
 }
 
 const eventSteps: EventStep[] = [
@@ -127,6 +145,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
   formData: initialFormData,
   isLoading: false,
   errors: {},
+  allEvents: [],
+  eventsLoading: false,
+  eventsError: null,
 
   // Navigation
   setCurrentStep: (step: number) => {
@@ -635,4 +656,67 @@ export const useEventStore = create<EventStore>((set, get) => ({
       setLoading(false);
     }
   },
+
+  loadEvents: async (params = {}) => {
+    const { setEventsLoading, setEventsError, setAllEvents } = get();
+    setEventsLoading(true);
+    setEventsError(null);
+
+    try {
+      const searchParams = new URLSearchParams();
+
+      // Add parameters to search params if they exist
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString());
+        }
+      });
+
+      const response = await fetch(`/api/events?${searchParams.toString()}`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to load events");
+      }
+
+      const result = await response.json();
+
+      // If offset is provided, it means we're loading more events (pagination)
+      if (params.offset && params.offset > 0) {
+        set((state) => ({
+          allEvents: [...state.allEvents, ...result.events],
+        }));
+      } else {
+        // Otherwise, replace all events
+        setAllEvents(result.events);
+      }
+
+      return {
+        events: result.events,
+        totalCount: result.totalCount,
+        hasMore: result.hasMore,
+      };
+    } catch (error) {
+      console.error("Error loading events:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load events";
+      setEventsError(errorMessage);
+      throw error;
+    } finally {
+      setEventsLoading(false);
+    }
+  },
+
+  setAllEvents: (events: Event[]) => set({ allEvents: events }),
+
+  setEventsLoading: (loading: boolean) => set({ eventsLoading: loading }),
+
+  setEventsError: (error: string | null) => set({ eventsError: error }),
+
+  clearEvents: () =>
+    set({
+      allEvents: [],
+      eventsError: null,
+      eventsLoading: false,
+    }),
 }));
