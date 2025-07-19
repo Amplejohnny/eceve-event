@@ -11,13 +11,13 @@ export async function GET(request: NextRequest) {
     const eventType = searchParams.get("eventType");
     const status = searchParams.get("status");
     const q = searchParams.get("q"); // search query
-    const limit = searchParams.get("limit");
-    const offset = searchParams.get("offset");
+    const limitParam = searchParams.get("limit");
+    const offsetParam = searchParams.get("offset");
 
     // Build where clause for filtering
     const whereClause: any = {
-      isPublic: true, // Only get public events
-      status: status || "PUBLISHED", // Default to published events
+      isPublic: true,
+      status: status || "PUBLISHED",
     };
 
     // Add category filter
@@ -76,9 +76,12 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Pagination
-    const take = limit ? parseInt(limit) : undefined;
-    const skip = offset ? parseInt(offset) : undefined;
+    // Pagination - Fixed to handle undefined and invalid numbers properly
+    // Default to 24 events for homepage performance, allow override via params
+    const take = limitParam
+      ? Math.max(1, parseInt(limitParam)) || undefined
+      : 24;
+    const skip = offsetParam ? Math.max(0, parseInt(offsetParam)) || 0 : 0;
 
     // Fetch events with all related data
     const events = await db.event.findMany({
