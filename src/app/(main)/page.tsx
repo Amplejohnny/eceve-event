@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useEventStore } from "@/store/eventStore";
 
 interface Event {
   id: string;
@@ -176,6 +177,7 @@ const HomePage: React.FC = () => {
   const [showMoreUpcoming, setShowMoreUpcoming] = useState(false);
   const [showMoreTrendy, setShowMoreTrendy] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const { allEvents, eventsLoading, eventsError, loadEvents } = useEventStore();
 
   // Event state
   const [popularEvents, setPopularEvents] = useState<Event[]>([]);
@@ -260,16 +262,26 @@ const HomePage: React.FC = () => {
     getUserLocation();
   }, []);
 
-  // Fetch events
+  // First useEffect: Load events from the store
   useEffect(() => {
     const fetchEvents = async () => {
-      setLoading(true);
       try {
-        const response = await fetch("/api/events");
-        if (!response.ok) throw new Error("Failed to fetch events");
+        await loadEvents({
+          status: "PUBLISHED",
+          limit: 50,
+        });
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    };
 
-        const events: Event[] = await response.json();
+    fetchEvents();
+  }, [loadEvents]); // Remove activeFilter from dependencies since we're just loading data
 
+  // Second useEffect: Process and filter events when allEvents or activeFilter changes
+  useEffect(() => {
+    if (allEvents.length > 0) {
+      try {
         // Filter and sort events
         const now = new Date();
         const today = new Date(
@@ -281,7 +293,7 @@ const HomePage: React.FC = () => {
         const weekEnd = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
 
         // Popular events (active events ordered by creation time)
-        let popular = events
+        let popular = allEvents
           .filter((event) => {
             const eventDate = new Date(event.date);
             return eventDate >= today; // Only future events
@@ -314,7 +326,7 @@ const HomePage: React.FC = () => {
         }
 
         // Upcoming events (events near current date/time)
-        const upcoming = events
+        const upcoming = allEvents
           .filter((event) => {
             const eventDate = new Date(event.date);
             const timeDiff = eventDate.getTime() - now.getTime();
@@ -326,7 +338,7 @@ const HomePage: React.FC = () => {
           );
 
         // Trendy events (events in major Nigerian cities)
-        const trendy = events
+        const trendy = allEvents
           .filter((event) => {
             return majorNigerianCities.some((city) =>
               event.location.toLowerCase().includes(city.toLowerCase())
@@ -341,14 +353,10 @@ const HomePage: React.FC = () => {
         setUpcomingEvents(upcoming);
         setTrendyEvents(trendy);
       } catch (error) {
-        console.error("Error fetching events:", error);
-      } finally {
-        setLoading(false);
+        console.error("Error processing events:", error);
       }
-    };
-
-    fetchEvents();
-  }, [activeFilter]);
+    }
+  }, [allEvents, activeFilter]);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -409,7 +417,8 @@ const HomePage: React.FC = () => {
     getDisplayCount(showMoreTrendy)
   );
 
-  if (loading) {
+  // Handle loading state from the store
+  if (eventsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
