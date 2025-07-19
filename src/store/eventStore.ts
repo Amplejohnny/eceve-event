@@ -8,6 +8,42 @@ export interface TicketType {
   quantity?: number;
 }
 
+// Add the missing EventData interface
+export interface EventData {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  startTime: string;
+  endTime?: string;
+  location: string;
+  venue?: string;
+  imageUrl?: string;
+  eventType: "FREE" | "PAID";
+  slug: string;
+  organizer?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string;
+  };
+  ticketTypes?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity?: number;
+  }>;
+  _count?: {
+    tickets: number;
+    favorites: number;
+  };
+  createdAt: string;
+  description?: string;
+  tags?: string[];
+  address?: string;
+  status?: EventStatus;
+}
+
 export interface EventFormData {
   title: string;
   description: string;
@@ -43,7 +79,7 @@ interface EventStore {
   formData: EventFormData;
   isLoading: boolean;
   errors: Record<string, string>;
-  allEvents: Event[];
+  allEvents: EventData[];
   eventsLoading: boolean;
   eventsError: string | null;
 
@@ -87,6 +123,7 @@ interface EventStore {
   // Event management
   createEvent: () => Promise<any>;
   updateEvent: (eventId: string) => Promise<any>;
+  updateEventTickets: (eventId: string) => Promise<any>; // Add missing method
   loadEvent: (eventId: string) => Promise<void>;
 
   loadEvents: (params?: {
@@ -97,9 +134,9 @@ interface EventStore {
     q?: string;
     limit?: number;
     offset?: number;
-  }) => Promise<{ events: Event[]; totalCount: number; hasMore: boolean }>;
+  }) => Promise<{ events: EventData[]; totalCount: number; hasMore: boolean }>;
 
-  setAllEvents: (events: Event[]) => void;
+  setAllEvents: (events: EventData[]) => void;
   setEventsLoading: (loading: boolean) => void;
   setEventsError: (error: string | null) => void;
   clearEvents: () => void;
@@ -246,7 +283,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
       id: `ticket_${Date.now()}`,
       name: "",
       price: formData.eventType === EventType.FREE ? 0 : 1000, // 1000 kobo = ₦10
-      // quantity: 50,
     };
     set((state) => ({
       formData: {
@@ -308,7 +344,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
           setError("startTime", "Start time is required");
           return false;
         }
-        // endTime is optional, but if provided, it must be after startTime
         if (
           formData.endTime &&
           formData.endTime.trim() &&
@@ -332,7 +367,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         break;
 
       case 2: // Banner Step
-        // Banner image validation for event cover/banner
         if (formData.bannerImage) {
           const allowedTypes = [
             "image/jpeg",
@@ -376,13 +410,11 @@ export const useEventStore = create<EventStore>((set, get) => ({
           }
         }
 
-        // Validate each ticket type
         for (const ticket of formData.ticketTypes) {
           if (!ticket.name.trim()) {
             setError(`ticket_${ticket.id}_name`, "Ticket name is required");
             return false;
           }
-          // Only validate quantity if it's provided and not undefined
           if (ticket.quantity !== undefined && ticket.quantity <= 0) {
             setError(
               `ticket_${ticket.id}_quantity`,
@@ -485,7 +517,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
         ticketTypes: formData.ticketTypes.map(({ id, ...ticket }) => ({
           name: ticket.name,
           price: ticket.price,
-          ...(ticket.quantity !== undefined && { quantity: ticket.quantity }), // Only include if defined
+          ...(ticket.quantity !== undefined && { quantity: ticket.quantity }),
         })),
       };
 
@@ -568,7 +600,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
           id: ticket.id === "default" ? undefined : ticket.id,
           name: ticket.name,
           price: ticket.price,
-          ...(ticket.quantity !== undefined && { quantity: ticket.quantity }), // Only include if defined
+          ...(ticket.quantity !== undefined && { quantity: ticket.quantity }),
         })),
       };
 
@@ -595,7 +627,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }
   },
 
-  // Updated loadEvent method for EventStore
   loadEvent: async (eventId: string) => {
     const { setLoading, setFormData } = get();
     setLoading(true);
@@ -609,7 +640,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
       const event = await response.json();
 
-      // Convert the event data to form data format
       const formData: EventFormData = {
         title: event.title || "",
         description: event.description || "",
@@ -624,7 +654,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
         tags: Array.isArray(event.tags) ? event.tags : [],
         category: event.category || "",
         imageUrl: event.imageUrl || "",
-        bannerImage: null, // Cannot reconstruct file from URL
+        bannerImage: null,
         ticketTypes: Array.isArray(event.ticketTypes)
           ? event.ticketTypes.map((ticket: any) => ({
               id: ticket.id || `ticket_${Date.now()}`,
@@ -707,7 +737,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }
   },
 
-  setAllEvents: (events: Event[]) => set({ allEvents: events }),
+  setAllEvents: (events: EventData[]) => set({ allEvents: events }),
 
   setEventsLoading: (loading: boolean) => set({ eventsLoading: loading }),
 

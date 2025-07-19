@@ -14,7 +14,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEventStore } from "@/store/eventStore";
 
-interface Event {
+interface EventData {
   id: string;
   title: string;
   category: string;
@@ -46,7 +46,7 @@ interface Event {
 }
 
 interface EventCardProps {
-  event: Event;
+  event: EventData;
   onFavoriteToggle?: (eventId: string) => void;
   isFavorite?: boolean;
 }
@@ -180,9 +180,9 @@ const HomePage: React.FC = () => {
   const { allEvents, eventsLoading, eventsError, loadEvents } = useEventStore();
 
   // Event state
-  const [popularEvents, setPopularEvents] = useState<Event[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [trendyEvents, setTrendyEvents] = useState<Event[]>([]);
+  const [popularEvents, setPopularEvents] = useState<EventData[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<EventData[]>([]);
+  const [trendyEvents, setTrendyEvents] = useState<EventData[]>([]);
   const [loading, setLoading] = useState(true);
   const [locationPermission, setLocationPermission] = useState<string | null>(
     null
