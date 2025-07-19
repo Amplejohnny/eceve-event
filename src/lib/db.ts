@@ -116,7 +116,9 @@ export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
       .replace("-500", "")}&color=fff&size=128`;
   }
 
-  return `<CircleUserRound class="w-8 h-8 text-gray-500" />`;
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    "Anonymous"
+  )}&background=6b7280&color=fff&size=128`;
 }
 
 export async function getUserTickets(userId: string) {
