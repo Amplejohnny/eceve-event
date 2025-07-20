@@ -102,7 +102,6 @@ type AuthToken = {
   role?: string;
   email?: string;
   emailVerified?: boolean;
-  // add other properties as needed
 };
 
 export default withAuth(
