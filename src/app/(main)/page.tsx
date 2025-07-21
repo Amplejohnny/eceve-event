@@ -276,7 +276,7 @@ const HomePage: React.FC = () => {
     };
 
     fetchEvents();
-  }, [loadEvents]); // Remove activeFilter from dependencies since we're just loading data
+  }, [loadEvents]);
 
   // Second useEffect: Process and filter events when allEvents or activeFilter changes
   useEffect(() => {
