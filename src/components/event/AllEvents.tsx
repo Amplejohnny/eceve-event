@@ -6,13 +6,42 @@ import {
   Clock,
   Star,
   Users,
-  Tag,
   X,
   Plus,
   Filter,
   ChevronDown,
 } from "lucide-react";
 import { useEventStore } from "@/store/eventStore";
+
+interface EventData {
+  id: string;
+  title: string;
+  category: string;
+  date: string;
+  startTime: string;
+  endTime?: string;
+  location: string;
+  imageUrl?: string;
+  eventType: "FREE" | "PAID";
+  slug: string;
+  organizer?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string;
+  };
+  ticketTypes?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity?: number;
+  }>;
+  _count?: {
+    tickets: number;
+    favorites: number;
+  };
+  createdAt: string;
+}
 
 const PREDEFINED_TAGS = [
   "Conference",
@@ -35,7 +64,7 @@ const PREDEFINED_TAGS = [
   "Premium",
   "Beginner",
   "Advanced",
-];
+] as const;
 
 const CATEGORIES = [
   "Entertainment",
@@ -44,16 +73,20 @@ const CATEGORIES = [
   "Sports & Fitness",
   "Technology & Innovation",
   "Travel & Adventure",
-];
+] as const;
 
 const PRICE_FILTERS = [
   { label: "All", value: "all" },
   { label: "Free", value: "FREE" },
   { label: "Paid", value: "PAID" },
-];
+] as const;
 
-const EventCard = ({ event }) => {
-  const formatDate = (dateString) => {
+interface EventCardProps {
+  event: EventData;
+}
+
+const EventCard: React.FC<EventCardProps> = ({ event }) => {
+  const formatDate = (dateString: string): { month: string; day: number } => {
     const date = new Date(dateString);
     const month = date
       .toLocaleDateString("en-US", { month: "short" })
@@ -62,7 +95,7 @@ const EventCard = ({ event }) => {
     return { month, day };
   };
 
-  const formatTime = (timeString) => {
+  const formatTime = (timeString: string): string => {
     if (!timeString) return "";
     const [hours, minutes] = timeString.split(":");
     const hour = parseInt(hours);
@@ -164,37 +197,34 @@ const EventCard = ({ event }) => {
   );
 };
 
-const EventsPage = () => {
-  const {
-    allEvents,
-    eventsLoading,
-    eventsError,
-    loadEvents,
-    setEventsError,
-    clearEvents,
-  } = useEventStore();
+type SortOption = "relevance" | "date" | "price";
+type PriceFilterValue = "all" | "FREE" | "PAID";
+
+const AllEventsPage: React.FC = () => {
+  const { allEvents, eventsLoading, eventsError, loadEvents, clearEvents } =
+    useEventStore();
 
   // Filter states
-  const [searchQuery, setSearchQuery] = useState("");
-  const [location, setLocation] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [priceFilter, setPriceFilter] = useState("all");
-  const [customTag, setCustomTag] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState("relevance");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [priceFilter, setPriceFilter] = useState<PriceFilterValue>("all");
+  const [customTag, setCustomTag] = useState<string>("");
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [sortBy, setSortBy] = useState<SortOption>("relevance");
 
   // UI states
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [totalCount, setTotalCount] = useState<number>(0);
 
   // Load events on component mount
   useEffect(() => {
     loadInitialEvents();
   }, []);
 
-  const loadInitialEvents = async () => {
+  const loadInitialEvents = async (): Promise<void> => {
     try {
       const result = await loadEvents({ limit: 12 });
       setTotalCount(result.totalCount);
@@ -205,12 +235,12 @@ const EventsPage = () => {
   };
 
   // Handle search and filters
-  const handleSearch = async () => {
+  const handleSearch = async (): Promise<void> => {
     setIsLoading(true);
     clearEvents();
 
     try {
-      const params = {
+      const params: Parameters<typeof loadEvents>[0] = {
         q: searchQuery,
         location: location,
         category: selectedCategory,
@@ -230,12 +260,12 @@ const EventsPage = () => {
   };
 
   // Load more events
-  const loadMoreEvents = async () => {
+  const loadMoreEvents = async (): Promise<void> => {
     if (!hasMore || isLoading) return;
 
     setIsLoading(true);
     try {
-      const params = {
+      const params: Parameters<typeof loadEvents>[0] = {
         q: searchQuery,
         location: location,
         category: selectedCategory,
@@ -254,17 +284,17 @@ const EventsPage = () => {
   };
 
   // Tag management
-  const addTag = (tag) => {
+  const addTag = (tag: string): void => {
     if (!selectedTags.includes(tag)) {
       setSelectedTags([...selectedTags, tag]);
     }
   };
 
-  const removeTag = (tag) => {
+  const removeTag = (tag: string): void => {
     setSelectedTags(selectedTags.filter((t) => t !== tag));
   };
 
-  const addCustomTag = () => {
+  const addCustomTag = (): void => {
     if (customTag.trim() && !selectedTags.includes(customTag.trim())) {
       setSelectedTags([...selectedTags, customTag.trim()]);
       setCustomTag("");
@@ -272,7 +302,7 @@ const EventsPage = () => {
   };
 
   // Clear all filters
-  const clearAllFilters = () => {
+  const clearAllFilters = (): void => {
     setSearchQuery("");
     setLocation("");
     setSelectedCategory("");
@@ -283,7 +313,7 @@ const EventsPage = () => {
   };
 
   // Filter events locally by tags (since API doesn't support tags yet)
-  const filteredEvents = allEvents.filter((event) => {
+  const filteredEvents: EventData[] = allEvents.filter((event) => {
     if (selectedTags.length === 0) return true;
     return selectedTags.some((tag) =>
       event.tags?.some((eventTag) =>
@@ -394,7 +424,9 @@ const EventsPage = () => {
                 <select
                   title="priceFilter"
                   value={priceFilter}
-                  onChange={(e) => setPriceFilter(e.target.value)}
+                  onChange={(e) =>
+                    setPriceFilter(e.target.value as PriceFilterValue)
+                  }
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 >
                   {PRICE_FILTERS.map((filter) => (
@@ -412,9 +444,10 @@ const EventsPage = () => {
                 <select
                   title="sortBy"
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 >
+                  <option value="relevance">Relevance</option>
                   <option value="date">Date</option>
                   <option value="price">Price</option>
                 </select>
@@ -577,4 +610,4 @@ const EventsPage = () => {
   );
 };
 
-export default EventsPage;
+export default AllEventsPage;

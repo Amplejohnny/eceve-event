@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 // const recursive = Recursive({ subsets: ["latin"] });
 
 export function constructMetadata({
-  title = "Comforeve - Events near you",
-  description = "A ticketing platform for all events",
+  title = "Comforeve - Discover Amazing Events Near You",
+  description = "Find and book the best events in your area. From concerts and workshops to conferences and networking events - discover what excites you on Comforeve.",
   image = "/thumbnail.png",
   icons = "/favicon.ico",
 }: {

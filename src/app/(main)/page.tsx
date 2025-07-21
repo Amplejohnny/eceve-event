@@ -22,7 +22,6 @@ interface EventData {
   startTime: string;
   endTime?: string;
   location: string;
-  venue?: string;
   imageUrl?: string;
   eventType: "FREE" | "PAID";
   slug: string;
@@ -38,10 +37,6 @@ interface EventData {
     price: number;
     quantity?: number;
   }>;
-  _count?: {
-    tickets: number;
-    favorites: number;
-  };
   createdAt: string;
 }
 
