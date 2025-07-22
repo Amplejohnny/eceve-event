@@ -148,7 +148,7 @@ const EventSlugPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventId = searchParams.get("eventId");
-  const { loadEvent, formData, isLoading } = useEventStore();
+  const { loadEvent, currentEvent, isLoading } = useEventStore();
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
@@ -230,7 +230,7 @@ const EventSlugPage = () => {
     );
   }
 
-  if (error || !formData.title) {
+  if (error || !currentEvent) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -250,22 +250,22 @@ const EventSlugPage = () => {
   return (
     <>
       <Head>
-        <title>{formData.title} - Sound of Christmas 2023</title>
-        <meta name="description" content={formData.description} />
-        <meta property="og:title" content={formData.title} />
-        <meta property="og:description" content={formData.description} />
-        {formData.imageUrl && (
-          <meta property="og:image" content={formData.imageUrl} />
+        <title>{currentEvent.title}</title>
+        <meta name="description" content={currentEvent.description} />
+        <meta property="og:title" content={currentEvent.title} />
+        <meta property="og:description" content={currentEvent.description} />
+        {currentEvent.imageUrl && (
+          <meta property="og:image" content={currentEvent.imageUrl} />
         )}
       </Head>
 
       <div className="min-h-screen bg-gray-50">
         {/* Header Banner */}
         <div className="relative h-64 md:h-80 bg-gradient-to-r from-red-600 to-green-600">
-          {formData.imageUrl && (
+          {currentEvent.imageUrl && (
             <Image
-              src={formData.imageUrl}
-              alt={formData.title}
+              src={currentEvent.imageUrl}
+              alt={currentEvent.title}
               fill
               className="object-cover"
               priority
@@ -280,7 +280,7 @@ const EventSlugPage = () => {
               {/* Event Title */}
               <div className="mb-6">
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                  {formData.title}
+                  {currentEvent.title}
                 </h1>
               </div>
 
@@ -296,14 +296,15 @@ const EventSlugPage = () => {
                   <div className="flex items-center space-x-2 text-gray-600">
                     <Calendar className="w-4 h-4" />
                     <span>
-                      {formData.date && formatDate(formData.date.toISOString())}
+                      {currentEvent.date && formatDate(currentEvent.date)}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600 mt-1">
                     <Clock className="w-4 h-4" />
                     <span>
-                      {formatTime(formData.startTime)}
-                      {formData.endTime && ` - ${formatTime(formData.endTime)}`}
+                      {formatTime(currentEvent.startTime)}
+                      {currentEvent.endTime &&
+                        ` - ${formatTime(currentEvent.endTime)}`}
                     </span>
                   </div>
                 </div>
@@ -313,10 +314,10 @@ const EventSlugPage = () => {
                   <h3 className="font-medium text-gray-900 mb-2">Location</h3>
                   <div className="text-gray-600">
                     <p className="font-medium">
-                      {formData.venue || formData.location}
+                      {currentEvent.venue || currentEvent.location}
                     </p>
-                    {formData.address && (
-                      <p className="text-sm">{formData.address}</p>
+                    {currentEvent.address && (
+                      <p className="text-sm">{currentEvent.address}</p>
                     )}
                   </div>
                 </div>
@@ -327,16 +328,16 @@ const EventSlugPage = () => {
                     About this event
                   </h3>
                   <div className="text-gray-600 whitespace-pre-wrap">
-                    {formData.description}
+                    {currentEvent.description}
                   </div>
                 </div>
 
                 {/* Tags */}
-                {formData.tags.length > 0 && (
+                {currentEvent.tags.length > 0 && (
                   <div className="mt-6 pt-6 border-t">
                     <h3 className="font-medium text-gray-900 mb-2">Tags</h3>
                     <div className="flex flex-wrap gap-2">
-                      {formData.tags.map((tag) => (
+                      {currentEvent.tags.map((tag) => (
                         <span
                           key={tag}
                           className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
@@ -355,12 +356,12 @@ const EventSlugPage = () => {
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 bg-gradient-to-r from-red-600 to-green-600 rounded-full flex items-center justify-center">
                     <span className="text-white font-semibold">
-                      {formData.organizer?.name?.charAt(0) || "C"}
+                      {currentEvent.organizer?.name?.charAt(0) || "C"}
                     </span>
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
-                      {formData.organizer?.name || "City Youth Movement"}
+                      {currentEvent.organizer?.name || "City Youth Movement"}
                     </p>
                   </div>
                 </div>
@@ -399,7 +400,6 @@ const EventSlugPage = () => {
                       </button>
                     </div>
                   </div>
-
                   {showVerificationMessage && (
                     <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-sm text-yellow-800">
@@ -408,8 +408,9 @@ const EventSlugPage = () => {
                     </div>
                   )}
 
+                  {/* Event Tickets */}
                   <div className="space-y-3 mb-6">
-                    {formData.ticketTypes.map((ticket) => (
+                    {(currentEvent.ticketTypes || []).map((ticket) => (
                       <div key={ticket.id} className="border rounded-lg p-3">
                         <div className="flex justify-between items-start mb-1">
                           <span className="font-medium text-gray-900">
@@ -429,12 +430,11 @@ const EventSlugPage = () => {
                       </div>
                     ))}
                   </div>
-
                   <button
                     onClick={handleBuyTickets}
                     className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
                   >
-                    {formData.eventType === "FREE"
+                    {currentEvent.eventType === "FREE"
                       ? "Get Tickets"
                       : "Buy Tickets"}
                   </button>
@@ -448,19 +448,21 @@ const EventSlugPage = () => {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Category</span>
-                      <span className="font-medium">{formData.category}</span>
+                      <span className="font-medium">
+                        {currentEvent.category}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Type</span>
                       <span className="font-medium capitalize">
-                        {formData.eventType.toLowerCase()}
+                        {currentEvent.eventType.toLowerCase()}
                       </span>
                     </div>
-                    {formData.status && (
+                    {currentEvent.status && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Status</span>
                         <span className="font-medium capitalize">
-                          {formData.status.toLowerCase()}
+                          {currentEvent.status.toLowerCase()}
                         </span>
                       </div>
                     )}
@@ -477,7 +479,7 @@ const EventSlugPage = () => {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         eventUrl={eventUrl}
-        eventTitle={formData.title}
+        eventTitle={currentEvent.title}
       />
     </>
   );

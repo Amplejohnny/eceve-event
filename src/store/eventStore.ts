@@ -39,7 +39,7 @@ export interface EventData {
   };
   createdAt: string;
   description?: string;
-  tags?: string[];
+  tags: string[];
   address?: string;
   status?: EventStatus;
 }
@@ -65,7 +65,7 @@ export interface EventFormData {
   isPublic: boolean;
   status: EventStatus;
   slug: string;
-  // organizerId?: string; 
+  // organizerId?: string;
   // organizer?: {
   //   id: string;
   //   name: string;
@@ -89,6 +89,7 @@ interface EventStore {
   allEvents: EventData[];
   eventsLoading: boolean;
   eventsError: string | null;
+  currentEvent: EventData | null;
 
   // Navigation
   setCurrentStep: (step: number) => void;
@@ -126,6 +127,9 @@ interface EventStore {
 
   // Loading states
   setLoading: (loading: boolean) => void;
+
+  setCurrentEvent: (event: EventData | null) => void; // Add this
+  getCurrentEvent: () => EventData | null;
 
   // Event management
   createEvent: () => Promise<any>;
@@ -192,6 +196,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   allEvents: [],
   eventsLoading: false,
   eventsError: null,
+  currentEvent: null,
 
   // Navigation
   setCurrentStep: (step: number) => {
@@ -223,6 +228,10 @@ export const useEventStore = create<EventStore>((set, get) => ({
     const { currentStep } = get();
     return currentStep > 1;
   },
+
+  setCurrentEvent: (event: EventData | null) => set({ currentEvent: event }),
+
+  getCurrentEvent: () => get().currentEvent,
 
   // Form data management
   updateFormData: (data: Partial<EventFormData>) => {
@@ -635,7 +644,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   },
 
   loadEvent: async (eventId: string) => {
-    const { setLoading, setFormData } = get();
+    const { setLoading, setCurrentEvent } = get();
     setLoading(true);
 
     try {
@@ -646,6 +655,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
       }
 
       const event = await response.json();
+      setCurrentEvent(event);
 
       const formData: EventFormData = {
         title: event.title || "",
@@ -684,7 +694,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         slug: event.slug || "",
       };
 
-      setFormData(formData);
       return event;
     } catch (error) {
       console.error("Error loading event:", error);
