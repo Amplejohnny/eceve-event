@@ -333,6 +333,22 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }));
   },
 
+  isEventLoaded: (eventId: string): boolean => {
+    const { currentEvent } = get();
+    return currentEvent?.id === eventId || currentEvent?.slug === eventId;
+  },
+
+  // Method to get event by ID or slug (matching API logic)
+  getEventIdentifier: (
+    eventId: string
+  ): { isUUID: boolean; identifier: string } => {
+    const isUUID =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        eventId
+      );
+    return { isUUID, identifier: eventId };
+  },
+
   // Validation
   validateStep: (step: number) => {
     const { formData, setError, clearAllErrors } = get();
@@ -644,17 +660,44 @@ export const useEventStore = create<EventStore>((set, get) => ({
   },
 
   loadEvent: async (eventId: string) => {
-    const { setLoading, setCurrentEvent } = get();
+    const {
+      setLoading,
+      setCurrentEvent,
+      setFormData,
+      setError,
+      clearAllErrors,
+    } = get();
     setLoading(true);
+    clearAllErrors();
 
     try {
+      if (!eventId || eventId.trim() === "") {
+        throw new Error("Event ID is required");
+      }
+
       const response = await fetch(`/api/events/${eventId}`);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to load event");
+        if (response.status === 404) {
+          throw new Error("Event not found");
+        } else if (response.status === 400) {
+          throw new Error("Invalid event ID format");
+        } else if (response.status === 503) {
+          throw new Error("Database connection error. Please try again later.");
+        } else {
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: "Unknown error occurred" }));
+          throw new Error(errorData.error || "Failed to load event");
+        }
       }
 
       const event = await response.json();
+
+      if (!event || typeof event !== "object") {
+        throw new Error("Invalid response from server");
+      }
+
       setCurrentEvent(event);
 
       const formData: EventFormData = {
@@ -672,31 +715,41 @@ export const useEventStore = create<EventStore>((set, get) => ({
         category: event.category || "",
         imageUrl: event.imageUrl || "",
         bannerImage: null,
-        ticketTypes: Array.isArray(event.ticketTypes)
-          ? event.ticketTypes.map((ticket: any) => ({
-              id: ticket.id || `ticket_${Date.now()}`,
-              name: ticket.name || "",
-              price: typeof ticket.price === "number" ? ticket.price : 0,
-              quantity:
-                typeof ticket.quantity === "number"
-                  ? ticket.quantity
-                  : undefined,
-            }))
-          : [
-              {
-                id: "default",
-                name: "Standard",
-                price: 0,
-              },
-            ],
+        ticketTypes:
+          Array.isArray(event.ticketTypes) && event.ticketTypes.length > 0
+            ? event.ticketTypes.map((ticket: any, index: number) => ({
+                id: ticket.id || `ticket_${Date.now()}_${index}`,
+                name: ticket.name || "",
+                price: typeof ticket.price === "number" ? ticket.price : 0,
+                quantity:
+                  typeof ticket.quantity === "number" && ticket.quantity > 0
+                    ? ticket.quantity
+                    : undefined,
+              }))
+            : [
+                {
+                  id: "default",
+                  name: "Standard",
+                  price: event.eventType === EventType.PAID ? 1000 : 0,
+                },
+              ],
         isPublic: event.isPublic ?? true,
         status: event.status || EventStatus.DRAFT,
-        slug: event.slug || "",
+        slug: event.slug || get().generateSlug(event.title || ""),
       };
+
+      // Update the form data for editing
+      setFormData(formData);
 
       return event;
     } catch (error) {
       console.error("Error loading event:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load event";
+      setError("loadEvent", errorMessage);
+
+      setCurrentEvent(null);
+
       throw error;
     } finally {
       setLoading(false);
