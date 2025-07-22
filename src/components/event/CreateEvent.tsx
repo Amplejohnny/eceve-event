@@ -13,6 +13,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const CATEGORIES = [
   "Entertainment",
@@ -48,6 +49,7 @@ const PREDEFINED_TAGS = [
 
 const CreateEvent: React.FC = () => {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const {
     currentStep,
     formData,
@@ -71,6 +73,29 @@ const CreateEvent: React.FC = () => {
 
   const [submitError, setSubmitError] = useState("");
   const [tagInput, setTagInput] = useState("");
+
+  if (status === "loading") {
+    return (
+      <div className="p-4 max-w-6xl mx-auto">
+        <div className="animate-pulse space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-gray-200 h-32 rounded-lg"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!session?.user) {
+    return (
+      <div className="p-4 max-w-6xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <h3 className="font-medium mb-2">Authentication Required</h3>
+          <p>Please log in to create an event.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async () => {
     if (!validateCurrentStep()) {

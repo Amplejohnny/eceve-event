@@ -65,6 +65,13 @@ export interface EventFormData {
   isPublic: boolean;
   status: EventStatus;
   slug: string;
+  // organizerId?: string; 
+  // organizer?: {
+  //   id: string;
+  //   name: string;
+  //   email: string;
+  //   image?: string;
+  // };
 }
 
 export interface EventStep {
