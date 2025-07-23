@@ -8,6 +8,7 @@ import BookingCard from "@/components/settings/myEvents-steps/BookingCard";
 import EventCard from "@/components/settings/myEvents-steps/EventCard";
 import PaginationControls from "@/components/settings/myEvents-steps/PaginationControls";
 import { Calendar, Users } from "lucide-react";
+import Link from "next/link";
 
 interface TicketType {
   id: string;
@@ -119,10 +120,60 @@ export default function MyEvents() {
 
   if (!session?.user) {
     return (
-      <div className="p-4 max-w-6xl mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          <h3 className="font-medium mb-2">Authentication Required</h3>
-          <p>Please log in to view your events and bookings.</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-sm w-full">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center">
+            {/* Lock Icon */}
+            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <svg
+                className="w-6 h-6 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Authentication Required
+            </h2>
+
+            {/* Message */}
+            <p className="text-gray-600 mb-6 leading-relaxed text-sm">
+              You need to be logged in to create an event. Please sign in to
+              your account to continue.
+            </p>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <button className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <Link href="/auth/login">Sign In</Link>
+              </button>
+              <button className="w-full bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                <Link href="/">Back to Home</Link>
+              </button>
+            </div>
+
+            {/* Additional Help */}
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
+                Don't have an account?{" "}
+                <Link
+                  href="/auth/register"
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Sign up here
+                </Link>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );

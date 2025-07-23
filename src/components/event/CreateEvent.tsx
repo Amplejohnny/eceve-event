@@ -92,12 +92,12 @@ const CreateEvent: React.FC = () => {
   if (!session?.user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
+        <div className="max-w-sm w-full">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center">
             {/* Lock Icon */}
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
+            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <svg
-                className="w-8 h-8 text-red-600"
+                className="w-6 h-6 text-red-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -112,31 +112,29 @@ const CreateEvent: React.FC = () => {
             </div>
 
             {/* Title */}
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
               Authentication Required
             </h2>
 
             {/* Message */}
-            <p className="text-gray-600 mb-8 leading-relaxed">
+            <p className="text-gray-600 mb-6 leading-relaxed text-sm">
               You need to be logged in to create an event. Please sign in to
               your account to continue.
             </p>
 
             {/* Action Buttons */}
-            <div className="space-y-3">
-              <button className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <div className="space-y-2">
+              <button className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                 <Link href="/auth/login">Sign In</Link>
               </button>
-              <button
-                className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              >
+              <button className="w-full bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
                 <Link href="/">Back to Home</Link>
               </button>
             </div>
 
             {/* Additional Help */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-500">
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
                 Don't have an account?{" "}
                 <Link
                   href="/auth/register"
