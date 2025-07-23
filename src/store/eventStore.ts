@@ -14,6 +14,7 @@ export interface EventData {
   title: string;
   category: string;
   date: string;
+  endDate?: string;
   startTime: string;
   endTime?: string;
   location: string;

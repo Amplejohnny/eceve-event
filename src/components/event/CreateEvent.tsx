@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from "react";
 import { useEventStore } from "../../store/eventStore";
 import { EventType } from "@/generated/prisma";

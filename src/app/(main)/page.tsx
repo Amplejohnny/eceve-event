@@ -172,13 +172,12 @@ const HomePage: React.FC = () => {
   const [showMoreUpcoming, setShowMoreUpcoming] = useState(false);
   const [showMoreTrendy, setShowMoreTrendy] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const { allEvents, eventsLoading, eventsError, loadEvents } = useEventStore();
+  const { allEvents, eventsLoading, loadEvents } = useEventStore();
 
   // Event state
   const [popularEvents, setPopularEvents] = useState<EventData[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<EventData[]>([]);
   const [trendyEvents, setTrendyEvents] = useState<EventData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [locationPermission, setLocationPermission] = useState<string | null>(
     null
   );

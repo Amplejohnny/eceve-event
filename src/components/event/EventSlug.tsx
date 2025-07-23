@@ -11,13 +11,11 @@ import {
   Star,
   Share2,
   X,
-  Facebook,
-  Twitter,
   MessageCircle,
-  Linkedin,
   Copy,
   Check,
 } from "lucide-react";
+import { FaXTwitter, FaFacebook, FaLinkedin } from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
 
 interface ShareModalProps {
@@ -84,7 +82,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             rel="noopener noreferrer"
             className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
           >
-            <Facebook className="w-6 h-6" />
+            <FaFacebook className="w-6 h-6" />
           </a>
           <a
             title="Share on Twitter"
@@ -93,7 +91,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             rel="noopener noreferrer"
             className="p-3 bg-black text-white rounded-full hover:bg-gray-800 transition-colors"
           >
-            <Twitter className="w-6 h-6" />
+            <FaXTwitter className="w-6 h-6" />
           </a>
           <a
             title="Share on WhatsApp"
@@ -111,7 +109,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             rel="noopener noreferrer"
             className="p-3 bg-blue-700 text-white rounded-full hover:bg-blue-800 transition-colors"
           >
-            <Linkedin className="w-6 h-6" />
+            <FaLinkedin className="w-6 h-6" />
           </a>
         </div>
 
@@ -143,7 +141,6 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
 const EventSlugPage = () => {
   const { data: session } = useSession();
-  const isVerified = !!session?.user;
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventId = searchParams.get("eventId");
@@ -175,7 +172,7 @@ const EventSlugPage = () => {
   }, [eventId, router, loadEvent]);
 
   const handleFavoriteToggle = () => {
-    if (!isVerified) {
+    if (!session?.user) {
       setShowVerificationMessage(true);
       setTimeout(() => setShowVerificationMessage(false), 3000);
       return;
