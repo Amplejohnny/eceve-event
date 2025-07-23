@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Search,
   MapPin,
@@ -107,93 +108,96 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
   const { month, day } = formatDate(event.date);
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
-      {/* Event Image */}
-      <div className="relative h-48 bg-gray-200">
-        {event.imageUrl ? (
-          <img
-            src={event.imageUrl}
-            alt={event.title}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
-            <Calendar className="h-16 w-16 text-gray-400" />
-          </div>
-        )}
-
-        {/* Date Badge */}
-        <div className="absolute top-4 left-4 bg-white rounded-lg shadow-md p-2 text-center min-w-[50px]">
-          <div className="text-xs font-medium text-gray-600">{month}</div>
-          <div className="text-lg font-bold text-gray-900">{day}</div>
-        </div>
-
-        {/* Favorite Button */}
-        <button
-          title="favourite"
-          className="absolute top-4 right-4 p-2 bg-white rounded-full shadow-md hover:bg-gray-50"
-        >
-          <Star className="h-4 w-4 text-gray-400" />
-        </button>
-
-        {/* Event Type Badge */}
-        <div className="absolute bottom-4 left-4">
-          <span
-            className={`px-2 py-1 rounded-full text-xs font-medium ${
-              event.eventType === "FREE"
-                ? "bg-green-100 text-green-800"
-                : "bg-blue-100 text-blue-800"
-            }`}
-          >
-            {event.eventType === "FREE" ? "Free" : "Paid"}
-          </span>
-        </div>
-      </div>
-
-      {/* Event Details */}
-      <div className="p-4">
-        {/* Category */}
-        <div className="mb-2">
-          <span className="inline-block bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">
-            {event.category}
-          </span>
-        </div>
-
-        {/* Title */}
-        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight">
-          {event.title}
-        </h3>
-
-        {/* Time */}
-        <div className="flex items-center text-gray-600 text-sm mb-2">
-          <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
-          <span>
-            {formatTime(event.startTime)}
-            {event.endTime && ` - ${formatTime(event.endTime)}`}
-          </span>
-        </div>
-
-        {/* Location */}
-        <div className="flex items-center text-gray-600 text-sm mb-3">
-          <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-          <span className="truncate">{event.location}</span>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-          <div className="flex items-center text-sm text-gray-500">
-            <Users className="h-4 w-4 mr-1" />
-            <span>{event._count?.tickets || 0} interested</span>
-          </div>
-
-          {event.eventType === "PAID" && event.ticketTypes?.[0] && (
-            <div className="text-sm font-semibold text-gray-900">
-              ₦{(event.ticketTypes[0].price / 100).toLocaleString()}
+    <Link href={`/events/${event.slug}`} className="block group">
+      <div className="bg-white rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
+        {/* Thumbnail */}
+        <div className="relative h-44 md:h-48 lg:h-52 bg-gray-200">
+          {event.imageUrl ? (
+            <img
+              src={event.imageUrl}
+              alt={event.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
+              <Calendar className="h-10 w-10 text-gray-400" />
             </div>
           )}
+
+          {/* Date Badge */}
+          <div className="absolute top-3 left-3 bg-white shadow-md rounded-md px-2 py-1 text-center">
+            <div className="text-[10px] text-gray-500 font-medium">{month}</div>
+            <div className="text-base font-bold text-gray-900">{day}</div>
+          </div>
+
+          {/* Favorite Icon */}
+          <button
+            title="favourite"
+            className="absolute top-3 right-3 bg-white p-2 rounded-full shadow hover:bg-gray-50"
+            onClick={(e) => e.preventDefault()}
+          >
+            <Star className="h-4 w-4 text-gray-400" />
+          </button>
+
+          {/* Type Badge */}
+          <div className="absolute bottom-3 left-3">
+            <span
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                event.eventType === "FREE"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {event.eventType === "FREE" ? "Free" : "Paid"}
+            </span>
+          </div>
+        </div>
+
+        {/* Event Content */}
+        <div className="p-4 space-y-2">
+          {/* Category */}
+          <div>
+            <span className="text-[11px] px-2 py-1 bg-yellow-100 text-yellow-800 rounded font-semibold uppercase tracking-wide">
+              {event.category}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-gray-900 text-base font-bold leading-snug line-clamp-2">
+            {event.title}
+          </h3>
+
+          {/* Time */}
+          <div className="flex items-center text-sm text-gray-600">
+            <Clock className="h-4 w-4 mr-1" />
+            <span>
+              {formatTime(event.startTime)}
+              {event.endTime ? ` - ${formatTime(event.endTime)}` : ""}
+            </span>
+          </div>
+
+          {/* Location */}
+          <div className="flex items-center text-sm text-gray-600">
+            <MapPin className="h-4 w-4 mr-1" />
+            <span className="truncate">{event.location}</span>
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-between items-center pt-2 border-t border-gray-100 text-sm">
+            <div className="flex items-center text-gray-500">
+              <Users className="h-4 w-4 mr-1" />
+              <span>{event._count?.tickets || 0} interested</span>
+            </div>
+
+            {event.eventType === "PAID" && event.ticketTypes?.[0] && (
+              <div className="text-sm font-semibold text-gray-900">
+                ₦{(event.ticketTypes[0].price / 100).toLocaleString()}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
