@@ -89,9 +89,10 @@ interface EventStore {
   allEvents: EventData[];
   eventsLoading: boolean;
   eventsError: string | null;
+  eventError: string | null;
   currentEvent: EventData | null;
 
-  // Navigation
+  // Navigations
   setCurrentStep: (step: number) => void;
   nextStep: () => void;
   prevStep: () => void;
@@ -127,6 +128,7 @@ interface EventStore {
 
   // Loading states
   setLoading: (loading: boolean) => void;
+  setEventError: (error: string | null) => void;
 
   setCurrentEvent: (event: EventData | null) => void; // Add this
   getCurrentEvent: () => EventData | null;
@@ -197,6 +199,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   eventsLoading: false,
   eventsError: null,
   currentEvent: null,
+  eventError: null,
 
   // Navigation
   setCurrentStep: (step: number) => {
@@ -232,6 +235,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
   setCurrentEvent: (event: EventData | null) => set({ currentEvent: event }),
 
   getCurrentEvent: () => get().currentEvent,
+
+  setEventError: (error: string | null) => set({ eventError: error }),
 
   // Form data management
   updateFormData: (data: Partial<EventFormData>) => {
@@ -660,13 +665,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
   },
 
   loadEvent: async (eventId: string) => {
-    const {
-      setLoading,
-      setCurrentEvent,
-      setFormData,
-      setError,
-      clearAllErrors,
-    } = get();
+    const { setLoading, setCurrentEvent, setEventError, clearAllErrors } =
+      get();
     setLoading(true);
     clearAllErrors();
 
@@ -699,57 +699,13 @@ export const useEventStore = create<EventStore>((set, get) => ({
       }
 
       setCurrentEvent(event);
-
-      const formData: EventFormData = {
-        title: event.title || "",
-        description: event.description || "",
-        eventType: event.eventType || EventType.FREE,
-        date: event.date ? new Date(event.date) : null,
-        endDate: event.endDate ? new Date(event.endDate) : null,
-        startTime: event.startTime || "",
-        endTime: event.endTime || "",
-        location: event.location || "",
-        venue: event.venue || "",
-        address: event.address || "",
-        tags: Array.isArray(event.tags) ? event.tags : [],
-        category: event.category || "",
-        imageUrl: event.imageUrl || "",
-        bannerImage: null,
-        ticketTypes:
-          Array.isArray(event.ticketTypes) && event.ticketTypes.length > 0
-            ? event.ticketTypes.map((ticket: any, index: number) => ({
-                id: ticket.id || `ticket_${Date.now()}_${index}`,
-                name: ticket.name || "",
-                price: typeof ticket.price === "number" ? ticket.price : 0,
-                quantity:
-                  typeof ticket.quantity === "number" && ticket.quantity > 0
-                    ? ticket.quantity
-                    : undefined,
-              }))
-            : [
-                {
-                  id: "default",
-                  name: "Standard",
-                  price: event.eventType === EventType.PAID ? 1000 : 0,
-                },
-              ],
-        isPublic: event.isPublic ?? true,
-        status: event.status || EventStatus.DRAFT,
-        slug: event.slug || get().generateSlug(event.title || ""),
-      };
-
-      // Update the form data for editing
-      setFormData(formData);
-
       return event;
     } catch (error) {
       console.error("Error loading event:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load event";
-      setError("loadEvent", errorMessage);
-
+      setEventError(errorMessage);
       setCurrentEvent(null);
-
       throw error;
     } finally {
       setLoading(false);

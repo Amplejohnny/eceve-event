@@ -20,9 +20,6 @@ import {
 } from "lucide-react";
 import { useEventStore } from "@/store/eventStore";
 
-const { data: session } = useSession();
-const isVerified = !!session?.user;
-
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -145,6 +142,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
 };
 
 const EventSlugPage = () => {
+  const { data: session } = useSession();
+  const isVerified = !!session?.user;
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventId = searchParams.get("eventId");
@@ -153,7 +152,6 @@ const EventSlugPage = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!eventId) {
@@ -163,14 +161,11 @@ const EventSlugPage = () => {
 
     const fetchEvent = async () => {
       try {
-        setError(null);
         await loadEvent(eventId);
       } catch (err) {
         if (err instanceof Error) {
-          setError(err.message);
           console.error("Error fetching event:", err);
         } else {
-          setError("An unknown error occurred");
           console.error("Unexpected error:", err);
         }
       }
@@ -230,12 +225,16 @@ const EventSlugPage = () => {
     );
   }
 
-  if (error || !currentEvent) {
+  if (!currentEvent) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
-          <p className="text-gray-600 mb-4">{error || "Event not found"}</p>
+          <h1 className="text-2xl font-bold text-red-600 mb-4">
+            Event Not Found
+          </h1>
+          <p className="text-gray-600 mb-4">
+            The event you're looking for doesn't exist.
+          </p>
           <button
             onClick={() => router.push("/")}
             className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
@@ -246,7 +245,6 @@ const EventSlugPage = () => {
       </div>
     );
   }
-
   return (
     <>
       <Head>
