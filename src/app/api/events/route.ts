@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Build where clause for filtering
     const whereClause: any = {
       isPublic: true,
-      status: status || "PUBLISHED",
+      status: status || "ACTIVE",
     };
 
     // Add category filter

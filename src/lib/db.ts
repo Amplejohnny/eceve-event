@@ -12,10 +12,7 @@ if (!process.env.DATABASE_URL) {
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     datasources: {
       db: {
         url: process.env.DATABASE_URL,
@@ -94,8 +91,6 @@ export async function getPaymentByReference(paystackRef: string) {
     },
   });
 }
-
-
 
 export async function getUserTickets(userId: string) {
   return await db.ticket.findMany({

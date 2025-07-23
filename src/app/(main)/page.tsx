@@ -261,7 +261,7 @@ const HomePage: React.FC = () => {
     const fetchEvents = async () => {
       try {
         await loadEvents({
-          status: "PUBLISHED",
+          status: "ACTIVE",
           limit: 50,
         });
       } catch (error) {
