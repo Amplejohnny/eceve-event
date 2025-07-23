@@ -109,7 +109,7 @@ const Footer = () => {
             {/* Google Play Button */}
             <a
               href="#"
-              className="flex items-center bg-gray-800 hover:bg-gray-700 transition-colors duration-200 rounded-lg border border-gray-600 px-3 py-2 w-fit"
+              className="flex items-center bg-gray-800 hover:bg-gray-700 transition-colors duration-200 rounded-lg border border-gray-600 px-3 py-2 w-38"
               aria-label="Download on Google Play"
               title="Download on Google Play"
             >
@@ -145,7 +145,7 @@ const Footer = () => {
             {/* App Store Button */}
             <a
               href="#"
-              className="flex items-center bg-gray-800 hover:bg-gray-700 transition-colors duration-200 rounded-lg border border-gray-600 px-3 py-2 w-fit"
+              className="flex items-center bg-gray-800 hover:bg-gray-700 transition-colors duration-200 rounded-lg border border-gray-600 px-3 py-2 w-38"
               aria-label="Download on App Store"
               title="Download on App Store"
             >
