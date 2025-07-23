@@ -123,19 +123,6 @@ const Navbar: React.FC = () => {
         </button>
 
         <div className="flex items-center space-x-4">
-          {/* Tickets - only for verified users */}
-          {isEmailVerified && (
-            <div
-              className="flex flex-col items-center group cursor-pointer"
-              onClick={() => handleNavClick("/tickets")}
-            >
-              <Ticket className="w-5 h-5 text-white group-hover:text-yellow-400 transition-colors duration-200" />
-              <span className="text-xs text-white group-hover:text-yellow-400 transition-colors duration-200">
-                Tickets
-              </span>
-            </div>
-          )}
-
           {/* Profile Dropdown */}
           <div className="relative">
             <div
@@ -348,17 +335,6 @@ const Navbar: React.FC = () => {
                   >
                     Create Event
                   </button>
-
-                  {/* Tickets - only for verified users */}
-                  {isEmailVerified && (
-                    <button
-                      onClick={() => handleNavClick("/tickets")}
-                      className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
-                    >
-                      <Ticket className="w-5 h-5" />
-                      <span>My Tickets</span>
-                    </button>
-                  )}
 
                   {/* Profile actions */}
                   {isEmailVerified ? (
