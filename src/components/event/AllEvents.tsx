@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import {
@@ -12,6 +14,7 @@ import {
   Filter,
   ChevronDown,
 } from "lucide-react";
+import { useSession } from "next-auth/react";
 import { useEventStore } from "@/store/eventStore";
 
 interface EventData {
@@ -84,9 +87,17 @@ const PRICE_FILTERS = [
 
 interface EventCardProps {
   event: EventData;
+  isFavorite: boolean;
+  onFavoriteToggle: (eventId: string, e: React.MouseEvent) => void;
+  showVerificationMessage: boolean;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event }) => {
+const EventCard: React.FC<EventCardProps> = ({
+  event,
+  isFavorite,
+  onFavoriteToggle,
+  showVerificationMessage,
+}) => {
   const formatDate = (dateString: string): { month: string; day: number } => {
     const date = new Date(dateString);
     const month = date
@@ -133,11 +144,22 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
           {/* Favorite Icon */}
           <button
             title="favourite"
-            className="absolute top-3 right-3 bg-white p-2 rounded-full shadow hover:bg-gray-50"
-            onClick={(e) => e.preventDefault()}
+            className={`absolute top-3 right-3 p-2 rounded-full shadow hover:bg-gray-50 transition-colors ${
+              isFavorite ? "bg-red-100 text-red-600" : "bg-white text-gray-400"
+            }`}
+            onClick={(e) => onFavoriteToggle(event.id, e)}
           >
-            <Star className="h-4 w-4 text-gray-400" />
+            <Star className={`h-4 w-4 ${isFavorite ? "fill-current" : ""}`} />
           </button>
+
+          {/* Verification Message */}
+          {showVerificationMessage && (
+            <div className="absolute top-12 right-3 bg-yellow-50 border border-yellow-200 rounded p-2 shadow-lg z-10">
+              <p className="text-xs text-yellow-800 whitespace-nowrap">
+                Become a verified user to add events to favorites
+              </p>
+            </div>
+          )}
 
           {/* Type Badge */}
           <div className="absolute bottom-3 left-3">
@@ -205,6 +227,7 @@ type SortOption = "relevance" | "date" | "price";
 type PriceFilterValue = "all" | "FREE" | "PAID";
 
 const AllEventsPage: React.FC = () => {
+  const { data: session } = useSession();
   const { allEvents, eventsLoading, eventsError, loadEvents, clearEvents } =
     useEventStore();
 
@@ -222,6 +245,11 @@ const AllEventsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [totalCount, setTotalCount] = useState<number>(0);
+
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showVerificationMessage, setShowVerificationMessage] = useState<
+    string | null
+  >(null);
 
   // Load events on component mount
   useEffect(() => {
@@ -261,6 +289,26 @@ const AllEventsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleFavoriteToggle = (eventId: string, e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation when clicking favorite button
+
+    if (!session?.user) {
+      setShowVerificationMessage(eventId);
+      setTimeout(() => setShowVerificationMessage(null), 3000);
+      return;
+    }
+
+    setFavorites((prev) => {
+      const newFavorites = new Set(prev);
+      if (newFavorites.has(eventId)) {
+        newFavorites.delete(eventId);
+      } else {
+        newFavorites.add(eventId);
+      }
+      return newFavorites;
+    });
   };
 
   // Load more events
@@ -562,7 +610,13 @@ const AllEventsPage: React.FC = () => {
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
               {filteredEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  isFavorite={favorites.has(event.id)}
+                  onFavoriteToggle={handleFavoriteToggle}
+                  showVerificationMessage={showVerificationMessage === event.id}
+                />
               ))}
             </div>
 
