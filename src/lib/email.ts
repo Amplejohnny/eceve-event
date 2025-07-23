@@ -40,6 +40,7 @@ const emailTemplates = {
           .button { display: inline-block; background: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
           .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
           .warning { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .no-reply { background: #fee2e2; border: 1px solid #f87171; color: #dc2626; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-size: 13px; }
         </style>
       </head>
       <body>
@@ -75,12 +76,17 @@ const emailTemplates = {
             
             <p>If you didn't create an account with us, please ignore this email.</p>
             
+            <div class="no-reply">
+              <strong>📧 Please do not reply to this email.</strong> This is an automated message sent from an unmonitored email address. If you need assistance, please contact our support team through the website.
+            </div>
+            
             <p>Best regards,<br>The Comforeve Team</p>
           </div>
           
           <div class="footer">
             <p>© ${currentYear} Comforeve. All rights reserved.</p>
             <p>This email was sent to ${email}</p>
+            <p><strong>Do not reply to this email</strong> - This is an automated message</p>
           </div>
         </div>
       </body>
@@ -98,6 +104,8 @@ const emailTemplates = {
       This link will expire in 30 minutes.
       
       If you didn't create an account with us, please ignore this email.
+      
+      PLEASE DO NOT REPLY TO THIS EMAIL - This is an automated message sent from an unmonitored email address. If you need assistance, please contact our support team through the website.
       
       Best regards,
       The Comforeve Team
@@ -120,6 +128,7 @@ const emailTemplates = {
           .content { padding: 30px 20px; }
           .feature-box { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 15px; border-radius: 5px; margin: 15px 0; }
           .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
+          .no-reply { background: #fee2e2; border: 1px solid #f87171; color: #dc2626; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-size: 13px; }
         </style>
       </head>
       <body>
@@ -148,6 +157,10 @@ const emailTemplates = {
             
             <p>If you have any questions or need support, don't hesitate to reach out to our team.</p>
             
+            <div class="no-reply">
+              <strong>📧 Please do not reply to this email.</strong> This is an automated message sent from an unmonitored email address. If you need assistance, please contact our support team through the website.
+            </div>
+            
             <p>Happy event hunting!</p>
             <p>The Comforeve Team</p>
           </div>
@@ -155,6 +168,7 @@ const emailTemplates = {
           <div class="footer">
             <p>© ${currentYear} Comforeve. All rights reserved.</p>
             <p>This email was sent to ${email}</p>
+            <p><strong>Do not reply to this email</strong> - This is an automated message</p>
           </div>
         </div>
       </body>
@@ -179,6 +193,7 @@ const emailTemplates = {
           .button { display: inline-block; background: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
           .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
           .warning { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 15px; border-radius: 5px; margin: 20px 0; }
+          .no-reply { background: #fee2e2; border: 1px solid #f87171; color: #dc2626; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-size: 13px; }
         </style>
       </head>
       <body>
@@ -208,12 +223,17 @@ const emailTemplates = {
             
             <p>For security reasons, this link can only be used once.</p>
             
+            <div class="no-reply">
+              <strong>📧 Please do not reply to this email.</strong> This is an automated message sent from an unmonitored email address. If you need assistance, please contact our support team through the website.
+            </div>
+            
             <p>Best regards,<br>The Comforeve Team</p>
           </div>
           
           <div class="footer">
             <p>© ${currentYear} Comforeve. All rights reserved.</p>
             <p>This email was sent to ${email}</p>
+            <p><strong>Do not reply to this email</strong> - This is an automated message</p>
           </div>
         </div>
       </body>
@@ -247,6 +267,7 @@ const emailTemplates = {
           .confirmation-id { font-size: 24px; font-weight: bold; color: #059669; text-align: center; margin: 15px 0; }
           .event-details { margin: 20px 0; }
           .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
+          .no-reply { background: #fee2e2; border: 1px solid #f87171; color: #dc2626; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-size: 13px; }
         </style>
       </head>
       <body>
@@ -277,12 +298,17 @@ const emailTemplates = {
             
             <p>If you have any questions, please contact the event organizer or our support team.</p>
             
+            <div class="no-reply">
+              <strong>📧 Please do not reply to this email.</strong> This is an automated message sent from an unmonitored email address. For questions about your ticket or the event, please contact our support team through the website.
+            </div>
+            
             <p>Enjoy the event!</p>
             <p>The Comforeve Team</p>
           </div>
           
           <div class="footer">
             <p>© ${currentYear} Comforeve. All rights reserved.</p>
+            <p><strong>Do not reply to this email</strong> - This is an automated message</p>
           </div>
         </div>
       </body>
@@ -306,6 +332,7 @@ export async function sendVerificationRequest(
       subject,
       html,
       text,
+      replyTo: "noreply@comforeve.com", // Set a no-reply address
     });
 
     console.log(`Verification email sent to ${email}`);
@@ -333,6 +360,7 @@ export async function sendWelcomeEmail(userData: {
       to: userData.email,
       subject,
       html,
+      replyTo: "noreply@comforeve.com", // Set a no-reply address
     });
 
     console.log(`Welcome email sent to ${userData.email}`);
@@ -360,6 +388,7 @@ export async function sendPasswordResetEmail(userData: {
       to: userData.email,
       subject,
       html,
+      replyTo: "noreply@comforeve.com", // Set a no-reply address
     });
 
     console.log(`Password reset email sent to ${userData.email}`);
@@ -390,6 +419,7 @@ export async function sendTicketConfirmation(ticketData: {
       to: ticketData.attendeeEmail,
       subject,
       html,
+      replyTo: "noreply@comforeve.com", // Set a no-reply address
       attachments: [
         {
           filename: `ticket-${ticketData.confirmationId}.pdf`,
@@ -421,6 +451,7 @@ export async function sendEventReminder(eventData: {
       from: process.env.FROM_EMAIL || process.env.SMTP_USER,
       to: eventData.attendeeEmail,
       subject: `Reminder: ${eventData.eventTitle} is tomorrow!`,
+      replyTo: "noreply@comforeve.com", // Set a no-reply address
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>📅 Event Reminder</h2>
@@ -435,8 +466,17 @@ export async function sendEventReminder(eventData: {
           </div>
           
           <p>Don't forget to bring your confirmation ID with you!</p>
+          
+          <div style="background: #fee2e2; border: 1px solid #f87171; color: #dc2626; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-size: 13px;">
+            <strong>📧 Please do not reply to this email.</strong> This is an automated message sent from an unmonitored email address. If you need assistance, please contact our support team through the website.
+          </div>
+          
           <p>See you there!</p>
           <p>The Comforeve Team</p>
+          
+          <div style="text-align: center; font-size: 12px; color: #666; margin-top: 20px;">
+            <p><strong>Do not reply to this email</strong> - This is an automated message</p>
+          </div>
         </div>
       `,
     });
@@ -480,6 +520,7 @@ export async function sendOrganizerNotification(organizerData: {
       from: process.env.FROM_EMAIL || process.env.SMTP_USER,
       to: organizerData.organizerEmail,
       subject: `New ticket sold for ${organizerData.eventTitle}`,
+      replyTo: "noreply@comforeve.com", // Set a no-reply address
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>🎉 New Ticket Sale!</h2>
@@ -493,8 +534,17 @@ export async function sendOrganizerNotification(organizerData: {
           </div>
           
           <p>You can view more details in your organizer dashboard.</p>
+          
+          <div style="background: #fee2e2; border: 1px solid #f87171; color: #dc2626; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-size: 13px;">
+            <strong>📧 Please do not reply to this email.</strong> This is an automated message sent from an unmonitored email address. If you need assistance, please contact our support team through the website.
+          </div>
+          
           <p>Keep up the great work!</p>
           <p>The Comforeve Team</p>
+          
+          <div style="text-align: center; font-size: 12px; color: #666; margin-top: 20px;">
+            <p><strong>Do not reply to this email</strong> - This is an automated message</p>
+          </div>
         </div>
       `,
     });
@@ -516,22 +566,18 @@ export async function testEmailConnection(): Promise<boolean> {
   }
 }
 
-
-
-
-
 export async function sendVerificationRequestWithDebug(
   params: SendVerificationRequestParams
 ) {
   const { identifier: email, url } = params;
-  
-  console.log('🔍 Email Debug Info:');
-  console.log('- To:', email);
-  console.log('- SMTP Host:', process.env.SMTP_HOST);
-  console.log('- SMTP Port:', process.env.SMTP_PORT);
-  console.log('- SMTP User:', process.env.SMTP_USER);
-  console.log('- From Email:', process.env.FROM_EMAIL || process.env.SMTP_USER);
-  
+
+  console.log("🔍 Email Debug Info:");
+  console.log("- To:", email);
+  console.log("- SMTP Host:", process.env.SMTP_HOST);
+  console.log("- SMTP Port:", process.env.SMTP_PORT);
+  console.log("- SMTP User:", process.env.SMTP_USER);
+  console.log("- From Email:", process.env.FROM_EMAIL || process.env.SMTP_USER);
+
   try {
     const transporter = createTransport({
       host: process.env.SMTP_HOST,
@@ -546,14 +592,15 @@ export async function sendVerificationRequestWithDebug(
     });
 
     // Test the connection first
-    console.log('🔗 Testing SMTP connection...');
+    console.log("🔗 Testing SMTP connection...");
     await transporter.verify();
-    console.log('✅ SMTP connection verified');
+    console.log("✅ SMTP connection verified");
 
     const mailOptions = {
       from: process.env.FROM_EMAIL || process.env.SMTP_USER,
       to: email,
       subject: "Test Email - Comforeve",
+      replyTo: "noreply@comforeve.com", // Set a no-reply address
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2>🧪 Test Email from Comforeve</h2>
@@ -561,7 +608,16 @@ export async function sendVerificationRequestWithDebug(
           <p>This is a test email to verify your email configuration is working.</p>
           <p><strong>Verification URL:</strong> <a href="${url}">${url}</a></p>
           <p>If you received this email, your SMTP configuration is working correctly!</p>
+          
+          <div style="background: #fee2e2; border: 1px solid #f87171; color: #dc2626; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-size: 13px;">
+            <strong>📧 Please do not reply to this email.</strong> This is an automated message sent from an unmonitored email address.
+          </div>
+          
           <p>Best regards,<br>The Comforeve Team</p>
+          
+          <div style="text-align: center; font-size: 12px; color: #666; margin-top: 20px;">
+            <p><strong>Do not reply to this email</strong> - This is an automated message</p>
+          </div>
         </div>
       `,
       text: `
@@ -575,40 +631,41 @@ export async function sendVerificationRequestWithDebug(
         
         If you received this email, your SMTP configuration is working correctly!
         
+        PLEASE DO NOT REPLY TO THIS EMAIL - This is an automated message sent from an unmonitored email address.
+        
         Best regards,
         The Comforeve Team
       `,
     };
 
-    console.log('📧 Sending email with options:', {
+    console.log("📧 Sending email with options:", {
       from: mailOptions.from,
       to: mailOptions.to,
-      subject: mailOptions.subject
+      subject: mailOptions.subject,
     });
 
     const result = await transporter.sendMail(mailOptions);
-    
-    console.log('✅ Email sent successfully!');
-    console.log('📊 Send result:', {
+
+    console.log("✅ Email sent successfully!");
+    console.log("📊 Send result:", {
       messageId: result.messageId,
       response: result.response,
       accepted: result.accepted,
       rejected: result.rejected,
-      pending: result.pending
+      pending: result.pending,
     });
 
     return result;
-
   } catch (error) {
-    console.error('❌ Email sending failed:', error);
-    
+    console.error("❌ Email sending failed:", error);
+
     // More detailed error logging
     if (error instanceof Error) {
-      console.error('Error name:', error.name);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
     }
-    
+
     throw error;
   }
 }
@@ -630,6 +687,6 @@ export async function sendTestEmailWithDebug(email: string) {
       sendVerificationRequest: async () => {},
       options: {},
     },
-    theme: { colorScheme: 'light' }
+    theme: { colorScheme: "light" },
   });
 }
