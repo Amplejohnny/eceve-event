@@ -88,14 +88,14 @@ const CreateEvent: React.FC = () => {
       </div>
     );
   }
-
+  // Show error state if not authenticated
   if (!session?.user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="min-h-[calc(100vh-200px)] bg-gray-50 flex items-center justify-center px-4 py-4 md:py-25">
         <div className="max-w-sm w-full">
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-5 text-center">
             {/* Lock Icon */}
-            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-3">
               <svg
                 className="w-6 h-6 text-red-600"
                 fill="none"
@@ -117,7 +117,7 @@ const CreateEvent: React.FC = () => {
             </h2>
 
             {/* Message */}
-            <p className="text-gray-600 mb-6 leading-relaxed text-sm">
+            <p className="text-gray-600 mb-5 leading-relaxed text-sm">
               You need to be logged in to create an event. Please sign in to
               your account to continue.
             </p>
@@ -133,7 +133,7 @@ const CreateEvent: React.FC = () => {
             </div>
 
             {/* Additional Help */}
-            <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="mt-3 pt-3 border-t border-gray-200">
               <p className="text-xs text-gray-500">
                 Don't have an account?{" "}
                 <Link
