@@ -5,6 +5,7 @@ import { Menu, X, Ticket, Star, User, Settings, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
+import Link from "next/link";
 
 const Navbar: React.FC = () => {
   const router = useRouter();
@@ -58,44 +59,34 @@ const Navbar: React.FC = () => {
 
   const NavLinks = () => (
     <>
-      <a
-        href="#"
-        onClick={() => handleNavClick("/")}
+      <Link
+        href="/"
         className="text-white hover:text-yellow-400 transition-colors duration-200 border-b-2 border-yellow-400 pb-1"
       >
         Home
-      </a>
-      {/* Changed */}
-      <a
-        href="#"
-        onClick={() => handleNavClick("/events")}
+      </Link>
+      <Link
+        href="/events"
         className="text-white hover:text-yellow-400 transition-colors duration-200 hover:border-b-2 hover:border-yellow-400 pb-1"
       >
         Events
-      </a>
-      <a
-        href="#"
-        onClick={() => handleNavClick("/events/create")}
+      </Link>
+      <Link
+        href="/events/create"
         className="text-white hover:text-yellow-400 transition-colors duration-200 hover:border-b-2 hover:border-yellow-400 pb-1"
       >
         Create Event
-      </a>
+      </Link>
     </>
   );
 
   const AuthButtons = () => (
     <>
-      <button
-        onClick={() => handleNavClick("/auth/login")}
-        className="text-white hover:text-yellow-400 transition-colors duration-200 cursor-pointer"
-      >
-        Login
+      <button className="text-white hover:text-yellow-400 transition-colors duration-200 cursor-pointer">
+        <Link href="/auth/login">Login</Link>
       </button>
-      <button
-        onClick={() => handleNavClick("/auth/register")}
-        className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-300 transition-colors duration-200 font-medium cursor-pointer"
-      >
-        Sign Up
+      <button className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-300 transition-colors duration-200 font-medium cursor-pointer">
+        <Link href="/auth/register">Sign Up</Link>
       </button>
     </>
   );
@@ -115,15 +106,12 @@ const Navbar: React.FC = () => {
         {!isEmailVerified && <EmailVerificationNotice />}
 
         {/* Create Event - visible to all users */}
-        <button
-          onClick={() => handleNavClick("/events/create")}
-          className="text-white hover:text-yellow-400 transition-colors duration-200"
-        >
-          Create Event
+        <button className="text-white hover:text-yellow-400 transition-colors duration-200">
+          <Link href="/events/create">Create Event</Link>
         </button>
 
         <div className="flex items-center space-x-4">
-          {/* Profile Dropdown */}
+          {/* Profile Dropdown */}``
           <div className="relative">
             <div
               className="flex flex-col items-center group cursor-pointer"
@@ -167,47 +155,34 @@ const Navbar: React.FC = () => {
                 {/* Profile Actions */}
                 {isEmailVerified ? (
                   <>
-                    <button
-                      onClick={() => handleNavClick("/my-events")}
-                      className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
-                    >
+                    <button className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2">
                       <User className="w-4 h-4" />
-                      <span>My Events</span>
+                      <Link href="/my-events">My Events</Link>
                     </button>
 
-                    <button
-                      onClick={() => handleNavClick("/favorites")}
-                      className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
-                    >
+                    <button className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2">
                       <Star className="w-4 h-4" />
-                      <span>Favorites</span>
+                      <Link href="/favorites">Favorites</Link>
                     </button>
 
-                    <button
-                      onClick={() => handleNavClick("/profile-settings")}
-                      className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
-                    >
+                    <button className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2">
                       <Settings className="w-4 h-4" />
-                      <span>Account Settings</span>
+                      <Link href="/profile-settings">Account Settings</Link>
                     </button>
 
                     {/* Dashboard - for ADMIN and ORGANIZER */}
                     {dashboardInfo && (
-                      <button
-                        onClick={() => handleNavClick(dashboardInfo.path)}
-                        className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
-                      >
+                      <button className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2">
                         <Settings className="w-4 h-4" />
-                        <span>{dashboardInfo.label}</span>
+                        <Link href={dashboardInfo.path}>
+                          {dashboardInfo.label}
+                        </Link>
                       </button>
                     )}
                   </>
                 ) : (
-                  <button
-                    onClick={() => handleNavClick("/auth/verify-request")}
-                    className="w-full text-left px-4 py-2 text-yellow-600 hover:bg-yellow-50 transition-colors duration-200"
-                  >
-                    Verify Email
+                  <button className="w-full text-left px-4 py-2 text-yellow-600 hover:bg-yellow-50 transition-colors duration-200">
+                    <Link href="/auth/verify-request">Verify Email</Link>
                   </button>
                 )}
 
@@ -319,70 +294,62 @@ const Navbar: React.FC = () => {
                   {!isEmailVerified && (
                     <div className="bg-yellow-500 text-gray-900 px-3 py-2 rounded-md text-sm text-center">
                       Email not verified -{" "}
-                      <span
-                        className="underline cursor-pointer"
-                        onClick={() => handleNavClick("/auth/verify-request")}
-                      >
-                        Verify now
-                      </span>
+                      <Link href="/auth/verify-request">
+                        <span className="underline cursor-pointer">
+                          Verify Now
+                        </span>
+                      </Link>
                     </div>
                   )}
 
                   {/* Create Event - visible to all users, but only works for Admin/Organizers */}
-                  <button
-                    onClick={() => handleNavClick("/events/create")}
-                    className="text-white hover:text-yellow-400 transition-colors duration-200 text-left"
-                  >
-                    Create Event
+                  <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left">
+                    <Link href="/events/create">
+                      <Ticket className="inline-block w-4 h-4 mr-2" />
+                      Create Event
+                    </Link>
                   </button>
 
                   {/* Profile actions */}
                   {isEmailVerified ? (
                     <>
-                      <button
-                        onClick={() => handleNavClick("/my-events")}
-                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
-                      >
-                        <User className="w-5 h-5" />
-                        <span>My Events</span>
+                      <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2">
+                        <Link href="/my-events">
+                          <User className="w-5 h-5" />
+                          <span>My Events</span>
+                        </Link>
                       </button>
 
-                      <button
-                        onClick={() => handleNavClick("/favorites")}
-                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
-                      >
-                        <Star className="w-4 h-4" />
-                        <span>Favorites</span>
+                      <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2">
+                        <Link href="/favorites">
+                          <Star className="w-4 h-4" />
+                          <span>Favorites</span>
+                        </Link>
                       </button>
 
-                      <button
-                        onClick={() => handleNavClick("/profile-settings")}
-                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
-                      >
-                        <Settings className="w-4 h-4" />
-                        <span>Account Settings</span>
+                      <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2">
+                        <Link href="/profile-settings">
+                          <Settings className="w-4 h-4" />
+                          <span>Account Settings</span>
+                        </Link>
                       </button>
 
                       {/* Dashboard - for ADMIN and ORGANIZER */}
                       {(() => {
                         const dashboardInfo = getDashboardInfo();
                         return dashboardInfo ? (
-                          <button
-                            onClick={() => handleNavClick(dashboardInfo.path)}
-                            className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
-                          >
-                            <Settings className="w-4 h-4" />
-                            <span>{dashboardInfo.label}</span>
+                          <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2">
+                            <Link href={dashboardInfo.path}>
+                              <Settings className="w-4 h-4" />
+                              <span>{dashboardInfo.label}</span>
+                            </Link>
                           </button>
                         ) : null;
                       })()}
                     </>
                   ) : (
-                    <button
-                      onClick={() => handleNavClick("/auth/verify-request")}
-                      className="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 text-left"
-                    >
-                      Verify Email
+                    <button className="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 text-left">
+                      <Link href="/auth/verify-request">Verify Email</Link>
                     </button>
                   )}
 
@@ -396,17 +363,16 @@ const Navbar: React.FC = () => {
                 </div>
               ) : (
                 <div className="flex flex-col space-y-3 pt-3 border-t border-gray-600">
-                  <button
-                    onClick={() => handleNavClick("/auth/login")}
-                    className="text-white hover:text-yellow-400 transition-colors duration-200 text-left"
-                  >
-                    Login
+                  <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left">
+                    <Link href="/auth/login">
+                      <span>
+                        <User className="inline-block w-4 h-4 mr-2" />
+                      </span>
+                      Login
+                    </Link>
                   </button>
-                  <button
-                    onClick={() => handleNavClick("/auth/register")}
-                    className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-300 transition-colors duration-200 font-medium text-center"
-                  >
-                    Sign Up
+                  <button className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-900 transition-colors duration-200 font-medium text-center">
+                    <Link href="/auth/register">Sign Up</Link>
                   </button>
                 </div>
               )}
