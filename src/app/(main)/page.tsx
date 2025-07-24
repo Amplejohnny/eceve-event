@@ -172,6 +172,7 @@ const HomePage: React.FC = () => {
   const [showMoreUpcoming, setShowMoreUpcoming] = useState(false);
   const [showMoreTrendy, setShowMoreTrendy] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const { allEvents, eventsLoading, loadEvents } = useEventStore();
 
   // Event state
@@ -266,13 +267,15 @@ const HomePage: React.FC = () => {
         });
       } catch (error) {
         console.error("Error fetching events:", error);
+      } finally {
+        setIsInitialLoading(false);
       }
     };
 
     fetchEvents();
   }, [loadEvents]);
 
-  // Second useEffect: Process and filter events when allEvents or activeFilter changes
+  // Process and filter events when allEvents or activeFilter changes
   useEffect(() => {
     if (allEvents.length > 0) {
       try {
@@ -412,7 +415,7 @@ const HomePage: React.FC = () => {
   );
 
   // Handle loading state from the store
-  if (eventsLoading) {
+  if (isInitialLoading || eventsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
