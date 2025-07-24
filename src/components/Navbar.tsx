@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const Navbar: React.FC = () => {
   const router = useRouter();
@@ -31,12 +32,6 @@ const Navbar: React.FC = () => {
     setIsMobileMenuOpen(false);
   };
 
-  const handleNavClick = (path: string) => {
-    router.push(path);
-    setIsMobileMenuOpen(false);
-    setIsProfileDropdownOpen(false);
-  };
-
   const handleSignOut = async () => {
     try {
       await signOut({ callbackUrl: "/" });
@@ -57,28 +52,51 @@ const Navbar: React.FC = () => {
     return null;
   };
 
-  const NavLinks = () => (
-    <>
-      <Link
-        href="/"
-        className="text-white hover:text-yellow-400 transition-colors duration-200 border-b-2 border-yellow-400 pb-1"
-      >
-        Home
-      </Link>
-      <Link
-        href="/events"
-        className="text-white hover:text-yellow-400 transition-colors duration-200 hover:border-b-2 hover:border-yellow-400 pb-1"
-      >
-        Events
-      </Link>
-      <Link
-        href="/events/create"
-        className="text-white hover:text-yellow-400 transition-colors duration-200 hover:border-b-2 hover:border-yellow-400 pb-1"
-      >
-        Create Event
-      </Link>
-    </>
-  );
+  const NavLinks = () => {
+    const pathname = usePathname();
+
+    const isActive = (path: string) => {
+      if (path === "/") {
+        return pathname === "/";
+      }
+      return pathname.startsWith(path);
+    };
+
+    return (
+      <>
+        <Link
+          href="/"
+          className={`transition-colors duration-200 pb-1 ${
+            isActive("/")
+              ? "text-yellow-400 border-b-2 border-yellow-400"
+              : "text-white hover:text-yellow-400 hover:border-b-2 hover:border-yellow-400"
+          }`}
+        >
+          Home
+        </Link>
+        <Link
+          href="/events"
+          className={`transition-colors duration-200 pb-1 ${
+            isActive("/events") && !pathname.includes("/events/create")
+              ? "text-yellow-400 border-b-2 border-yellow-400"
+              : "text-white hover:text-yellow-400 hover:border-b-2 hover:border-yellow-400"
+          }`}
+        >
+          Events
+        </Link>
+        <Link
+          href="/events/create"
+          className={`transition-colors duration-200 pb-1 ${
+            isActive("/events/create")
+              ? "text-yellow-400 border-b-2 border-yellow-400"
+              : "text-white hover:text-yellow-400 hover:border-b-2 hover:border-yellow-400"
+          }`}
+        >
+          Create Event
+        </Link>
+      </>
+    );
+  };
 
   const AuthButtons = () => (
     <>
