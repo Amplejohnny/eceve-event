@@ -8,7 +8,6 @@ export interface TicketType {
   quantity?: number;
 }
 
-// Add the missing EventData interface
 export interface EventData {
   id: string;
   title: string;
@@ -66,13 +65,6 @@ export interface EventFormData {
   isPublic: boolean;
   status: EventStatus;
   slug: string;
-  // organizerId?: string;
-  // organizer?: {
-  //   id: string;
-  //   name: string;
-  //   email: string;
-  //   image?: string;
-  // };
 }
 
 export interface EventStep {
@@ -80,7 +72,6 @@ export interface EventStep {
   label: string;
 }
 
-// Add filter interfaces for the new methods
 export interface PopularEventsFilters {
   status?: string;
   limit?: number;
@@ -353,22 +344,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         ),
       },
     }));
-  },
-
-  isEventLoaded: (eventId: string): boolean => {
-    const { currentEvent } = get();
-    return currentEvent?.id === eventId || currentEvent?.slug === eventId;
-  },
-
-  // Method to get event by ID or slug (matching API logic)
-  getEventIdentifier: (
-    eventId: string
-  ): { isUUID: boolean; identifier: string } => {
-    const isUUID =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        eventId
-      );
-    return { isUUID, identifier: eventId };
   },
 
   // Validation
@@ -682,8 +657,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   },
 
   loadEvent: async (eventId: string) => {
-    const { setLoading, setCurrentEvent, setEventError, clearAllErrors } =
-      get();
+    const { setLoading, setCurrentEvent, setEventError, clearAllErrors } = get();
     setLoading(true);
     clearAllErrors();
 

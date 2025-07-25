@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const majorNigerianCities = [
       "Lagos",
-      "Abuja",
+      "Abuja", 
       "Kano",
       "Rivers",
       "Port Harcourt",
@@ -25,31 +25,36 @@ export async function GET(request: NextRequest) {
       "Ogun",
     ];
 
-    const whereClause: any = {
+    // Build where clause step by step to avoid complex nested conditions
+    const baseWhereClause: any = {
       isPublic: true,
       status: status || "ACTIVE",
     };
 
+    // Add category filter
     if (category) {
-      whereClause.category = {
+      baseWhereClause.category = {
         contains: category,
         mode: "insensitive",
       };
     }
 
+    // Add location filter
     if (location) {
-      whereClause.location = {
+      baseWhereClause.location = {
         contains: location,
         mode: "insensitive",
       };
     }
 
+    // Add event type filter
     if (eventType && (eventType === "FREE" || eventType === "PAID")) {
-      whereClause.eventType = eventType;
+      baseWhereClause.eventType = eventType;
     }
 
+    // Add search query
     if (q) {
-      whereClause.OR = [
+      baseWhereClause.OR = [
         {
           title: {
             contains: q,
@@ -82,23 +87,26 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Build final where clause based on section
+    let finalWhereClause = { ...baseWhereClause };
     let orderBy: any = [{ date: "asc" }, { createdAt: "desc" }]; // default
+
+    const now = new Date();
 
     switch (section) {
       case "popular":
         orderBy = [{ createdAt: "desc" }];
-        whereClause.date = {
-          gte: new Date(),
+        finalWhereClause.date = {
+          gte: now,
         };
         break;
 
       case "upcoming":
         orderBy = [{ date: "asc" }];
-        const now = new Date();
         const thirtyDaysFromNow = new Date(
           now.getTime() + 30 * 24 * 60 * 60 * 1000
         );
-        whereClause.date = {
+        finalWhereClause.date = {
           gte: now,
           lte: thirtyDaysFromNow,
         };
@@ -106,8 +114,15 @@ export async function GET(request: NextRequest) {
 
       case "trendy":
         orderBy = [{ createdAt: "desc" }];
-        whereClause.OR = [
-          ...(whereClause.OR || []),
+        finalWhereClause.date = {
+          gte: now,
+        };
+        // For trendy events, create a separate OR condition for cities
+        if (!finalWhereClause.OR) {
+          finalWhereClause.OR = [];
+        }
+        finalWhereClause.OR = [
+          ...finalWhereClause.OR,
           ...majorNigerianCities.map((city) => ({
             location: {
               contains: city,
@@ -115,58 +130,65 @@ export async function GET(request: NextRequest) {
             },
           })),
         ];
-        whereClause.date = {
-          gte: new Date(),
-        };
         break;
     }
 
+    // Set pagination limits
     let defaultLimit = 30;
-    if (
-      section === "popular" ||
-      section === "upcoming" ||
-      section === "trendy"
-    ) {
+    if (section === "popular" || section === "upcoming" || section === "trendy") {
       defaultLimit = 18;
     }
 
-    const take = limitParam
-      ? Math.max(1, parseInt(limitParam)) || undefined
-      : defaultLimit;
+    const take = limitParam ? Math.max(1, parseInt(limitParam)) || defaultLimit : defaultLimit;
     const skip = offsetParam ? Math.max(0, parseInt(offsetParam)) || 0 : 0;
 
-    // Fetch events with all related data
-    const events = await db.event.findMany({
-      where: whereClause,
-      include: {
-        ticketTypes: {
-          orderBy: { price: "asc" },
-        },
-        organizer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
+    // Fetch events with proper error handling
+    let events;
+    let totalCount;
+    
+    try {
+      // Execute queries separately to avoid prepared statement conflicts
+      events = await db.event.findMany({
+        where: finalWhereClause,
+        include: {
+          ticketTypes: {
+            orderBy: { price: "asc" },
           },
-        },
-        _count: {
-          select: {
-            tickets: {
-              where: {
-                status: {
-                  in: ["ACTIVE", "USED"],
+          organizer: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          _count: {
+            select: {
+              tickets: {
+                where: {
+                  status: {
+                    in: ["ACTIVE", "USED"],
+                  },
                 },
               },
+              favorites: true,
             },
-            favorites: true,
           },
         },
-      },
-      orderBy,
-      take,
-      skip,
-    });
+        orderBy,
+        take,
+        skip,
+      });
+
+      // Get total count with a fresh query
+      totalCount = await db.event.count({
+        where: finalWhereClause,
+      });
+
+    } catch (dbError) {
+      console.error("Database query error:", dbError);
+      throw new Error("Database query failed");
+    }
 
     // Transform the data to ensure consistent structure
     const transformedEvents = events.map((event) => ({
@@ -202,18 +224,16 @@ export async function GET(request: NextRequest) {
       },
     }));
 
-    // Get total count for pagination (optional)
-    const totalCount = await db.event.count({
-      where: whereClause,
-    });
-
     return NextResponse.json({
       events: transformedEvents,
       totalCount,
       hasMore: take ? skip + take < totalCount : false,
     });
+
   } catch (error) {
     console.error("Error fetching events:", error);
+    
+    // Handle specific error types
     if (error instanceof Error) {
       if (error.message.includes("connection")) {
         return NextResponse.json(
@@ -222,10 +242,17 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      if (error.message.includes("Invalid")) {
+      if (error.message.includes("Invalid") || error.message.includes("validation")) {
         return NextResponse.json(
           { error: "Invalid query parameters" },
           { status: 400 }
+        );
+      }
+
+      if (error.message.includes("Database query failed")) {
+        return NextResponse.json(
+          { error: "Database query error. Please try again." },
+          { status: 500 }
         );
       }
     }
