@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CircleCheck, AlertCircle, RefreshCw, Home } from "lucide-react";
+import Link from "next/link";
 
 // Client-side logging utility (matching LoginForm pattern)
 const logClientError = (
@@ -299,7 +300,7 @@ export default function EmailVerified() {
                 Having trouble? You can also:
               </p>
               <div className="flex justify-center space-x-4 text-xs">
-                <a
+                <Link
                   href="/"
                   className="text-blue-600 hover:text-blue-500 transition-colors duration-200"
                   onClick={() =>
@@ -307,9 +308,9 @@ export default function EmailVerified() {
                   }
                 >
                   Go to Homepage
-                </a>
+                </Link>
                 <span className="text-gray-300">|</span>
-                <a
+                <Link
                   href="/profile"
                   className="text-blue-600 hover:text-blue-500 transition-colors duration-200"
                   onClick={() =>
@@ -317,7 +318,7 @@ export default function EmailVerified() {
                   }
                 >
                   View Profile
-                </a>
+                </Link>
               </div>
             </div>
           )}
