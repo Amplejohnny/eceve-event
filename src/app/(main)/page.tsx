@@ -173,7 +173,13 @@ const HomePage: React.FC = () => {
   const [showMoreTrendy, setShowMoreTrendy] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const { allEvents, eventsLoading, loadEvents } = useEventStore();
+  const {
+    allEvents,
+    eventsLoading,
+    loadPopularEvents,
+    loadUpcomingEvents,
+    loadTrendyEvents,
+  } = useEventStore();
 
   // Event state
   const [popularEvents, setPopularEvents] = useState<EventData[]>([]);
@@ -258,22 +264,76 @@ const HomePage: React.FC = () => {
   }, []);
 
   // First useEffect: Load events from the store
+  // useEffect(() => {
+  //   const fetchEvents = async () => {
+  //     try {
+  //       await loadEvents({
+  //         status: "ACTIVE",
+  //         limit: 50,
+  //       });
+  //     } catch (error) {
+  //       console.error("Error fetching events:", error);
+  //     } finally {
+  //       setIsInitialLoading(false);
+  //     }
+  //   };
+
+  //   fetchEvents();
+  // }, [loadEvents]);
+
+  // Load Popular Events
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchPopularEvents = async () => {
       try {
-        await loadEvents({
+        const events = await loadPopularEvents({
           status: "ACTIVE",
-          limit: 50,
+          limit: 18,
+          activeFilter: activeFilter,
         });
+        setPopularEvents(events);
       } catch (error) {
-        console.error("Error fetching events:", error);
+        console.error("Error fetching popular events:", error);
+      }
+    };
+
+    fetchPopularEvents();
+  }, [loadPopularEvents, activeFilter]);
+
+  // Load Upcoming Events
+  useEffect(() => {
+    const fetchUpcomingEvents = async () => {
+      try {
+        const events = await loadUpcomingEvents({
+          status: "ACTIVE",
+          limit: 18,
+        });
+        setUpcomingEvents(events);
+      } catch (error) {
+        console.error("Error fetching upcoming events:", error);
+      }
+    };
+
+    fetchUpcomingEvents();
+  }, [loadUpcomingEvents]);
+
+  // Load Trendy Events
+  useEffect(() => {
+    const fetchTrendyEvents = async () => {
+      try {
+        const events = await loadTrendyEvents({
+          status: "ACTIVE",
+          limit: 18,
+        });
+        setTrendyEvents(events);
+      } catch (error) {
+        console.error("Error fetching trendy events:", error);
       } finally {
         setIsInitialLoading(false);
       }
     };
 
-    fetchEvents();
-  }, [loadEvents]);
+    fetchTrendyEvents();
+  }, [loadTrendyEvents]);
 
   // Process and filter events when allEvents or activeFilter changes
   useEffect(() => {
@@ -553,7 +613,7 @@ const HomePage: React.FC = () => {
               <button
                 key={filter.key}
                 onClick={() => setActiveFilter(filter.key)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer ${
                   activeFilter === filter.key
                     ? "bg-purple-600 text-white"
                     : "bg-gray-200 text-gray-700 hover:bg-gray-300"

@@ -80,6 +80,18 @@ export interface EventStep {
   label: string;
 }
 
+// Add filter interfaces for the new methods
+export interface PopularEventsFilters {
+  status?: string;
+  limit?: number;
+  activeFilter?: string;
+}
+
+export interface EventsFilters {
+  status?: string;
+  limit?: number;
+}
+
 interface EventStore {
   // Step configuration
   steps: EventStep[];
@@ -131,13 +143,13 @@ interface EventStore {
   setLoading: (loading: boolean) => void;
   setEventError: (error: string | null) => void;
 
-  setCurrentEvent: (event: EventData | null) => void; // Add this
+  setCurrentEvent: (event: EventData | null) => void;
   getCurrentEvent: () => EventData | null;
 
   // Event management
   createEvent: () => Promise<any>;
   updateEvent: (eventId: string) => Promise<any>;
-  updateEventTickets: (eventId: string) => Promise<any>; // Add missing method
+  updateEventTickets: (eventId: string) => Promise<any>;
   loadEvent: (eventId: string) => Promise<void>;
 
   loadEvents: (params?: {
@@ -149,6 +161,10 @@ interface EventStore {
     limit?: number;
     offset?: number;
   }) => Promise<{ events: EventData[]; totalCount: number; hasMore: boolean }>;
+
+  loadPopularEvents: (filters?: PopularEventsFilters) => Promise<EventData[]>;
+  loadUpcomingEvents: (filters?: EventsFilters) => Promise<EventData[]>;
+  loadTrendyEvents: (filters?: EventsFilters) => Promise<EventData[]>;
 
   setAllEvents: (events: EventData[]) => void;
   setEventsLoading: (loading: boolean) => void;
@@ -756,6 +772,120 @@ export const useEventStore = create<EventStore>((set, get) => ({
       console.error("Error loading events:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load events";
+      setEventsError(errorMessage);
+      throw error;
+    } finally {
+      setEventsLoading(false);
+    }
+  },
+
+  loadPopularEvents: async (filters = {}) => {
+    const { setEventsLoading, setEventsError } = get();
+
+    try {
+      setEventsLoading(true);
+      const params = new URLSearchParams({
+        section: "popular",
+        status: filters.status || "ACTIVE",
+        limit: (filters.limit || 20).toString(),
+      });
+
+      // Apply active filter to API call
+      if (filters.activeFilter && filters.activeFilter !== "all") {
+        switch (filters.activeFilter) {
+          case "today":
+            const today = new Date();
+            params.set("date", today.toISOString().split("T")[0]);
+            break;
+          case "tomorrow":
+            const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            params.set("date", tomorrow.toISOString().split("T")[0]);
+            break;
+          case "free":
+            params.set("eventType", "FREE");
+            break;
+          case "paid":
+            params.set("eventType", "PAID");
+            break;
+        }
+      }
+
+      const response = await fetch(`/api/events?${params}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch popular events");
+      }
+
+      const data = await response.json();
+      return data.events;
+    } catch (error) {
+      console.error("Error loading popular events:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to load popular events";
+      setEventsError(errorMessage);
+      throw error;
+    } finally {
+      setEventsLoading(false);
+    }
+  },
+
+  loadUpcomingEvents: async (filters = {}) => {
+    const { setEventsLoading, setEventsError } = get();
+
+    try {
+      setEventsLoading(true);
+      const params = new URLSearchParams({
+        section: "upcoming",
+        status: filters.status || "ACTIVE",
+        limit: (filters.limit || 20).toString(),
+      });
+
+      const response = await fetch(`/api/events?${params}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch upcoming events");
+      }
+
+      const data = await response.json();
+      return data.events;
+    } catch (error) {
+      console.error("Error loading upcoming events:", error);
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to load upcoming events";
+      setEventsError(errorMessage);
+      throw error;
+    } finally {
+      setEventsLoading(false);
+    }
+  },
+
+  loadTrendyEvents: async (filters = {}) => {
+    const { setEventsLoading, setEventsError } = get();
+
+    try {
+      setEventsLoading(true);
+      const params = new URLSearchParams({
+        section: "trendy",
+        status: filters.status || "ACTIVE",
+        limit: (filters.limit || 20).toString(),
+      });
+
+      const response = await fetch(`/api/events?${params}`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch trendy events");
+      }
+
+      const data = await response.json();
+      return data.events;
+    } catch (error) {
+      console.error("Error loading trendy events:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to load trendy events";
       setEventsError(errorMessage);
       throw error;
     } finally {

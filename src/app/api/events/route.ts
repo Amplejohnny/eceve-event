@@ -5,22 +5,31 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Query parameters for filtering
     const category = searchParams.get("category");
     const location = searchParams.get("location");
     const eventType = searchParams.get("eventType");
     const status = searchParams.get("status");
-    const q = searchParams.get("q"); // search query
+    const q = searchParams.get("q");
+    const section = searchParams.get("section");
     const limitParam = searchParams.get("limit");
     const offsetParam = searchParams.get("offset");
 
-    // Build where clause for filtering
+    const majorNigerianCities = [
+      "Lagos",
+      "Abuja",
+      "Kano",
+      "Rivers",
+      "Port Harcourt",
+      "Ibadan",
+      "Oyo",
+      "Ogun",
+    ];
+
     const whereClause: any = {
       isPublic: true,
       status: status || "ACTIVE",
     };
 
-    // Add category filter
     if (category) {
       whereClause.category = {
         contains: category,
@@ -28,7 +37,6 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Add location filter
     if (location) {
       whereClause.location = {
         contains: location,
@@ -36,12 +44,10 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Add event type filter
     if (eventType && (eventType === "FREE" || eventType === "PAID")) {
       whereClause.eventType = eventType;
     }
 
-    // Add search query filter
     if (q) {
       whereClause.OR = [
         {
@@ -76,11 +82,57 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Pagination - Fixed to handle undefined and invalid numbers properly
-    // Default to 24 events for homepage performance, allow override via params
+    let orderBy: any = [{ date: "asc" }, { createdAt: "desc" }]; // default
+
+    switch (section) {
+      case "popular":
+        orderBy = [{ createdAt: "desc" }];
+        whereClause.date = {
+          gte: new Date(),
+        };
+        break;
+
+      case "upcoming":
+        orderBy = [{ date: "asc" }];
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(
+          now.getTime() + 30 * 24 * 60 * 60 * 1000
+        );
+        whereClause.date = {
+          gte: now,
+          lte: thirtyDaysFromNow,
+        };
+        break;
+
+      case "trendy":
+        orderBy = [{ createdAt: "desc" }];
+        whereClause.OR = [
+          ...(whereClause.OR || []),
+          ...majorNigerianCities.map((city) => ({
+            location: {
+              contains: city,
+              mode: "insensitive" as const,
+            },
+          })),
+        ];
+        whereClause.date = {
+          gte: new Date(),
+        };
+        break;
+    }
+
+    let defaultLimit = 30;
+    if (
+      section === "popular" ||
+      section === "upcoming" ||
+      section === "trendy"
+    ) {
+      defaultLimit = 18;
+    }
+
     const take = limitParam
       ? Math.max(1, parseInt(limitParam)) || undefined
-      : 24;
+      : defaultLimit;
     const skip = offsetParam ? Math.max(0, parseInt(offsetParam)) || 0 : 0;
 
     // Fetch events with all related data
@@ -111,7 +163,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      orderBy: [{ date: "asc" }, { createdAt: "desc" }],
+      orderBy,
       take,
       skip,
     });
@@ -162,10 +214,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching events:", error);
-
-    // More specific error handling
     if (error instanceof Error) {
-      // Database connection errors
       if (error.message.includes("connection")) {
         return NextResponse.json(
           { error: "Database connection error" },
@@ -173,7 +222,6 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Prisma validation errors
       if (error.message.includes("Invalid")) {
         return NextResponse.json(
           { error: "Invalid query parameters" },
