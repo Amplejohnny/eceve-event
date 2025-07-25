@@ -2,11 +2,54 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
+import { Prisma } from "@/generated/prisma";
+
+// Type for ticket with all required relations
+type TicketWithRelations = {
+  id: string;
+  eventId: string;
+  status: string;
+  price: number;
+  quantity: number;
+  attendeeName: string | null;
+  attendeeEmail: string | null;
+  attendeePhone: string | null;
+  confirmationId: string;
+  qrCode: string | null;
+  notes: string | null;
+  usedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  event: {
+    id: string;
+    title: string;
+    date: Date;
+    location: string;
+    venue: string | null;
+    imageUrl: string | null;
+    status: string;
+    slug: string;
+  };
+  ticketType: {
+    id: string;
+    name: string;
+    price: number;
+  };
+  payment: {
+    id: string;
+    paystackRef: string | null;
+    status: string;
+    paidAt: Date | null;
+  } | null;
+};
 
 // Helper function to get booking status based on ticket and event data
-function getBookingStatusForFiltering(ticket: any, currentDate: Date) {
+function getBookingStatusForFiltering(
+  ticket: TicketWithRelations,
+  currentDate: Date
+): string {
   const eventDate = new Date(ticket.event.date);
-  
+
   if (ticket.status === "CANCELLED") return "cancelled";
   if (ticket.status === "REFUNDED") return "refunded";
   if (ticket.status === "USED") return "completed";
@@ -60,38 +103,52 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Build base where clause
-    const whereClause: any = {
+    // Build base where clause with proper typing
+    const baseWhere: Prisma.TicketWhereInput = {
       userId: session.user.id,
     };
 
     // Apply server-side filtering based on status
     const currentDate = new Date();
-    
+
+    let whereClause: Prisma.TicketWhereInput = baseWhere;
+
     if (status && status !== "all") {
       switch (status) {
         case "cancelled":
-          whereClause.status = "CANCELLED";
+          whereClause = {
+            ...baseWhere,
+            status: "CANCELLED",
+          };
           break;
         case "refunded":
-          whereClause.status = "REFUNDED";
+          whereClause = {
+            ...baseWhere,
+            status: "REFUNDED",
+          };
           break;
         case "completed":
-          whereClause.OR = [
-            { status: "USED" },
-            { 
-              AND: [
-                { status: "ACTIVE" },
-                { event: { date: { lt: currentDate } } }
-              ]
-            }
-          ];
+          whereClause = {
+            ...baseWhere,
+            OR: [
+              { status: "USED" },
+              {
+                AND: [
+                  { status: "ACTIVE" },
+                  { event: { date: { lt: currentDate } } },
+                ],
+              },
+            ],
+          };
           break;
         case "upcoming":
-          whereClause.AND = [
-            { status: "ACTIVE" },
-            { event: { date: { gte: currentDate } } }
-          ];
+          whereClause = {
+            ...baseWhere,
+            AND: [
+              { status: "ACTIVE" },
+              { event: { date: { gte: currentDate } } },
+            ],
+          };
           break;
       }
     }

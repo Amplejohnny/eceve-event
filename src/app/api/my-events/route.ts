@@ -2,9 +2,39 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
+import { Prisma } from "@/generated/prisma";
+
+// Type for event with all required relations
+type EventWithRelations = {
+  id: string;
+  title: string;
+  date: Date;
+  location: string;
+  venue: string | null;
+  imageUrl: string | null;
+  status: string;
+  slug: string;
+  createdAt: Date;
+  updatedAt: Date;
+  ticketTypes: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number | null; // Allow null as per schema
+    _count: {
+      tickets: number;
+    };
+  }>;
+  _count: {
+    tickets: number;
+  };
+};
 
 // Helper function to get event status based on event data
-function getEventStatusForFiltering(event: any, currentDate: Date) {
+function getEventStatusForFiltering(
+  event: EventWithRelations,
+  currentDate: Date
+): string {
   const eventDate = new Date(event.date);
 
   if (event.status === "CANCELLED") return "cancelled";
@@ -70,38 +100,52 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const offset = parseInt(searchParams.get("offset") || "0");
 
-    // Build base where clause
-    const whereClause: any = {
+    // Build base where clause with proper typing
+    const baseWhere: Prisma.EventWhereInput = {
       organizerId: session.user.id,
     };
 
     // Apply server-side filtering based on status
     const currentDate = new Date();
 
+    let whereClause: Prisma.EventWhereInput = baseWhere;
+
     if (status && status !== "all") {
       switch (status) {
         case "cancelled":
-          whereClause.status = "CANCELLED";
+          whereClause = {
+            ...baseWhere,
+            status: "CANCELLED",
+          };
           break;
         case "completed":
-          whereClause.OR = [
-            { status: "COMPLETED" },
-            {
-              AND: [{ status: "ACTIVE" }, { date: { lt: currentDate } }],
-            },
-          ];
+          whereClause = {
+            ...baseWhere,
+            OR: [
+              { status: "COMPLETED" },
+              {
+                AND: [{ status: "ACTIVE" }, { date: { lt: currentDate } }],
+              },
+            ],
+          };
           break;
         case "suspended":
-          whereClause.status = "SUSPENDED";
+          whereClause = {
+            ...baseWhere,
+            status: "SUSPENDED",
+          };
           break;
         case "draft":
-          whereClause.status = "DRAFT";
+          whereClause = {
+            ...baseWhere,
+            status: "DRAFT",
+          };
           break;
         case "active":
-          whereClause.AND = [
-            { status: "ACTIVE" },
-            { date: { gte: currentDate } },
-          ];
+          whereClause = {
+            ...baseWhere,
+            AND: [{ status: "ACTIVE" }, { date: { gte: currentDate } }],
+          };
           break;
       }
     }
@@ -165,7 +209,7 @@ export async function GET(request: NextRequest) {
         id: ticketType.id,
         name: ticketType.name,
         price: ticketType.price,
-        quantity: ticketType.quantity,
+        quantity: ticketType.quantity, // Can be null
         sold: ticketType._count.tickets, // Automatically calculated from actual tickets
       })),
       totalTicketsSold: event._count.tickets,

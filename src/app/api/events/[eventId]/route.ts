@@ -1,26 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
+// Types
+interface EventWithRelations {
+  id: string;
+  title: string;
+  description: string | null;
+  eventType: string;
+  date: Date;
+  endDate: Date | null;
+  startTime: string | null;
+  endTime: string | null;
+  location: string | null;
+  venue: string | null;
+  address: string | null;
+  tags: string[];
+  category: string | null;
+  imageUrl: string | null;
+  isPublic: boolean;
+  status: string;
+  slug: string;
+  createdAt: Date;
+  updatedAt: Date;
+  ticketTypes: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number | null;
+  }>;
+  organizer: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  } | null;
+  _count: {
+    tickets: number;
+  };
+}
+
+// Helper functions
+const createErrorResponse = (message: string, status: number) => {
+  return NextResponse.json({ error: message }, { status });
+};
+
+const isValidUUID = (id: string): boolean => {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    id
+  );
+};
+
+const transformEventData = (event: EventWithRelations) => {
+  return {
+    id: event.id,
+    title: event.title,
+    description: event.description,
+    eventType: event.eventType,
+    date: event.date.toISOString(),
+    endDate: event.endDate?.toISOString() || null,
+    startTime: event.startTime || "",
+    endTime: event.endTime || "",
+    location: event.location || "",
+    venue: event.venue || "",
+    address: event.address || "",
+    tags: Array.isArray(event.tags) ? event.tags : [],
+    category: event.category || "",
+    imageUrl: event.imageUrl || "",
+    isPublic: event.isPublic ?? true,
+    status: event.status,
+    slug: event.slug,
+    ticketTypes: event.ticketTypes.map((ticket) => ({
+      id: ticket.id,
+      name: ticket.name,
+      price: ticket.price,
+      quantity: ticket.quantity, // Keep as-is, let client handle null
+    })),
+    organizer: event.organizer || null,
+    createdAt: event.createdAt.toISOString(),
+    updatedAt: event.updatedAt.toISOString(),
+    ticketsSold: event._count.tickets,
+  };
+};
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  context: { params: { eventId: string } }
 ) {
-  try {
-    const { eventId } = params;
+  const { eventId } = context.params;
 
+  try {
     // Validate eventId
     if (!eventId) {
-      return NextResponse.json(
-        { error: "Event ID is required" },
-        { status: 400 }
-      );
+      return createErrorResponse("Event ID is required", 400);
     }
 
     // Check if eventId is a valid UUID or slug
-    const isUUID =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        eventId
-      );
+    const isUUID = isValidUUID(eventId);
 
     // Fetch event by ID or slug with all related data
     const event = await db.event.findUnique({
@@ -52,39 +127,11 @@ export async function GET(
     });
 
     if (!event) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return createErrorResponse("Event not found", 404);
     }
 
     // Transform the data to ensure consistent structure
-    const transformedEvent = {
-      id: event.id,
-      title: event.title,
-      description: event.description,
-      eventType: event.eventType,
-      date: event.date.toISOString(),
-      endDate: event.endDate?.toISOString() || null,
-      startTime: event.startTime || "",
-      endTime: event.endTime || "",
-      location: event.location || "",
-      venue: event.venue || "",
-      address: event.address || "",
-      tags: Array.isArray(event.tags) ? event.tags : [],
-      category: event.category || "",
-      imageUrl: event.imageUrl || "",
-      isPublic: event.isPublic ?? true,
-      status: event.status,
-      slug: event.slug,
-      ticketTypes: event.ticketTypes.map((ticket) => ({
-        id: ticket.id,
-        name: ticket.name,
-        price: ticket.price,
-        quantity: ticket.quantity, // Keep as-is, let client handle null
-      })),
-      organizer: event.organizer || null,
-      createdAt: event.createdAt.toISOString(),
-      updatedAt: event.updatedAt.toISOString(),
-      ticketsSold: event._count.tickets,
-    };
+    const transformedEvent = transformEventData(event);
 
     return NextResponse.json(transformedEvent);
   } catch (error) {
@@ -94,24 +141,15 @@ export async function GET(
     if (error instanceof Error) {
       // Database connection errors
       if (error.message.includes("connection")) {
-        return NextResponse.json(
-          { error: "Database connection error" },
-          { status: 503 }
-        );
+        return createErrorResponse("Database connection error", 503);
       }
 
       // Prisma validation errors
       if (error.message.includes("Invalid")) {
-        return NextResponse.json(
-          { error: "Invalid event ID format" },
-          { status: 400 }
-        );
+        return createErrorResponse("Invalid event ID format", 400);
       }
     }
 
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return createErrorResponse("Internal server error", 500);
   }
 }

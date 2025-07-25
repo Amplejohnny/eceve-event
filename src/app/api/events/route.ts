@@ -1,5 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { Prisma, EventStatus } from "@/generated/prisma";
+
+// Type for event with all required relations
+type EventWithRelations = {
+  id: string;
+  title: string;
+  description: string;
+  eventType: string;
+  date: Date;
+  endDate: Date | null;
+  startTime: string;
+  endTime: string | null;
+  location: string;
+  venue: string | null;
+  address: string | null;
+  tags: string[];
+  category: string;
+  imageUrl: string | null;
+  isPublic: boolean;
+  status: string;
+  slug: string;
+  createdAt: Date;
+  updatedAt: Date;
+  ticketTypes: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number | null; // Allow null as per schema
+  }>;
+  organizer: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  } | null;
+  _count: {
+    tickets: number;
+    favorites: number;
+  };
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     const majorNigerianCities = [
       "Lagos",
-      "Abuja", 
+      "Abuja",
       "Kano",
       "Rivers",
       "Port Harcourt",
@@ -25,13 +65,25 @@ export async function GET(request: NextRequest) {
       "Ogun",
     ];
 
-    // Build where clause step by step to avoid complex nested conditions
-    const baseWhereClause: any = {
-      isPublic: true,
-      status: status || "ACTIVE",
+    // Parse and validate status parameter
+    const getValidStatus = (statusParam: string | null): EventStatus => {
+      if (!statusParam) return EventStatus.ACTIVE;
+
+      // Check if the provided status is a valid EventStatus enum value
+      const validStatuses = Object.values(EventStatus);
+      const upperCaseStatus = statusParam.toUpperCase() as EventStatus;
+
+      return validStatuses.includes(upperCaseStatus)
+        ? upperCaseStatus
+        : EventStatus.ACTIVE;
     };
 
-    // Add category filter
+    // Use Prisma types instead of `any`
+    const baseWhereClause: Prisma.EventWhereInput = {
+      isPublic: true,
+      status: getValidStatus(status),
+    };
+
     if (category) {
       baseWhereClause.category = {
         contains: category,
@@ -39,7 +91,6 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Add location filter
     if (location) {
       baseWhereClause.location = {
         contains: location,
@@ -47,58 +98,34 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Add event type filter
-    if (eventType && (eventType === "FREE" || eventType === "PAID")) {
-      baseWhereClause.eventType = eventType;
+    if (eventType === "FREE" || eventType === "PAID") {
+      baseWhereClause.eventType = eventType as "FREE" | "PAID";
     }
 
-    // Add search query
     if (q) {
       baseWhereClause.OR = [
-        {
-          title: {
-            contains: q,
-            mode: "insensitive",
-          },
-        },
-        {
-          description: {
-            contains: q,
-            mode: "insensitive",
-          },
-        },
-        {
-          location: {
-            contains: q,
-            mode: "insensitive",
-          },
-        },
-        {
-          venue: {
-            contains: q,
-            mode: "insensitive",
-          },
-        },
-        {
-          tags: {
-            has: q,
-          },
-        },
+        { title: { contains: q, mode: "insensitive" } },
+        { description: { contains: q, mode: "insensitive" } },
+        { location: { contains: q, mode: "insensitive" } },
+        { venue: { contains: q, mode: "insensitive" } },
+        { tags: { has: q } },
       ];
     }
 
-    // Build final where clause based on section
-    let finalWhereClause = { ...baseWhereClause };
-    let orderBy: any = [{ date: "asc" }, { createdAt: "desc" }]; // default
+    // Clone the base filters
+    const finalWhereClause: Prisma.EventWhereInput = { ...baseWhereClause };
+
+    let orderBy: Prisma.EventOrderByWithRelationInput[] = [
+      { date: "asc" },
+      { createdAt: "desc" },
+    ];
 
     const now = new Date();
 
     switch (section) {
       case "popular":
         orderBy = [{ createdAt: "desc" }];
-        finalWhereClause.date = {
-          gte: now,
-        };
+        finalWhereClause.date = { gte: now };
         break;
 
       case "upcoming":
@@ -114,46 +141,46 @@ export async function GET(request: NextRequest) {
 
       case "trendy":
         orderBy = [{ createdAt: "desc" }];
-        finalWhereClause.date = {
-          gte: now,
-        };
-        // For trendy events, create a separate OR condition for cities
-        if (!finalWhereClause.OR) {
-          finalWhereClause.OR = [];
+        finalWhereClause.date = { gte: now };
+
+        // Handle OR clause safely
+        const cityFilters = majorNigerianCities.map((city) => ({
+          location: {
+            contains: city,
+            mode: "insensitive" as const,
+          },
+        }));
+
+        if (finalWhereClause.OR) {
+          finalWhereClause.OR = [...finalWhereClause.OR, ...cityFilters];
+        } else {
+          finalWhereClause.AND = [
+            { OR: cityFilters },
+            ...(finalWhereClause.AND ? [finalWhereClause.AND].flat() : []),
+          ];
         }
-        finalWhereClause.OR = [
-          ...finalWhereClause.OR,
-          ...majorNigerianCities.map((city) => ({
-            location: {
-              contains: city,
-              mode: "insensitive" as const,
-            },
-          })),
-        ];
         break;
     }
 
-    // Set pagination limits
-    let defaultLimit = 30;
-    if (section === "popular" || section === "upcoming" || section === "trendy") {
-      defaultLimit = 18;
-    }
+    // Set pagination
+    const defaultLimit =
+      section === "popular" || section === "upcoming" || section === "trendy"
+        ? 18
+        : 30;
 
-    const take = limitParam ? Math.max(1, parseInt(limitParam)) || defaultLimit : defaultLimit;
+    const take = limitParam
+      ? Math.max(1, parseInt(limitParam)) || defaultLimit
+      : defaultLimit;
     const skip = offsetParam ? Math.max(0, parseInt(offsetParam)) || 0 : 0;
 
-    // Fetch events with proper error handling
-    let events;
-    let totalCount;
-    
+    let events: EventWithRelations[];
+    let totalCount: number;
+
     try {
-      // Execute queries separately to avoid prepared statement conflicts
-      events = await db.event.findMany({
+      const rawEvents = await db.event.findMany({
         where: finalWhereClause,
         include: {
-          ticketTypes: {
-            orderBy: { price: "asc" },
-          },
+          ticketTypes: { orderBy: { price: "asc" } },
           organizer: {
             select: {
               id: true,
@@ -180,17 +207,17 @@ export async function GET(request: NextRequest) {
         skip,
       });
 
-      // Get total count with a fresh query
+      // Type assertion after database query
+      events = rawEvents as EventWithRelations[];
+
       totalCount = await db.event.count({
         where: finalWhereClause,
       });
-
     } catch (dbError) {
       console.error("Database query error:", dbError);
       throw new Error("Database query failed");
     }
 
-    // Transform the data to ensure consistent structure
     const transformedEvents = events.map((event) => ({
       id: event.id,
       title: event.title,
@@ -213,7 +240,7 @@ export async function GET(request: NextRequest) {
         id: ticket.id,
         name: ticket.name,
         price: ticket.price,
-        quantity: ticket.quantity,
+        quantity: ticket.quantity, // Can be null
       })),
       organizer: event.organizer || null,
       createdAt: event.createdAt.toISOString(),
@@ -227,13 +254,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       events: transformedEvents,
       totalCount,
-      hasMore: take ? skip + take < totalCount : false,
+      hasMore: skip + take < totalCount,
     });
-
   } catch (error) {
     console.error("Error fetching events:", error);
-    
-    // Handle specific error types
+
     if (error instanceof Error) {
       if (error.message.includes("connection")) {
         return NextResponse.json(
@@ -242,7 +267,10 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      if (error.message.includes("Invalid") || error.message.includes("validation")) {
+      if (
+        error.message.includes("Invalid") ||
+        error.message.includes("validation")
+      ) {
         return NextResponse.json(
           { error: "Invalid query parameters" },
           { status: 400 }

@@ -95,7 +95,7 @@ function getClientIP(request: NextRequest): string {
 function createSecurityLog(
   level: "info" | "warn" | "error",
   action: string,
-  details: Record<string, any>,
+  details: Record<string, unknown>,
   request: NextRequest
 ) {
   const timestamp = new Date().toISOString();

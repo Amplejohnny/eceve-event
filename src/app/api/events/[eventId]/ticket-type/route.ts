@@ -6,6 +6,12 @@ import { EventType } from "@/generated/prisma";
 import { z } from "zod";
 import { db } from "@/lib/db";
 
+// Helper functions
+const createErrorResponse = (message: string, status: number) => {
+  return NextResponse.json({ error: message }, { status });
+};
+
+// Schema definition
 const updateTicketsSchema = z.object({
   ticketTypes: z
     .array(
@@ -22,66 +28,114 @@ const updateTicketsSchema = z.object({
     .min(1, "At least one ticket type is required"),
 });
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: { eventId: string } }
-) {
-  try {
-    const session = await getServerSession(authOptions);
+// Types
+type UpdateTicketsData = z.infer<typeof updateTicketsSchema>;
 
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+// Validation functions
+const validateAuthentication = async () => {
+  const session = await getServerSession(authOptions);
 
-    const { eventId } = params;
+  if (!session?.user?.id) {
+    return { error: createErrorResponse("Unauthorized", 401) };
+  }
 
-    // Check if event exists and user owns it
-    const existingEvent = await getEventById(eventId);
-    if (!existingEvent) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
-    }
+  return { userId: session.user.id };
+};
 
-    if (existingEvent.organizerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+const validateEventOwnership = async (eventId: string, userId: string) => {
+  const existingEvent = await getEventById(eventId);
 
-    // Check if event has started
-    if (existingEvent.date < new Date()) {
-      return NextResponse.json(
-        { error: "Cannot update tickets for events that have already started" },
-        { status: 400 }
+  if (!existingEvent) {
+    return { error: createErrorResponse("Event not found", 404) };
+  }
+
+  if (existingEvent.organizerId !== userId) {
+    return { error: createErrorResponse("Forbidden", 403) };
+  }
+
+  if (existingEvent.date < new Date()) {
+    return {
+      error: createErrorResponse(
+        "Cannot update tickets for events that have already started",
+        400
+      ),
+    };
+  }
+
+  return { event: existingEvent };
+};
+
+const validateTicketTypes = (data: UpdateTicketsData, eventType: EventType) => {
+  if (eventType === EventType.FREE) {
+    const hasNonZeroPrice = data.ticketTypes.some((ticket) => ticket.price > 0);
+    if (hasNonZeroPrice) {
+      return createErrorResponse(
+        "Free events cannot have paid ticket types",
+        400
       );
     }
+  }
 
+  if (eventType === EventType.PAID) {
+    const hasValidPaidTickets = data.ticketTypes.some(
+      (ticket) => ticket.price > 0
+    );
+    if (!hasValidPaidTickets) {
+      return createErrorResponse(
+        "Paid events must have at least one ticket type with a price greater than 0",
+        400
+      );
+    }
+  }
+
+  return null;
+};
+
+const handleZodError = (error: z.ZodError) => {
+  return NextResponse.json(
+    {
+      error: "Invalid input",
+      details: error.errors.map((err) => ({
+        field: err.path.join("."),
+        message: err.message,
+      })),
+    },
+    { status: 400 }
+  );
+};
+
+export async function PUT(
+  request: NextRequest,
+  context: { params: { eventId: string } }
+) {
+  const { eventId } = context.params;
+
+  try {
+    // Validate authentication
+    const authResult = await validateAuthentication();
+    if (authResult.error) {
+      return authResult.error;
+    }
+    const { userId } = authResult;
+
+    // Validate event ownership and status
+    const eventResult = await validateEventOwnership(eventId, userId);
+    if (eventResult.error) {
+      return eventResult.error;
+    }
+    const { event: existingEvent } = eventResult;
+
+    // Parse and validate request body
     const body = await request.json();
     const validatedData = updateTicketsSchema.parse(body);
 
     // Validate ticket types based on event type
-    if (existingEvent.eventType === EventType.FREE) {
-      const hasNonZeroPrice = validatedData.ticketTypes.some(
-        (ticket) => ticket.price > 0
-      );
-      if (hasNonZeroPrice) {
-        return NextResponse.json(
-          { error: "Free events cannot have paid ticket types" },
-          { status: 400 }
-        );
-      }
-    }
-
-    if (existingEvent.eventType === EventType.PAID) {
-      const hasValidPaidTickets = validatedData.ticketTypes.some(
-        (ticket) => ticket.price > 0
-      );
-      if (!hasValidPaidTickets) {
-        return NextResponse.json(
-          {
-            error:
-              "Paid events must have at least one ticket type with a price greater than 0",
-          },
-          { status: 400 }
-        );
-      }
+    const ticketValidationError = validateTicketTypes(
+      validatedData,
+      existingEvent.eventType
+    );
+    if (ticketValidationError) {
+      return ticketValidationError;
     }
 
     // Check for tickets that have already been sold before allowing quantity reduction
@@ -125,11 +179,8 @@ export async function PUT(
         const soldCount = soldCountMap.get(ticketId) || 0;
         if (soldCount > 0) {
           const ticketType = existingTickets.find((t) => t.id === ticketId);
-          return NextResponse.json(
-            {
-              error: `Cannot delete ticket type "${ticketType?.name}" because ${soldCount} tickets have already been sold`,
-            },
-            { status: 400 }
+          throw new Error(
+            `Cannot delete ticket type "${ticketType?.name}" because ${soldCount} tickets have already been sold`
           );
         }
       }
@@ -152,11 +203,8 @@ export async function PUT(
             const existingTicket = existingTickets.find(
               (t) => t.id === ticket.id
             );
-            return NextResponse.json(
-              {
-                error: `Cannot set quantity to ${ticket.quantity} for "${existingTicket?.name}" because ${soldCount} tickets have already been sold`,
-              },
-              { status: 400 }
+            throw new Error(
+              `Cannot set quantity to ${ticket.quantity} for "${existingTicket?.name}" because ${soldCount} tickets have already been sold`
             );
           }
 
@@ -214,22 +262,15 @@ export async function PUT(
     console.error("Error updating event tickets:", error);
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          error: "Invalid input",
-          details: error.errors.map((err) => ({
-            field: err.path.join("."),
-            message: err.message,
-          })),
-        },
-        { status: 400 }
-      );
+      return handleZodError(error);
     }
 
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    // Handle custom validation errors from transaction
+    if (error instanceof Error && error.message.includes("Cannot")) {
+      return createErrorResponse(error.message, 400);
+    }
+
+    return createErrorResponse("Internal server error", 500);
   }
 }
 

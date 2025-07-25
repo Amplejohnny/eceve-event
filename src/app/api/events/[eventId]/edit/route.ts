@@ -5,6 +5,16 @@ import { updateEvent, getEventById, checkTicketSales } from "@/lib/event";
 import { EventType, EventStatus } from "@/generated/prisma";
 import { z } from "zod";
 
+// Helper functions
+const createErrorResponse = (message: string, status: number) => {
+  return NextResponse.json({ error: message }, { status });
+};
+
+const validateTimeFormat = (time: string): boolean => {
+  const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  return timeRegex.test(time);
+};
+
 const updateEventSchema = z.object({
   title: z.string().min(1, "Event title is required").optional(),
   description: z.string().min(1, "Event description is required").optional(),
@@ -30,70 +40,55 @@ const updateEventSchema = z.object({
   isPublic: z.boolean().optional(),
   status: z.nativeEnum(EventStatus).optional(),
 });
-
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  context: { params: { eventId: string } }
 ) {
+  const { eventId } = context.params;
+
   try {
     const session = await getServerSession(authOptions);
 
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createErrorResponse("Unauthorized", 401);
     }
 
-    const { eventId } = params;
-
-    // Check if event exists and user owns it
     const existingEvent = await getEventById(eventId);
     if (!existingEvent) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return createErrorResponse("Event not found", 404);
     }
 
     if (existingEvent.organizerId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return createErrorResponse("Forbidden", 403);
     }
 
     const body = await request.json();
     const validatedData = updateEventSchema.parse(body);
 
-    // Additional validation for date changes
     if (validatedData.date && validatedData.date < new Date()) {
-      return NextResponse.json(
-        { error: "Event date cannot be in the past" },
-        { status: 400 }
-      );
+      return createErrorResponse("Event date cannot be in the past", 400);
     }
 
-    // Validate end date is after start date
     const startDate = validatedData.date || existingEvent.date;
     if (validatedData.endDate && validatedData.endDate < startDate) {
-      return NextResponse.json(
-        { error: "End date cannot be before start date" },
-        { status: 400 }
-      );
+      return createErrorResponse("End date cannot be before start date", 400);
     }
 
-    // Validate start time and end time
     if (validatedData.startTime && validatedData.endTime) {
-      // Basic time format validation (HH:MM)
-      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-
-      if (!timeRegex.test(validatedData.startTime)) {
-        return NextResponse.json(
-          { error: "Invalid start time format. Use HH:MM format" },
-          { status: 400 }
+      if (!validateTimeFormat(validatedData.startTime)) {
+        return createErrorResponse(
+          "Invalid start time format. Use HH:MM format",
+          400
         );
       }
 
-      if (!timeRegex.test(validatedData.endTime)) {
-        return NextResponse.json(
-          { error: "Invalid end time format. Use HH:MM format" },
-          { status: 400 }
+      if (!validateTimeFormat(validatedData.endTime)) {
+        return createErrorResponse(
+          "Invalid end time format. Use HH:MM format",
+          400
         );
       }
 
-      // Check if end time is after start time (on the same day)
       const [startHour, startMinute] = validatedData.startTime
         .split(":")
         .map(Number);
@@ -103,31 +98,25 @@ export async function PUT(
       const endTimeMinutes = endHour * 60 + endMinute;
 
       if (endTimeMinutes <= startTimeMinutes) {
-        return NextResponse.json(
-          { error: "End time must be after start time" },
-          { status: 400 }
-        );
+        return createErrorResponse("End time must be after start time", 400);
       }
     }
 
-    // Prevent changing event type if there are existing ticket sales
     if (
       validatedData.eventType &&
       validatedData.eventType !== existingEvent.eventType
     ) {
       const hasTicketSales = await checkTicketSales(eventId);
       if (hasTicketSales) {
-        return NextResponse.json(
-          { error: "Cannot change event type when tickets have been sold" },
-          { status: 400 }
+        return createErrorResponse(
+          "Cannot change event type when tickets have been sold",
+          400
         );
       }
     }
 
-    // Use the event library function
     const updatedEvent = await updateEvent(eventId, {
       ...validatedData,
-      // Ensure we only pass the fields that are defined
       ...(validatedData.date && { date: validatedData.date }),
       ...(validatedData.endDate !== undefined && {
         endDate: validatedData.endDate,
@@ -153,31 +142,25 @@ export async function PUT(
       );
     }
 
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return createErrorResponse("Internal server error", 500);
   }
 }
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { eventId: string } }
+  context: { params: { eventId: string } }
 ) {
-  try {
-    const { eventId } = params;
+  const { eventId } = context.params;
 
+  try {
     const event = await getEventById(eventId);
     if (!event) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+      return createErrorResponse("Event not found", 404);
     }
 
     return NextResponse.json(event, { status: 200 });
   } catch (error) {
     console.error("Error fetching event:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return createErrorResponse("Internal server error", 500);
   }
 }
