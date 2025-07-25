@@ -7,7 +7,7 @@
     "dev": "next dev --turbopack",
     "dev:turbo": "next dev --turbopack",
     "dev:webpack": "next dev",
-    "build": "prisma generate && npm run build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "prisma db push",
