@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-// import type { Configuration } from "webpack";
+import type { Configuration } from "webpack";
 
 const nextConfig: NextConfig = {
   turbopack: {},
@@ -35,17 +35,16 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // ❗️Note: This block is ignored by Turbopack (used only with Webpack)
-  // webpack: (config: Configuration) => {
-  //   config.resolve = config.resolve || {};
-  //   config.resolve.fallback = {
-  //     ...config.resolve.fallback,
-  //     fs: false,
-  //     net: false,
-  //     tls: false,
-  //   };
-  //   return config;
-  // },
+  webpack: (config: Configuration) => {
+    config.resolve = config.resolve || {};
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      fs: false,
+      net: false,
+      tls: false,
+    };
+    return config;
+  },
 
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || "",
