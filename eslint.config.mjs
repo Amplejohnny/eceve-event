@@ -11,7 +11,9 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-  ...compat.config({
+
+  // TypeScript files configuration
+  {
     files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
       parserOptions: {
@@ -24,20 +26,24 @@ const eslintConfig = [
       "@typescript-eslint/no-explicit-any": "warn",
       "react/react-in-jsx-scope": "off",
     },
-  }),
-  ...compat.config({
+  },
+
+  // JavaScript files configuration
+  {
     files: ["**/*.js", "**/*.jsx"],
     rules: {
       "no-unused-vars": "warn",
       "react/react-in-jsx-scope": "off",
     },
-  }),
-  ...compat.config({
+  },
+
+  // JSON files configuration
+  {
     files: ["**/*.json"],
     rules: {
       "jsonc/sort-keys": "off",
     },
-  }),
+  },
 ];
 
 export default eslintConfig;
