@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 // import { Recursive } from "next/font/google";
 import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
+import { constructMetadata } from "@/lib/metadata";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,38 +17,7 @@ const geistMono = Geist_Mono({
 
 // const recursive = Recursive({ subsets: ["latin"] });
 
-export function constructMetadata({
-  title = "Comforeve - Discover Amazing Events Near You",
-  description = "Find and book the best events in your area. From concerts and workshops to conferences and networking events - discover what excites you on Comforeve.",
-  image = "/thumbnail.png",
-  icons = "/favicon.ico",
-}: {
-  title?: string;
-  description?: string;
-  image?: string;
-  icons?: string;
-} = {}): Metadata {
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      images: [{ url: image }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [image],
-      creator: "@amplejohnny",
-    },
-    icons,
-    metadataBase: new URL(
-      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-    ),
-  };
-}
+export const metadata: Metadata = constructMetadata();
 
 export default function RootLayout({
   children,

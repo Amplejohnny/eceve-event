@@ -1,6 +1,7 @@
 import ForgotPasswordForm from "@/components/auth/ForgetPasswordForm";
+import { constructMetadata } from "@/lib/metadata";
 
-export const metadata = {
+export const metadata = constructMetadata({
   title: "Reset Password - Comforeve",
   description: "Reset your Comforeve password",
   keywords: [
@@ -9,13 +10,8 @@ export const metadata = {
     "password recovery",
     "Comforeve",
   ],
-  openGraph: {
-    title: "Reset Password - Comforeve",
-    description: "Reset your Comforeve password",
-    url: "https://www.comforeve.com/auth/forgot-password",
-    siteName: "Comforeve",
-  },
-};
+  url: "https://www.comforeve.com/auth/forgot-password",
+});
 
 export default function ForgotPasswordPage() {
   return <ForgotPasswordForm />;

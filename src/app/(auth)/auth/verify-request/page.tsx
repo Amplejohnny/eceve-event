@@ -1,4 +1,3 @@
-// src/app/auth/verify-request/page.tsx
 import { Suspense } from "react";
 import VerifyRequestPage from "@/components/auth/VerifyRequest";
 

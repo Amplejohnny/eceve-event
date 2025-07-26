@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { CircleCheck, AlertCircle, RefreshCw, Home } from "lucide-react";
 import Link from "next/link";
@@ -85,69 +85,80 @@ export default function EmailVerified() {
     });
   }, []);
 
-  // Enhanced redirect with error handling
-  const performRedirect = async (attempt: number = 1) => {
-    try {
-      setIsRedirecting(true);
-      setHasError(false);
+  const performRedirect = useCallback(
+    async (attempt: number = 1) => {
+      try {
+        setIsRedirecting(true);
+        setHasError(false);
 
-      logClientInfo("Starting redirect", {
-        attempt,
-        destination: "/",
-        countdown: countdown,
-      });
+        logClientInfo("Starting redirect", {
+          attempt,
+          destination: "/",
+          countdown: countdown,
+        });
 
-      // Track redirect attempt
-      trackEvent("email_verification_redirect_attempt", {
-        attempt,
-        method: "automatic",
-        countdownRemaining: countdown,
-      });
+        // Track redirect attempt
+        trackEvent("email_verification_redirect_attempt", {
+          attempt,
+          method: "automatic",
+          countdownRemaining: countdown,
+        });
 
-      // Simulate potential network check or validation
-      await new Promise((resolve) => setTimeout(resolve, 100));
+        // Simulate potential network check or validation
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Perform the redirect
-      await router.push("/");
+        // Perform the redirect
+        await router.push("/");
 
-      // Track successful redirect
-      trackEvent("email_verification_redirect_success", {
-        attempt,
-        method: "automatic",
-      });
+        // Track successful redirect
+        trackEvent("email_verification_redirect_success", {
+          attempt,
+          method: "automatic",
+        });
 
-      logClientInfo("Redirect successful", { attempt });
-    } catch (error) {
-      logClientError(error, "Redirect failed", {
-        attempt,
-        destination: "/",
-        countdown,
-      });
+        logClientInfo("Redirect successful", { attempt });
+      } catch (error) {
+        logClientError(error, "Redirect failed", {
+          attempt,
+          destination: "/",
+          countdown,
+        });
 
-      setIsRedirecting(false);
-      setHasError(true);
-      setRetryAttempts(attempt);
+        setIsRedirecting(false);
+        setHasError(true);
+        setRetryAttempts(attempt);
 
-      // Track redirect failure
-      trackEvent("email_verification_redirect_failed", {
-        attempt,
-        error: error instanceof Error ? error.message : String(error),
-        method: "automatic",
-      });
+        // Track redirect failure
+        trackEvent("email_verification_redirect_failed", {
+          attempt,
+          error: error instanceof Error ? error.message : String(error),
+          method: "automatic",
+        });
 
-      if (attempt === 1) {
-        setErrorMessage("Unable to redirect automatically. Please try again.");
-      } else if (attempt === 2) {
-        setErrorMessage(
-          "Still having trouble redirecting. You can continue manually."
-        );
-      } else {
-        setErrorMessage(
-          "Automatic redirect failed. Please use the button below to continue."
-        );
+        if (attempt === 1) {
+          setErrorMessage(
+            "Unable to redirect automatically. Please try again."
+          );
+        } else if (attempt === 2) {
+          setErrorMessage(
+            "Still having trouble redirecting. You can continue manually."
+          );
+        } else {
+          setErrorMessage(
+            "Automatic redirect failed. Please use the button below to continue."
+          );
+        }
       }
-    }
-  };
+    },
+    [
+      countdown,
+      router,
+      setIsRedirecting,
+      setHasError,
+      setRetryAttempts,
+      setErrorMessage,
+    ]
+  );
 
   // Manual redirect handler
   const handleManualRedirect = async () => {
@@ -177,7 +188,7 @@ export default function EmailVerified() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [hasError, isRedirecting]);
+  }, [hasError, isRedirecting, performRedirect]);
 
   // Retry logic for failed redirects
   const handleRetry = () => {
