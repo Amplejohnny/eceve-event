@@ -40,11 +40,12 @@ const updateEventSchema = z.object({
   isPublic: z.boolean().optional(),
   status: z.nativeEnum(EventStatus).optional(),
 });
+
 export async function PUT(
   request: NextRequest,
-  context: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
-  const { eventId } = context.params;
+  const { eventId } = await params;
 
   try {
     const session = await getServerSession(authOptions);
@@ -148,9 +149,9 @@ export async function PUT(
 
 export async function GET(
   request: NextRequest,
-  context: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
-  const { eventId } = context.params;
+  const { eventId } = await params;
 
   try {
     const event = await getEventById(eventId);

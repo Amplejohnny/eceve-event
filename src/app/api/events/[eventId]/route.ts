@@ -84,9 +84,9 @@ const transformEventData = (event: EventWithRelations) => {
 
 export async function GET(
   request: NextRequest,
-  context: { params: { eventId: string } }
+  { params }: { params: Promise<{ eventId: string }> }
 ) {
-  const { eventId } = context.params;
+  const { eventId } = await params;
 
   try {
     // Validate eventId
