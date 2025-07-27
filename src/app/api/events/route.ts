@@ -29,7 +29,7 @@ type EventWithRelations = {
     id: string;
     name: string;
     price: number;
-    quantity: number | null; // Allow null as per schema
+    quantity: number | null;
   }>;
   organizer: {
     id: string;
@@ -71,7 +71,6 @@ export async function GET(request: NextRequest) {
     const getValidStatus = (statusParam: string | null): EventStatus => {
       if (!statusParam) return EventStatus.ACTIVE;
 
-      // Check if the provided status is a valid EventStatus enum value
       const validStatuses = Object.values(EventStatus);
       const upperCaseStatus = statusParam.toUpperCase() as EventStatus;
 
@@ -179,45 +178,103 @@ export async function GET(request: NextRequest) {
     let totalCount: number;
 
     try {
-      const rawEvents = await db.event.findMany({
-        where: finalWhereClause,
-        include: {
-          ticketTypes: { orderBy: { price: "asc" } },
-          organizer: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
+      // Execute the database query with the final where clause
+      const [rawEvents, count] = await db.$transaction([
+        db.event.findMany({
+          where: finalWhereClause,
+          include: {
+            ticketTypes: { orderBy: { price: "asc" } },
+            organizer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
             },
-          },
-          _count: {
-            select: {
-              tickets: {
-                where: {
-                  status: {
-                    in: ["ACTIVE", "USED"],
+            _count: {
+              select: {
+                tickets: {
+                  where: {
+                    status: {
+                      in: ["ACTIVE", "USED"],
+                    },
                   },
                 },
+                favorites: true,
               },
-              favorites: true,
             },
           },
-        },
-        orderBy,
-        take,
-        skip,
-      });
+          orderBy,
+          take,
+          skip,
+        }),
+        db.event.count({
+          where: finalWhereClause,
+        }),
+      ]);
 
       // Type assertion after database query
       events = rawEvents as EventWithRelations[];
-
-      totalCount = await db.event.count({
-        where: finalWhereClause,
-      });
+      totalCount = count;
     } catch (dbError) {
       console.error("Database query error:", dbError);
-      throw new Error("Database query failed");
+
+      // Handle database errors
+      if (
+        dbError instanceof Error &&
+        dbError.message.includes("prepared statement")
+      ) {
+        // Disconnect and reconnect
+        try {
+          await db.$disconnect();
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          // Retry the query
+          const [rawEvents, count] = await db.$transaction([
+            db.event.findMany({
+              where: finalWhereClause,
+              include: {
+                ticketTypes: { orderBy: { price: "asc" } },
+                organizer: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    image: true,
+                  },
+                },
+                _count: {
+                  select: {
+                    tickets: {
+                      where: {
+                        status: {
+                          in: ["ACTIVE", "USED"],
+                        },
+                      },
+                    },
+                    favorites: true,
+                  },
+                },
+              },
+              orderBy,
+              take,
+              skip,
+            }),
+            db.event.count({
+              where: finalWhereClause,
+            }),
+          ]);
+
+          events = rawEvents as EventWithRelations[];
+          totalCount = count;
+        } catch (retryError) {
+          console.error("Retry failed:", retryError);
+          throw new Error("Database connection issue. Please try again.");
+        }
+      } else {
+        throw new Error("Database query failed");
+      }
     }
 
     const transformedEvents = events.map((event) => ({
@@ -242,7 +299,7 @@ export async function GET(request: NextRequest) {
         id: ticket.id,
         name: ticket.name,
         price: ticket.price,
-        quantity: ticket.quantity, // Can be null
+        quantity: ticket.quantity,
       })),
       organizer: event.organizer || null,
       createdAt: event.createdAt.toISOString(),
@@ -262,9 +319,12 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching events:", error);
 
     if (error instanceof Error) {
-      if (error.message.includes("connection")) {
+      if (
+        error.message.includes("connection") ||
+        error.message.includes("prepared statement")
+      ) {
         return NextResponse.json(
-          { error: "Database connection error" },
+          { error: "Database connection error. Please try again." },
           { status: 503 }
         );
       }
