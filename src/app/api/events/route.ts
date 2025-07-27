@@ -79,7 +79,6 @@ export async function GET(request: NextRequest) {
         : EventStatus.ACTIVE;
     };
 
-    // Use Prisma types instead of `any`
     const baseWhereClause: Prisma.EventWhereInput = {
       isPublic: true,
       status: getValidStatus(status),
@@ -214,13 +213,11 @@ export async function GET(request: NextRequest) {
         }),
       ]);
 
-      // Type assertion after database query
       events = rawEvents as EventWithRelations[];
       totalCount = count;
     } catch (dbError) {
       console.error("Database query error:", dbError);
 
-      // Handle database errors
       if (
         dbError instanceof Error &&
         dbError.message.includes("prepared statement")

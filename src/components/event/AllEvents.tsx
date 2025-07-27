@@ -270,7 +270,6 @@ const AllEventsPage: React.FC = () => {
     loadInitialEvents();
   }, [loadInitialEvents]);
 
-  // Handle search and filters
   const handleSearch = async (): Promise<void> => {
     setIsLoading(true);
     clearEvents();
