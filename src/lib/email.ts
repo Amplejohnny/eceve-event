@@ -1,6 +1,6 @@
-import { SendVerificationRequestParams } from "next-auth/providers/email";
-import { createTransport, Transporter } from "nodemailer";
-
+import type { SendVerificationRequestParams } from "next-auth/providers/email";
+import { createTransport } from "nodemailer";
+import type { Transporter } from "nodemailer";
 const currentYear = new Date().getFullYear();
 
 // Email transporter configuration

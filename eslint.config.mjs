@@ -19,7 +19,7 @@ const eslintConfig = [
         "warn",
         { argsIgnorePattern: "^_" },
       ],
-      "@typescript-eslint/explicit-function-return-type": "warn",
+      "@typescript-eslint/explicit-function-return-type": "off",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/ban-ts-comment": "error",
@@ -29,19 +29,16 @@ const eslintConfig = [
       "react/no-unknown-property": ["error", { ignore: ["css"] }],
     },
   },
-  ...compat.config({
+  {
     files: ["**/*.js", "**/*.jsx"],
     rules: {
       "no-unused-vars": "warn",
       "react/react-in-jsx-scope": "off",
     },
-  }),
-  ...compat.config({
-    files: ["**/*.json"],
-    rules: {
-      "jsonc/sort-keys": "off",
-    },
-  }),
+  },
+  {
+    ignores: ["**/*.json"],
+  },
 ];
 
 export default eslintConfig;

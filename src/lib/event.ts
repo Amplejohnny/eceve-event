@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { Prisma } from "@/generated/prisma";
+import type { Prisma } from "@/generated/prisma";
 
 // Event database functions
 export async function getEvents(

@@ -1,5 +1,5 @@
-// app/api/debug-email/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { sendTestEmailWithDebug } from '@/lib/email';
 
 export async function POST(request: NextRequest) {

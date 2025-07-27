@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, ArrowLeft, Search, Mail, Phone } from "lucide-react";
+import { Home, ArrowLeft, Search } from "lucide-react";
 
 export default function NotFoundPage() {
   return (

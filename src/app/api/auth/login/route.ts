@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { resendVerificationEmail } from "@/lib/auth";
 import { authOptions } from "@/lib/auth-config";
@@ -8,19 +9,27 @@ import { z } from "zod";
 
 // Enhanced logging utility
 const logError = (
-  error: any,
+  error: unknown,
   context: string,
-  metadata?: Record<string, any>
-) => {
+  metadata?: Record<string, unknown>
+): void => {
   const timestamp = new Date().toISOString();
+  const errorInfo = error instanceof Error 
+    ? {
+        message: error.message,
+        name: error.constructor.name,
+        stack: error.stack,
+      }
+    : {
+        message: String(error),
+        name: "Unknown",
+        stack: undefined,
+      };
+
   const logData = {
     timestamp,
     context,
-    error: {
-      message: error.message,
-      name: error.constructor.name,
-      stack: error.stack,
-    },
+    error: errorInfo,
     metadata,
   };
 
@@ -31,12 +40,12 @@ const logError = (
   // await sendToLoggingService(logData);
 };
 
-const logInfo = (message: string, metadata?: Record<string, any>) => {
+const logInfo = (message: string, metadata?: Record<string, unknown>): void => {
   const timestamp = new Date().toISOString();
   console.log(`[LOGIN_INFO] ${timestamp}: ${message}`, metadata || {});
 };
 
-const logWarning = (message: string, metadata?: Record<string, any>) => {
+const logWarning = (message: string, metadata?: Record<string, unknown>): void => {
   const timestamp = new Date().toISOString();
   console.warn(`[LOGIN_WARNING] ${timestamp}: ${message}`, metadata || {});
 };

@@ -1,4 +1,5 @@
-import { withAuth, NextRequestWithAuth } from "next-auth/middleware";
+import type { NextRequestWithAuth } from "next-auth/middleware";
+import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 // Define route patterns
@@ -25,7 +26,13 @@ const AUTH_ROUTES = [
   "/auth/reset-password",
 ];
 
-const PROTECTED_ROUTES = ["/dashboard", "/profile-settings", "/my-events", "/tickets", "/favorites"];
+const PROTECTED_ROUTES = [
+  "/dashboard",
+  "/profile-settings",
+  "/my-events",
+  "/tickets",
+  "/favorites",
+];
 
 const ORGANIZER_ROUTES = [
   "/organizer",

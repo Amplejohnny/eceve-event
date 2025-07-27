@@ -141,7 +141,7 @@ const ProfileSettings: React.FC = () => {
     }
 
     return errors;
-  }, [profileData, limits]);
+  }, [profileData]);
 
   const validatePasswordData = useCallback((): ValidationErrors => {
     const errors: ValidationErrors = {};
@@ -166,13 +166,10 @@ const ProfileSettings: React.FC = () => {
   }, [passwordData]);
 
   // Debounced validation using debounce from utils
-  const debouncedValidateProfile = useCallback(
-    debounce(() => {
-      const errors = validateProfileData();
-      setValidationErrors(errors);
-    }, 300),
-    [validateProfileData]
-  );
+  const debouncedValidateProfile = debounce(() => {
+    const errors = validateProfileData();
+    setValidationErrors(errors);
+  }, 300);
 
   // Fetch user profile data when session is available
   useEffect(() => {

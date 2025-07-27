@@ -5,6 +5,7 @@ import { hashPassword } from "./utils";
 import { randomBytes } from "crypto";
 import type { NextApiRequest } from "next";
 import { authOptions } from "./auth-config";
+import type { Role } from "@/generated/prisma";
 
 // Password Reset Functions (integrated with sendPasswordResetEmail)
 export async function generatePasswordResetToken(): Promise<string> {
@@ -307,8 +308,7 @@ export async function resendVerificationEmail(email: string): Promise<boolean> {
   }
 }
 
-// In your auth lib file, update the updateUser function:
-
+// Then update your function:
 export async function updateUser(
   id: string,
   data: Partial<{
@@ -325,7 +325,18 @@ export async function updateUser(
     instagram: string;
     isActive: boolean;
   }>
-) {
+): Promise<{
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  bio: string | null;
+  website: string | null;
+  location: string | null;
+  twitter: string | null;
+  instagram: string | null;
+  role: Role;
+}> {
   return await db.user.update({
     where: { id },
     data,

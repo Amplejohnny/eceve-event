@@ -138,9 +138,9 @@ interface EventStore {
   getCurrentEvent: () => EventData | null;
 
   // Event management
-  createEvent: () => Promise<any>;
-  updateEvent: (eventId: string) => Promise<any>;
-  updateEventTickets: (eventId: string) => Promise<any>;
+  createEvent: () => Promise<unknown>;
+  updateEvent: (eventId: string) => Promise<unknown>;
+  updateEventTickets: (eventId: string) => Promise<unknown>;
   loadEvent: (eventId: string) => Promise<void>;
 
   loadEvents: (params?: {
@@ -485,6 +485,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
   clearError: (field: string) => {
     set((state) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [field]: _, ...rest } = state.errors;
       return { errors: rest };
     });
@@ -523,7 +524,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
   setLoading: (loading: boolean) => set({ isLoading: loading }),
 
   // Event management
-  createEvent: async () => {
+  createEvent: async (): Promise<unknown> => {
     const { formData, setLoading } = get();
     setLoading(true);
 
@@ -543,7 +544,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
         category: formData.category,
         imageUrl: formData.imageUrl,
         slug: formData.slug,
-        ticketTypes: formData.ticketTypes.map(({ id, ...ticket }) => ({
+        ticketTypes: formData.ticketTypes.map(({ id: _id, ...ticket }) => ({
           name: ticket.name,
           price: ticket.price,
           ...(ticket.quantity !== undefined && { quantity: ticket.quantity }),
@@ -573,7 +574,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }
   },
 
-  updateEvent: async (eventId: string) => {
+  updateEvent: async (eventId: string): Promise<unknown> => {
     const { formData, setLoading } = get();
     setLoading(true);
 
@@ -619,7 +620,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
     }
   },
 
-  updateEventTickets: async (eventId: string) => {
+  updateEventTickets: async (eventId: string): Promise<unknown> => {
     const { formData, setLoading } = get();
     setLoading(true);
 
@@ -657,7 +658,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
   },
 
   loadEvent: async (eventId: string) => {
-    const { setLoading, setCurrentEvent, setEventError, clearAllErrors } = get();
+    const { setLoading, setCurrentEvent, setEventError, clearAllErrors } =
+      get();
     setLoading(true);
     clearAllErrors();
 

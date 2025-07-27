@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { createPasswordResetRequest } from "@/lib/auth";
 import { z } from "zod";
-
 
 // Rate limiting storage (in production, use Redis or database)
 const rateLimitStore = new Map<
@@ -77,7 +77,7 @@ function getClientIP(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
   const realIP = request.headers.get("x-real-ip");
   const cfConnectingIP = request.headers.get("cf-connecting-ip");
-  
+
   if (forwarded) {
     return forwarded.split(",")[0].trim();
   }
@@ -87,7 +87,7 @@ function getClientIP(request: NextRequest): string {
   if (cfConnectingIP) {
     return cfConnectingIP;
   }
-  
+
   return "unknown";
 }
 
@@ -101,7 +101,7 @@ function createSecurityLog(
   const timestamp = new Date().toISOString();
   const ip = getClientIP(request);
   const userAgent = request.headers.get("user-agent") || "unknown";
-  
+
   const logEntry = {
     timestamp,
     level,
@@ -113,7 +113,7 @@ function createSecurityLog(
 
   // In production, send to your logging service (e.g., Winston, Pino, etc.)
   console.log(`[SECURITY:${level.toUpperCase()}]`, JSON.stringify(logEntry));
-  
+
   return logEntry;
 }
 
@@ -125,19 +125,29 @@ export async function POST(request: NextRequest) {
 
   try {
     // Log incoming request
-    createSecurityLog("info", "FORGOT_PASSWORD_REQUEST", {
-      requestId,
-      method: "POST",
-    }, request);
+    createSecurityLog(
+      "info",
+      "FORGOT_PASSWORD_REQUEST",
+      {
+        requestId,
+        method: "POST",
+      },
+      request
+    );
 
     // Parse request body
     try {
       body = await request.json();
-    } catch (error) {
-      createSecurityLog("warn", "FORGOT_PASSWORD_INVALID_JSON", {
-        requestId,
-        error: "Invalid JSON in request body",
-      }, request);
+    } catch {
+      createSecurityLog(
+        "warn",
+        "FORGOT_PASSWORD_INVALID_JSON",
+        {
+          requestId,
+          error: "Invalid JSON in request body",
+        },
+        request
+      );
 
       return NextResponse.json(
         {
@@ -157,11 +167,16 @@ export async function POST(request: NextRequest) {
         message: issue.message,
       }));
 
-      createSecurityLog("warn", "FORGOT_PASSWORD_VALIDATION_FAILED", {
-        requestId,
-        errors,
-        providedEmail: body?.email ? "provided" : "missing",
-      }, request);
+      createSecurityLog(
+        "warn",
+        "FORGOT_PASSWORD_VALIDATION_FAILED",
+        {
+          requestId,
+          errors,
+          providedEmail: body?.email ? "provided" : "missing",
+        },
+        request
+      );
 
       return NextResponse.json(
         {
@@ -179,12 +194,17 @@ export async function POST(request: NextRequest) {
     // Rate limiting by IP
     const ipRateLimit = checkRateLimit(`ip:${ip}`, 10, 15 * 60 * 1000); // 10 attempts per 15 min per IP
     if (!ipRateLimit.allowed) {
-      createSecurityLog("warn", "FORGOT_PASSWORD_IP_RATE_LIMITED", {
-        requestId,
-        email: email.replace(/(.{2}).*(@.*)/, "$1***$2"), // Mask email in logs
-        rateLimitKey: `ip:${ip}`,
-        resetTime: new Date(ipRateLimit.resetTime).toISOString(),
-      }, request);
+      createSecurityLog(
+        "warn",
+        "FORGOT_PASSWORD_IP_RATE_LIMITED",
+        {
+          requestId,
+          email: email.replace(/(.{2}).*(@.*)/, "$1***$2"), // Mask email in logs
+          rateLimitKey: `ip:${ip}`,
+          resetTime: new Date(ipRateLimit.resetTime).toISOString(),
+        },
+        request
+      );
 
       return NextResponse.json(
         {
@@ -193,14 +213,18 @@ export async function POST(request: NextRequest) {
           retryAfter: Math.ceil((ipRateLimit.resetTime - Date.now()) / 1000),
           requestId,
         },
-        { 
+        {
           status: 429,
           headers: {
-            "Retry-After": Math.ceil((ipRateLimit.resetTime - Date.now()) / 1000).toString(),
+            "Retry-After": Math.ceil(
+              (ipRateLimit.resetTime - Date.now()) / 1000
+            ).toString(),
             "X-RateLimit-Limit": "10",
             "X-RateLimit-Remaining": ipRateLimit.remaining.toString(),
-            "X-RateLimit-Reset": Math.ceil(ipRateLimit.resetTime / 1000).toString(),
-          }
+            "X-RateLimit-Reset": Math.ceil(
+              ipRateLimit.resetTime / 1000
+            ).toString(),
+          },
         }
       );
     }
@@ -208,28 +232,38 @@ export async function POST(request: NextRequest) {
     // Rate limiting by email
     const emailRateLimit = checkRateLimit(`email:${email}`, 3, 60 * 60 * 1000); // 3 attempts per hour per email
     if (!emailRateLimit.allowed) {
-      createSecurityLog("warn", "FORGOT_PASSWORD_EMAIL_RATE_LIMITED", {
-        requestId,
-        email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
-        rateLimitKey: `email:${email}`,
-        resetTime: new Date(emailRateLimit.resetTime).toISOString(),
-      }, request);
+      createSecurityLog(
+        "warn",
+        "FORGOT_PASSWORD_EMAIL_RATE_LIMITED",
+        {
+          requestId,
+          email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
+          rateLimitKey: `email:${email}`,
+          resetTime: new Date(emailRateLimit.resetTime).toISOString(),
+        },
+        request
+      );
 
       return NextResponse.json(
         {
           success: false,
-          message: "Too many password reset requests for this email. Please try again later.",
+          message:
+            "Too many password reset requests for this email. Please try again later.",
           retryAfter: Math.ceil((emailRateLimit.resetTime - Date.now()) / 1000),
           requestId,
         },
-        { 
+        {
           status: 429,
           headers: {
-            "Retry-After": Math.ceil((emailRateLimit.resetTime - Date.now()) / 1000).toString(),
+            "Retry-After": Math.ceil(
+              (emailRateLimit.resetTime - Date.now()) / 1000
+            ).toString(),
             "X-RateLimit-Limit": "3",
             "X-RateLimit-Remaining": emailRateLimit.remaining.toString(),
-            "X-RateLimit-Reset": Math.ceil(emailRateLimit.resetTime / 1000).toString(),
-          }
+            "X-RateLimit-Reset": Math.ceil(
+              emailRateLimit.resetTime / 1000
+            ).toString(),
+          },
         }
       );
     }
@@ -239,89 +273,117 @@ export async function POST(request: NextRequest) {
       /^test.*@.*$/i,
       /^admin.*@.*$/i,
       /^root.*@.*$/i,
-      /.*\+.*@.*$/,  // Plus addressing might indicate testing
+      /.*\+.*@.*$/, // Plus addressing might indicate testing
     ];
 
-    const isSuspicious = suspiciousPatterns.some(pattern => pattern.test(email));
+    const isSuspicious = suspiciousPatterns.some((pattern) =>
+      pattern.test(email)
+    );
     if (isSuspicious) {
-      createSecurityLog("warn", "FORGOT_PASSWORD_SUSPICIOUS_EMAIL", {
-        requestId,
-        email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
-        pattern: "suspicious_pattern_detected",
-      }, request);
-      
+      createSecurityLog(
+        "warn",
+        "FORGOT_PASSWORD_SUSPICIOUS_EMAIL",
+        {
+          requestId,
+          email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
+          pattern: "suspicious_pattern_detected",
+        },
+        request
+      );
+
       // Still process but log for monitoring
     }
 
     // Process password reset request
-    createSecurityLog("info", "FORGOT_PASSWORD_PROCESSING", {
-      requestId,
-      email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
-    }, request);
+    createSecurityLog(
+      "info",
+      "FORGOT_PASSWORD_PROCESSING",
+      {
+        requestId,
+        email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
+      },
+      request
+    );
 
     const success = await createPasswordResetRequest(email);
     const processingTime = Date.now() - startTime;
 
     if (success) {
-      createSecurityLog("info", "FORGOT_PASSWORD_SUCCESS", {
-        requestId,
-        email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
-        processingTimeMs: processingTime,
-      }, request);
+      createSecurityLog(
+        "info",
+        "FORGOT_PASSWORD_SUCCESS",
+        {
+          requestId,
+          email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
+          processingTimeMs: processingTime,
+        },
+        request
+      );
 
       // Always return the same response for security (timing attack prevention)
       return NextResponse.json(
         {
           success: true,
-          message: "If an account with that email exists, we've sent you a password reset link.",
+          message:
+            "If an account with that email exists, we've sent you a password reset link.",
           requestId,
         },
-        { 
+        {
           status: 200,
           headers: {
             "X-RateLimit-Limit-IP": "10",
             "X-RateLimit-Remaining-IP": ipRateLimit.remaining.toString(),
             "X-RateLimit-Limit-Email": "3",
             "X-RateLimit-Remaining-Email": emailRateLimit.remaining.toString(),
-          }
+          },
         }
       );
     } else {
-      createSecurityLog("error", "FORGOT_PASSWORD_FAILED", {
-        requestId,
-        email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
-        processingTimeMs: processingTime,
-        reason: "createPasswordResetRequest_returned_false",
-      }, request);
+      createSecurityLog(
+        "error",
+        "FORGOT_PASSWORD_FAILED",
+        {
+          requestId,
+          email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
+          processingTimeMs: processingTime,
+          reason: "createPasswordResetRequest_returned_false",
+        },
+        request
+      );
 
       // Still return success message for security
       return NextResponse.json(
         {
           success: true,
-          message: "If an account with that email exists, we've sent you a password reset link.",
+          message:
+            "If an account with that email exists, we've sent you a password reset link.",
           requestId,
         },
-        { 
+        {
           status: 200,
           headers: {
             "X-RateLimit-Limit-IP": "10",
             "X-RateLimit-Remaining-IP": ipRateLimit.remaining.toString(),
             "X-RateLimit-Limit-Email": "3",
             "X-RateLimit-Remaining-Email": emailRateLimit.remaining.toString(),
-          }
+          },
         }
       );
     }
-
   } catch (error) {
     const processingTime = Date.now() - startTime;
 
-    createSecurityLog("error", "FORGOT_PASSWORD_INTERNAL_ERROR", {
-      requestId,
-      error: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
-      processingTimeMs: processingTime,
-    }, request);
+    createSecurityLog(
+      "error",
+      "FORGOT_PASSWORD_INTERNAL_ERROR",
+      {
+        requestId,
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+        processingTimeMs: processingTime,
+      },
+      request
+    );
 
     // Log error details for debugging (remove in production logs)
     console.error("[FORGOT_PASSWORD_ERROR]", {

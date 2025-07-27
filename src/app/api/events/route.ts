@@ -1,6 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { Prisma, EventStatus } from "@/generated/prisma";
+import { EventStatus } from "@/generated/prisma";
+import type { Prisma } from "@/generated/prisma";
 
 // Type for event with all required relations
 type EventWithRelations = {

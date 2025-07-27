@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
-import { Prisma } from "@/generated/prisma";
+import type { Prisma } from "@/generated/prisma";
 
 // Type for ticket with all required relations
 type TicketWithRelations = {

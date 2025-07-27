@@ -197,9 +197,9 @@ const HomePage: React.FC = () => {
   const [popularEvents, setPopularEvents] = useState<EventData[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<EventData[]>([]);
   const [trendyEvents, setTrendyEvents] = useState<EventData[]>([]);
-  const [locationPermission, setLocationPermission] = useState<string | null>(
-    null
-  );
+  // const [locationPermission, setLocationPermission] = useState<string | null>(
+  //   null
+  // );
 
   const categories = [
     { icon: "🎵", label: "Entertainment" },
@@ -231,37 +231,37 @@ const HomePage: React.FC = () => {
   }, []);
 
   // Get user location
-  useEffect(() => {
-    const getUserLocation = async () => {
-      if (navigator.geolocation) {
-        try {
-          const position = await new Promise<GeolocationPosition>(
-            (resolve, reject) => {
-              navigator.geolocation.getCurrentPosition(resolve, reject);
-            }
-          );
+  // useEffect(() => {
+  //   const getUserLocation = async () => {
+  //     if (navigator.geolocation) {
+  //       try {
+  //         const position = await new Promise<GeolocationPosition>(
+  //           (resolve, reject) => {
+  //             navigator.geolocation.getCurrentPosition(resolve, reject);
+  //           }
+  //         );
 
-          // Use reverse geocoding to get city name (you might want to implement this)
-          // For now, we'll use a default based on coordinates
-          const { latitude, longitude } = position.coords;
+  //         // Use reverse geocoding to get city name (you might want to implement this)
+  //         // For now, we'll use a default based on coordinates
+  //         const { latitude, longitude } = position.coords;
 
-          // You can integrate with a geocoding service here
-          // For now, we'll keep Lagos as default
-          setUserLocation("Lagos");
-          setLocationPermission("granted");
-        } catch (error) {
-          console.error("Error getting location:", error);
-          setLocationPermission("denied");
-          setUserLocation("Lagos");
-        }
-      } else {
-        setLocationPermission("unsupported");
-        setUserLocation("Lagos");
-      }
-    };
+  //         // You can integrate with a geocoding service here
+  //         // For now, we'll keep Lagos as default
+  //         setUserLocation("Lagos");
+  //         setLocationPermission("granted");
+  //       } catch (error) {
+  //         console.error("Error getting location:", error);
+  //         setLocationPermission("denied");
+  //         setUserLocation("Lagos");
+  //       }
+  //     } else {
+  //       setLocationPermission("unsupported");
+  //       setUserLocation("Lagos");
+  //     }
+  //   };
 
-    getUserLocation();
-  }, []);
+  //   getUserLocation();
+  // }, []);
 
   // First useEffect: Load events from the store
   // useEffect(() => {
