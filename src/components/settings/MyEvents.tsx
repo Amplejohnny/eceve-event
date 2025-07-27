@@ -233,7 +233,7 @@ export default function MyEvents(): React.JSX.Element {
       shouldResetPagination.current = true;
 
       const timeoutId = setTimeout(() => {
-        loadData(true); // Reset pagination for new filters/tab
+        loadData(true);
       }, 300);
 
       return (): void => clearTimeout(timeoutId);
@@ -243,43 +243,102 @@ export default function MyEvents(): React.JSX.Element {
   // Effect for pagination changes (load more data)
   useEffect(() => {
     if (pagination.offset > 0 && !shouldResetPagination.current) {
-      loadData(false); // Don't reset pagination, just load more
+      loadData(false);
     }
     shouldResetPagination.current = false;
   }, [pagination.offset, loadData]);
 
-  // Initial load effect - simplified to avoid circular dependencies
   useEffect(() => {
     if (session?.user) {
       const initialLoad = async (): Promise<void> => {
-        const initialPagination = { ...pagination, offset: 0 };
+        const initialPagination = {
+          total: 0,
+          limit: 50,
+          offset: 0,
+          hasMore: false,
+        };
         setPagination(initialPagination);
 
         if (tab === "myBookings") {
-          await fetchMyBookings(initialPagination);
+          try {
+            setLoading(true);
+            setError(null);
+
+            const url = new URL("/api/my-bookings", window.location.origin);
+            if (filterStatus !== "all") {
+              url.searchParams.set("status", filterStatus);
+            }
+            url.searchParams.set("limit", initialPagination.limit.toString());
+            url.searchParams.set("offset", initialPagination.offset.toString());
+
+            const response = await fetch(url.toString());
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(
+                errorData.error || `HTTP error! status: ${response.status}`
+              );
+            }
+
+            const data: ApiResponse<Ticket> = await response.json();
+
+            if (data.success) {
+              const items = data.data.tickets || [];
+              setTickets(items);
+              setPagination(data.data.pagination);
+            } else {
+              throw new Error("Failed to fetch bookings");
+            }
+          } catch (err) {
+            setError(
+              err instanceof Error ? err.message : "Failed to fetch bookings"
+            );
+          } finally {
+            setLoading(false);
+          }
         } else if (tab === "myEvents") {
-          await fetchMyEvents(initialPagination);
+          try {
+            setLoading(true);
+            setError(null);
+
+            const url = new URL("/api/my-events", window.location.origin);
+            if (filterStatus !== "all") {
+              url.searchParams.set("status", filterStatus);
+            }
+            url.searchParams.set("limit", initialPagination.limit.toString());
+            url.searchParams.set("offset", initialPagination.offset.toString());
+
+            const response = await fetch(url.toString());
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(
+                errorData.error || `HTTP error! status: ${response.status}`
+              );
+            }
+
+            const data: ApiResponse<Event> = await response.json();
+
+            if (data.success) {
+              const items = data.data.events || [];
+              setEvents(items);
+              setPagination(data.data.pagination);
+            } else {
+              throw new Error("Failed to fetch events");
+            }
+          } catch (err) {
+            setError(
+              err instanceof Error ? err.message : "Failed to fetch events"
+            );
+          } finally {
+            setLoading(false);
+          }
         }
       };
 
       initialLoad();
     }
-  }, [session?.user]); // Removed other dependencies to avoid infinite loops
-
-  // Separate effect to handle tab changes for initial data loading
-  useEffect(() => {
-    if (session?.user && tab !== lastFetchParams.current.tab) {
-      const initialPagination = { ...pagination, offset: 0 };
-
-      if (tab === "myBookings") {
-        fetchMyBookings(initialPagination);
-      } else if (tab === "myEvents") {
-        fetchMyEvents(initialPagination);
-      }
-    }
-  }, [tab, session?.user, fetchMyBookings, fetchMyEvents]);
-
-  // Handle pagination control updates
+  }, [session?.user, tab, filterStatus]);
   const handlePaginationChange = useCallback(
     (newPagination: PaginationState) => {
       setPagination(newPagination);
