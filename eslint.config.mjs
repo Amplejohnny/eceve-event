@@ -12,38 +12,36 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 
-  // TypeScript files configuration
   {
     files: ["**/*.ts", "**/*.tsx"],
-    languageOptions: {
-      parserOptions: {
-        projectService: true,
-      },
-    },
     rules: {
-      "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/explicit-function-return-type": "off",
-      "@typescript-eslint/no-explicit-any": "off",
-      "react/react-in-jsx-scope": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_" },
+      ],
+      "@typescript-eslint/explicit-function-return-type": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/ban-ts-comment": "error",
+      "@typescript-eslint/no-unused-expressions": "warn",
+      "react/jsx-key": "off",
+      "react/no-unescaped-entities": "off",
+      "react/no-unknown-property": ["error", { ignore: ["css"] }],
     },
   },
-
-  // JavaScript files configuration
-  {
+  ...compat.config({
     files: ["**/*.js", "**/*.jsx"],
     rules: {
       "no-unused-vars": "warn",
       "react/react-in-jsx-scope": "off",
     },
-  },
-
-  // JSON files configuration
-  {
+  }),
+  ...compat.config({
     files: ["**/*.json"],
     rules: {
       "jsonc/sort-keys": "off",
     },
-  },
+  }),
 ];
 
 export default eslintConfig;

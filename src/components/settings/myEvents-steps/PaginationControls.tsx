@@ -13,8 +13,8 @@ interface PaginationControlsProps {
 export default function PaginationControls({
   pagination,
   setPagination,
-}: PaginationControlsProps) {
-  const handlePaginationChange = (newOffset: number) => {
+}: PaginationControlsProps): React.JSX.Element {
+  const handlePaginationChange = (newOffset: number): void => {
     setPagination({ ...pagination, offset: newOffset });
   };
 

@@ -6,6 +6,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+// Character limits
+const limits = {
+  email: 255,
+};
+
+// Enhanced email validation
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= limits.email;
+};
+
 const ForgotPasswordForm = () => {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -26,17 +37,6 @@ const ForgotPasswordForm = () => {
 
   // Validation states
   const [emailValid, setEmailValid] = useState<boolean | null>(null);
-
-  // Character limits
-  const limits = {
-    email: 255,
-  };
-
-  // Enhanced email validation
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email) && email.length <= limits.email;
-  };
 
   // Client-side form validation
   const validateForm = (): { isValid: boolean; errors: Errors } => {

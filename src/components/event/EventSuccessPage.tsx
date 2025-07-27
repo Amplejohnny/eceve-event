@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { FaXTwitter, FaFacebook } from "react-icons/fa6";
 import { getEventUrl } from "@/lib/utils";
+import Image from "next/image";
 
 interface EventSuccessPageProps {
   event: {
@@ -66,8 +67,8 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
   // Countdown timer with pause on user interaction
   useEffect(() => {
     let isPaused = false;
-    
-    const handleUserActivity = () => {
+
+    const handleUserActivity = (): void => {
       isPaused = true;
       // Resume countdown after 10 seconds of inactivity
       setTimeout(() => {
@@ -76,8 +77,14 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
     };
 
     // Add event listeners for user activity
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-    events.forEach(event => {
+    const events = [
+      "mousedown",
+      "mousemove",
+      "keypress",
+      "scroll",
+      "touchstart",
+    ];
+    events.forEach((event) => {
       document.addEventListener(event, handleUserActivity, true);
     });
 
@@ -93,15 +100,15 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
       }
     }, 1000);
 
-    return () => {
+    return (): void => {
       clearInterval(timer);
-      events.forEach(event => {
+      events.forEach((event) => {
         document.removeEventListener(event, handleUserActivity, true);
       });
     };
   }, [router]);
 
-  const handleCopyLink = async () => {
+  const handleCopyLink = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(eventUrl);
       setCopied(true);
@@ -109,12 +116,12 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
     } catch (err) {
       console.error("Failed to copy link:", err);
       // Fallback for older browsers
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = eventUrl;
       document.body.appendChild(textArea);
       textArea.select();
       try {
-        document.execCommand('copy');
+        document.execCommand("copy");
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch (fallbackErr) {
@@ -124,19 +131,19 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
     }
   };
 
-  const handleViewEvent = () => {
+  const handleViewEvent = (): void => {
     router.push(`/events/${event.slug}`);
   };
 
-  const handleEditEvent = () => {
+  const handleEditEvent = (): void => {
     router.push(`/events/${event.id}/edit`);
   };
 
-  const handleGoHome = () => {
+  const handleGoHome = (): void => {
     router.push("/");
   };
 
-  const handleNativeShare = async () => {
+  const handleNativeShare = async (): Promise<void> => {
     if (isWebShareSupported) {
       try {
         await navigator.share({
@@ -153,7 +160,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
     }
   };
 
-  const shareToTwitter = () => {
+  const shareToTwitter = (): void => {
     const text = `Check out this amazing event: ${event.title}`;
     const url = `https://x.com/intent/tweet?text=${encodeURIComponent(
       text
@@ -161,27 +168,27 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const shareToFacebook = () => {
+  const shareToFacebook = (): void => {
     const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
       eventUrl
     )}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const shareToWhatsApp = () => {
+  const shareToWhatsApp = (): void => {
     const text = `Check out this amazing event: ${event.title} - ${eventUrl}`;
     const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const shareToLinkedIn = () => {
+  const shareToLinkedIn = (): void => {
     const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
       eventUrl
     )}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date): string => {
     return date.toLocaleDateString("en-US", {
       weekday: "long",
       year: "numeric",
@@ -190,7 +197,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
     });
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number): string => {
     return event.eventType === "FREE" ? "Free" : `₦${price.toLocaleString()}`;
   };
 
@@ -221,11 +228,13 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8 transform hover:scale-[1.01] transition-all duration-300 hover:shadow-2xl">
           {event.imageUrl && (
             <div className="relative h-64 bg-gradient-to-r from-blue-500 to-purple-600">
-              <img
+              <Image
                 src={event.imageUrl}
                 alt={event.title}
                 className="w-full h-full object-cover"
                 loading="lazy"
+                width={800}
+                height={240}
               />
               <div className="absolute inset-0 bg-black bg-opacity-20"></div>
               <div className="absolute top-4 left-4">
@@ -383,7 +392,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
                 Share your event
               </h3>
               <button
-              title="Close Share Options"
+                title="Close Share Options"
                 onClick={() => setShowShareOptions(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
@@ -420,8 +429,12 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
                 onClick={shareToLinkedIn}
                 className="flex flex-col items-center justify-center p-4 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors"
               >
-                <svg className="w-6 h-6 mb-2" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                <svg
+                  className="w-6 h-6 mb-2"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                 </svg>
                 <span className="text-sm">LinkedIn</span>
               </button>
@@ -465,9 +478,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
           <p className="text-gray-500 text-sm">
             You can always edit your event details from your dashboard
           </p>
-          <p className="text-gray-400 text-xs">
-            Event ID: {event.id}
-          </p>
+          <p className="text-gray-400 text-xs">Event ID: {event.id}</p>
         </div>
       </div>
     </div>

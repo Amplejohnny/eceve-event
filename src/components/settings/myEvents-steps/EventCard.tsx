@@ -10,6 +10,7 @@ import {
   isEventActive,
   isEventPast,
 } from "@/lib/utils";
+import Image from "next/image";
 
 interface TicketType {
   id: string;
@@ -40,7 +41,15 @@ interface EventCardProps {
   event: Event;
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (
+  status: string
+):
+  | "text-green-600 bg-green-50"
+  | "text-blue-600 bg-blue-50"
+  | "text-red-600 bg-red-50"
+  | "text-orange-600 bg-orange-50"
+  | "text-yellow-600 bg-yellow-50"
+  | "text-gray-600 bg-gray-50" => {
   switch (status) {
     case "upcoming":
     case "active":
@@ -60,13 +69,13 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const calculateRevenue = (event: Event) => {
+const calculateRevenue = (event: Event): number => {
   return event.ticketTypes.reduce((total, ticketType) => {
     return total + ticketType.sold * ticketType.price;
   }, 0);
 };
 
-const getQuantityDisplay = (quantity: number | null, sold: number) => {
+const getQuantityDisplay = (quantity: number | null, sold: number): string => {
   if (quantity === null) {
     return `${sold} sold (Unlimited)`;
   }
@@ -74,7 +83,7 @@ const getQuantityDisplay = (quantity: number | null, sold: number) => {
 };
 
 // Replace availability calculation
-const getAvailability = (quantity: number | null, sold: number) => {
+const getAvailability = (quantity: number | null, sold: number): string => {
   if (quantity === null) {
     return "Available"; // or "Unlimited available"
   }
@@ -83,14 +92,14 @@ const getAvailability = (quantity: number | null, sold: number) => {
 };
 
 // Replace progress bar calculation
-const getProgressPercentage = (quantity: number | null, sold: number) => {
+const getProgressPercentage = (quantity: number | null, sold: number): number => {
   if (quantity === null) {
     return 0; // Don't show progress bar for unlimited
   }
   return (sold / quantity) * 100;
 };
 
-const handleShare = async (event: Event) => {
+const handleShare = async (event: Event): Promise<void> => {
   const shareData = {
     title: event.title,
     text: `Check out this event: ${event.title}`,
@@ -109,13 +118,13 @@ const handleShare = async (event: Event) => {
   }
 };
 
-export default function EventCard({ event }: EventCardProps) {
+export default function EventCard({ event }: EventCardProps): React.JSX.Element {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       <div className="p-4 sm:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="w-full lg:w-24 h-48 lg:h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-            <img
+            <Image
               src={getEventImageUrl(event.imageUrl)}
               alt={event.title}
               className="w-full h-full object-cover"

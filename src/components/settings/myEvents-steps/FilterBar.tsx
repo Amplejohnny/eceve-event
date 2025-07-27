@@ -21,7 +21,7 @@ export default function FilterBar({
   setSortBy,
   tab,
   pagination,
-}: FilterBarProps) {
+}: FilterBarProps): React.JSX.Element {
   return (
     <div className="flex flex-col sm:flex-row gap-4 mb-6">
       <div className="flex gap-2">

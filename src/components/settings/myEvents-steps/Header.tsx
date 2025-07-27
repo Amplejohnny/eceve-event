@@ -4,7 +4,11 @@ interface HeaderProps {
   userRole: "VISITOR" | "USER" | "ORGANIZER" | "ADMIN";
 }
 
-export default function Header({ tab, setTab, userRole }: HeaderProps) {
+export default function Header({
+  tab,
+  setTab,
+  userRole,
+}: HeaderProps): React.JSX.Element {
   return (
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
       <div>

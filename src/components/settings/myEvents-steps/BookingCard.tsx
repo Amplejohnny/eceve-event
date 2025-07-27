@@ -8,6 +8,7 @@ import {
   truncateText,
   getRelativeTime,
 } from "@/lib/utils";
+import Image from "next/image";
 
 interface Ticket {
   id: string;
@@ -52,7 +53,15 @@ interface BookingCardProps {
   ticket: Ticket;
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (
+  status: string
+):
+  | "text-green-600 bg-green-50"
+  | "text-blue-600 bg-blue-50"
+  | "text-red-600 bg-red-50"
+  | "text-orange-600 bg-orange-50"
+  | "text-yellow-600 bg-yellow-50"
+  | "text-gray-600 bg-gray-50" => {
   switch (status) {
     case "upcoming":
     case "active":
@@ -72,7 +81,13 @@ const getStatusColor = (status: string) => {
   }
 };
 
-const getPaymentStatusColor = (status: string) => {
+const getPaymentStatusColor = (
+  status: string
+):
+  | "text-green-600 bg-green-50"
+  | "text-red-600 bg-red-50"
+  | "text-yellow-600 bg-yellow-50"
+  | "text-gray-600 bg-gray-50" => {
   switch (status.toLowerCase()) {
     case "success":
     case "paid":
@@ -86,7 +101,7 @@ const getPaymentStatusColor = (status: string) => {
   }
 };
 
-const handleShare = async (ticket: Ticket) => {
+const handleShare = async (ticket: Ticket): Promise<void> => {
   const shareData = {
     title: ticket.event.title,
     text: `Check out this event: ${ticket.event.title}`,
@@ -105,20 +120,20 @@ const handleShare = async (ticket: Ticket) => {
   }
 };
 
-const handleDownloadPDF = (ticketId: string) => {
+const handleDownloadPDF = (ticketId: string): void => {
   const link = document.createElement("a");
   link.href = `/api/tickets/${ticketId}/pdf`;
   link.download = `ticket-${ticketId}.pdf`;
   link.click();
 };
 
-export default function BookingCard({ ticket }: BookingCardProps) {
+export default function BookingCard({ ticket }: BookingCardProps): React.JSX.Element {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       <div className="p-4 sm:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="w-full lg:w-24 h-48 lg:h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
-            <img
+            <Image
               src={getEventImageUrl(ticket.event.imageUrl)}
               alt={ticket.event.title}
               className="w-full h-full object-cover"

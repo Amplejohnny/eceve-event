@@ -7,7 +7,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-const LoginForm = () => {
+// Character limits
+const limits = {
+  email: 255,
+  password: 128,
+};
+
+// Enhanced email validation
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= limits.email;
+};
+
+const LoginForm = (): React.JSX.Element => {
   const router = useRouter();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -29,18 +41,6 @@ const LoginForm = () => {
 
   // Validation states
   const [emailValid, setEmailValid] = useState<boolean | null>(null);
-
-  // Character limits
-  const limits = {
-    email: 255,
-    password: 128,
-  };
-
-  // Enhanced email validation
-  const validateEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email) && email.length <= limits.email;
-  };
 
   // Client-side form validation
   const validateForm = (): { isValid: boolean; errors: Errors } => {
@@ -77,7 +77,7 @@ const LoginForm = () => {
     }
   }, [formData.email]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     const limit = limits[name as keyof typeof limits];
     const trimmedValue = limit ? value.slice(0, limit) : value;
@@ -94,7 +94,7 @@ const LoginForm = () => {
     if (message) setMessage("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
 
     // Client-side validation
@@ -190,7 +190,7 @@ const LoginForm = () => {
     }
   };
 
-  const toggleDarkMode = () => {
+  const toggleDarkMode = (): void => {
     setIsDarkMode(!isDarkMode);
   };
 
@@ -218,21 +218,21 @@ const LoginForm = () => {
                   className="rounded-md border"
                 />
               </div>
-                <span className="text-[#ffe047] text-xl font-semibold ml-1">
-                  Comforeve
-                </span>
-              </div>
+              <span className="text-[#ffe047] text-xl font-semibold ml-1">
+                Comforeve
+              </span>
             </div>
+          </div>
 
-            <div className="flex flex-col justify-center h-full max-w-md">
-              <h1 className="text-white text-3xl font-bold mb-4 leading-tight">
-                Discover tailored
-                <br />
-                events. 
-                <br />
-                Sign in for personalized recommendations today!
-              </h1>
-            </div>
+          <div className="flex flex-col justify-center h-full max-w-md">
+            <h1 className="text-white text-3xl font-bold mb-4 leading-tight">
+              Discover tailored
+              <br />
+              events.
+              <br />
+              Sign in for personalized recommendations today!
+            </h1>
+          </div>
         </div>
 
         {/* Right side - Form section */}

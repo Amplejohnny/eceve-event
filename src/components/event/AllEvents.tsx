@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEventStore } from "@/store/eventStore";
+import Image from "next/image";
 
 interface EventData {
   id: string;
@@ -124,10 +125,12 @@ const EventCard: React.FC<EventCardProps> = ({
         {/* Thumbnail */}
         <div className="relative h-44 md:h-48 lg:h-52 bg-gray-200">
           {event.imageUrl ? (
-            <img
+            <Image
               src={event.imageUrl}
               alt={event.title}
               className="w-full h-full object-cover"
+              width={800}
+              height={240}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
@@ -252,11 +255,7 @@ const AllEventsPage: React.FC = () => {
   >(null);
 
   // Load events on component mount
-  useEffect(() => {
-    loadInitialEvents();
-  }, []);
-
-  const loadInitialEvents = async (): Promise<void> => {
+  const loadInitialEvents = useCallback(async (): Promise<void> => {
     try {
       const result = await loadEvents({ limit: 12 });
       setTotalCount(result.totalCount);
@@ -264,7 +263,12 @@ const AllEventsPage: React.FC = () => {
     } catch (error) {
       console.error("Error loading events:", error);
     }
-  };
+  }, [loadEvents]);
+
+  // Load events on component mount
+  useEffect(() => {
+    loadInitialEvents();
+  }, [loadInitialEvents]);
 
   // Handle search and filters
   const handleSearch = async (): Promise<void> => {
@@ -291,8 +295,8 @@ const AllEventsPage: React.FC = () => {
     }
   };
 
-  const handleFavoriteToggle = (eventId: string, e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation when clicking favorite button
+  const handleFavoriteToggle = (eventId: string, e: React.MouseEvent): void => {
+    e.preventDefault();
 
     if (!session?.user) {
       setShowVerificationMessage(eventId);

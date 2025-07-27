@@ -17,7 +17,7 @@ interface ErrorConfig {
   variant: "error" | "warning" | "info";
 }
 
-export default function AuthErrorPage() {
+export default function AuthErrorPage(): React.JSX.Element {
   const searchParams = useSearchParams();
   const [isResending, setIsResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -25,7 +25,7 @@ export default function AuthErrorPage() {
   const error = searchParams.get("error");
   const email = searchParams.get("email");
 
-  const handleResendVerification = async () => {
+  const handleResendVerification = async (): Promise<void> => {
     if (!email || isResending) return;
 
     setIsResending(true);
@@ -186,7 +186,9 @@ export default function AuthErrorPage() {
 
   const errorConfig = getErrorConfig(error);
 
-  const getBackgroundColor = (variant: string) => {
+  const getBackgroundColor = (
+    variant: string
+  ): "bg-red-50" | "bg-orange-50" | "bg-blue-50" | "bg-gray-50" => {
     switch (variant) {
       case "error":
         return "bg-red-50";
@@ -199,7 +201,13 @@ export default function AuthErrorPage() {
     }
   };
 
-  const getBorderColor = (variant: string) => {
+  const getBorderColor = (
+    variant: string
+  ):
+    | "border-red-200"
+    | "border-orange-200"
+    | "border-blue-200"
+    | "border-gray-200" => {
     switch (variant) {
       case "error":
         return "border-red-200";
@@ -212,7 +220,13 @@ export default function AuthErrorPage() {
     }
   };
 
-  const getButtonColor = (variant: string) => {
+  const getButtonColor = (
+    variant: string
+  ):
+    | "bg-red-600 hover:bg-red-700 focus:ring-red-500"
+    | "bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
+    | "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+    | "bg-gray-600 hover:bg-gray-700 focus:ring-gray-500" => {
     switch (variant) {
       case "error":
         return "bg-red-600 hover:bg-red-700 focus:ring-red-500";

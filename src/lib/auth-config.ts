@@ -1,13 +1,12 @@
-import { NextAuthOptions } from "next-auth";
+import type { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@auth/prisma-adapter";
-import { Adapter } from "next-auth/adapters";
+import type { Adapter } from "next-auth/adapters";
 import EmailProvider from "next-auth/providers/email";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { sendVerificationRequest, sendWelcomeEmail } from "@/lib/email";
 import { verifyPassword } from "@/lib/utils";
 import { randomBytes } from "crypto";
-
 
 export class AuthError extends Error {
   public code: string;

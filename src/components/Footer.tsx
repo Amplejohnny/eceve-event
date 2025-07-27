@@ -1,10 +1,9 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import Link from "next/link";
 
-const Footer = () => {
+const Footer = (): React.JSX.Element => {
   return (
     <footer className="bg-[#2C293E] text-white py-10 px-6 md:px-20">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10 text-sm">

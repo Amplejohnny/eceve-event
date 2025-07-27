@@ -2,35 +2,38 @@ import React from "react";
 import { Menu } from "lucide-react";
 
 // Skeleton utility components
-const SkeletonLine = ({ className = "", width = "w-full" }) => (
+const SkeletonLine = ({
+  className = "",
+  width = "w-full",
+}): React.JSX.Element => (
   <div
     className={`${width} h-4 bg-gray-200 rounded animate-pulse ${className}`}
   />
 );
 
-const SkeletonCircle = ({ size = "w-24 h-24" }) => (
+const SkeletonCircle = ({ size = "w-24 h-24" }): React.JSX.Element => (
   <div className={`${size} bg-gray-200 rounded-full animate-pulse`} />
 );
 
-const SkeletonInput = ({ className = "" }) => (
+const SkeletonInput = ({ className = "" }): React.JSX.Element => (
   <div
     className={`w-full h-10 bg-gray-200 rounded-lg animate-pulse ${className}`}
   />
 );
 
-const SkeletonTextarea = ({ className = "" }) => (
+const SkeletonTextarea = ({ className = "" }): React.JSX.Element => (
   <div
     className={`w-full h-24 bg-gray-200 rounded-lg animate-pulse ${className}`}
   />
 );
 
-const SkeletonButton = ({ className = "" }) => (
+const SkeletonButton = ({ className = "" }): React.JSX.Element => (
   <div
     className={`w-32 h-10 bg-gray-200 rounded-lg animate-pulse ${className}`}
   />
 );
 
-const ProfileSkeleton = () => (
+const ProfileSkeleton = (): React.JSX.Element => (
   <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
     <div className="mb-4 lg:mb-6">
       <SkeletonLine width="w-48" className="h-6" />
@@ -98,7 +101,7 @@ const ProfileSkeleton = () => (
   </div>
 );
 
-const ProfileSettingsSkeleton = () => {
+const ProfileSettingsSkeleton = (): React.JSX.Element => {
   return (
     <div className="min-h-screen bg-gray-50 lg:bg-white">
       <div className="max-w-6xl mx-auto">

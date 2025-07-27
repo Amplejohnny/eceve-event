@@ -19,20 +19,20 @@ const Navbar: React.FC = () => {
   const isEmailVerified = session?.user?.emailVerified;
   const userRole = session?.user?.role;
 
-  const toggleMobileMenu = () => {
+  const toggleMobileMenu = (): void => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  const toggleProfileDropdown = () => {
+  const toggleProfileDropdown = (): void => {
     setIsProfileDropdownOpen(!isProfileDropdownOpen);
   };
 
-  const handleHomeClick = () => {
+  const handleHomeClick = (): void => {
     router.push("/");
     setIsMobileMenuOpen(false);
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (): Promise<void> => {
     try {
       await signOut({ callbackUrl: "/" });
     } catch (error) {
@@ -43,7 +43,10 @@ const Navbar: React.FC = () => {
   };
 
   // Helper function to get dashboard info based on user role
-  const getDashboardInfo = () => {
+  const getDashboardInfo = (): {
+    path: string;
+    label: string;
+  } | null => {
     if (userRole === "ADMIN") {
       return { path: "/admin", label: "Admin Panel" };
     } else if (userRole === "ORGANIZER") {
@@ -52,10 +55,10 @@ const Navbar: React.FC = () => {
     return null;
   };
 
-  const NavLinks = () => {
+  const NavLinks = (): React.JSX.Element => {
     const pathname = usePathname();
 
-    const isActive = (path: string) => {
+    const isActive = (path: string): boolean => {
       if (path === "/") {
         return pathname === "/";
       }
@@ -98,7 +101,7 @@ const Navbar: React.FC = () => {
     );
   };
 
-  const AuthButtons = () => (
+  const AuthButtons = (): React.JSX.Element => (
     <>
       <button className="text-white hover:text-yellow-400 transition-colors duration-200 cursor-pointer">
         <Link href="/auth/login">Login</Link>
@@ -109,13 +112,13 @@ const Navbar: React.FC = () => {
     </>
   );
 
-  const EmailVerificationNotice = () => (
+  const EmailVerificationNotice = (): React.JSX.Element => (
     <div className="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md text-sm">
       Email not verified
     </div>
   );
 
-  const LoggedInActions = () => {
+  const LoggedInActions = (): React.JSX.Element => {
     const dashboardInfo = getDashboardInfo();
 
     return (
@@ -353,7 +356,7 @@ const Navbar: React.FC = () => {
                       </button>
 
                       {/* Dashboard - for ADMIN and ORGANIZER */}
-                      {(() => {
+                      {((): React.JSX.Element | null => {
                         const dashboardInfo = getDashboardInfo();
                         return dashboardInfo ? (
                           <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2">

@@ -46,6 +46,18 @@ interface EventCardProps {
   isFavorite?: boolean;
 }
 
+// Nigerian major cities for trendy events
+  const majorNigerianCities = [
+    "Lagos",
+    "Abuja",
+    "Kano",
+    "Rivers",
+    "Port Harcourt",
+    "Ibadan",
+    "Oyo",
+    "Ogun",
+  ];
+
 const EventCard: React.FC<EventCardProps> = ({
   event,
   onFavoriteToggle,
@@ -206,19 +218,7 @@ const HomePage: React.FC = () => {
     { key: "free", label: "Free" },
     { key: "paid", label: "Paid" },
   ];
-
-  // Nigerian major cities for trendy events
-  const majorNigerianCities = [
-    "Lagos",
-    "Abuja",
-    "Kano",
-    "Rivers",
-    "Port Harcourt",
-    "Ibadan",
-    "Oyo",
-    "Ogun",
-  ];
-
+  
   // Check if screen is mobile
   useEffect(() => {
     const checkMobile = () => {

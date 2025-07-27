@@ -1,14 +1,10 @@
 import { getServerSession } from "next-auth/next";
 import { db } from "./db";
-import {
-  sendVerificationRequest,
-  sendPasswordResetEmail,
-} from "./email";
+import { sendVerificationRequest, sendPasswordResetEmail } from "./email";
 import { hashPassword } from "./utils";
 import { randomBytes } from "crypto";
-import { NextApiRequest } from "next";
+import type { NextApiRequest } from "next";
 import { authOptions } from "./auth-config";
-
 
 // Password Reset Functions (integrated with sendPasswordResetEmail)
 export async function generatePasswordResetToken(): Promise<string> {
@@ -115,7 +111,11 @@ export async function createUser(
   email: string,
   password: string,
   name?: string
-) {
+): Promise<{
+  name: string | null;
+  email: string;
+  password: string | null;
+}> {
   const existingUser = await db.user.findUnique({
     where: { email: email.toLowerCase() },
   });
@@ -307,6 +307,8 @@ export async function resendVerificationEmail(email: string): Promise<boolean> {
   }
 }
 
+// In your auth lib file, update the updateUser function:
+
 export async function updateUser(
   id: string,
   data: Partial<{
@@ -327,12 +329,30 @@ export async function updateUser(
   return await db.user.update({
     where: { id },
     data,
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      image: true,
+      bio: true,
+      website: true,
+      location: true,
+      twitter: true,
+      instagram: true,
+      role: true,
+    },
   });
 }
 
 // Helper functions for authentication
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function getCurrentUser(req: NextApiRequest) {
+export async function getCurrentUser(req: NextApiRequest): Promise<{
+  id: string;
+  role?: "VISITOR" | "USER" | "ORGANIZER" | "ADMIN";
+  emailVerified?: Date | null;
+  name?: string | null;
+  email?: string | null;
+} | null> {
   try {
     const session = await getServerSession(authOptions);
     return session?.user || null;
@@ -345,7 +365,9 @@ export async function getCurrentUser(req: NextApiRequest) {
 export async function requireAuth(
   req: NextApiRequest,
   requiredRole?: "USER" | "ORGANIZER" | "ADMIN"
-) {
+): Promise<{
+  role?: "VISITOR" | "USER" | "ORGANIZER" | "ADMIN";
+}> {
   const user = await getCurrentUser(req);
 
   if (!user) {
@@ -375,7 +397,9 @@ export async function requireAuth(
   return user;
 }
 
-export async function requireEmailVerification(userId: string) {
+export async function requireEmailVerification(userId: string): Promise<{
+  id: string;
+}> {
   const user = await db.user.findUnique({
     where: { id: userId },
   });
@@ -394,14 +418,19 @@ export async function requireEmailVerification(userId: string) {
 export async function updateUserRole(
   userId: string,
   role: "USER" | "ORGANIZER" | "ADMIN"
-) {
+): Promise<{
+  id: string;
+  role?: "VISITOR" | "USER" | "ORGANIZER" | "ADMIN";
+}> {
   return await db.user.update({
     where: { id: userId },
     data: { role },
   });
 }
 
-export async function verifyUserEmail(userId: string) {
+export async function verifyUserEmail(userId: string): Promise<{
+  id: string;
+}> {
   return await db.user.update({
     where: { id: userId },
     data: {
@@ -433,14 +462,18 @@ export async function verifyPasswordResetToken(
   return { valid: false };
 }
 
-export async function deactivateUser(userId: string) {
+export async function deactivateUser(userId: string): Promise<{
+  id: string;
+}> {
   return await db.user.update({
     where: { id: userId },
     data: { isActive: false },
   });
 }
 
-export async function reactivateUser(userId: string) {
+export async function reactivateUser(userId: string): Promise<{
+  id: string;
+}> {
   return await db.user.update({
     where: { id: userId },
     data: { isActive: true },
@@ -448,7 +481,13 @@ export async function reactivateUser(userId: string) {
 }
 
 // Helper function to update user password
-export async function updateUserPassword(userId: string, newPassword: string) {
+export async function updateUserPassword(
+  userId: string,
+  newPassword: string
+): Promise<{
+  id: string;
+  password: string | null;
+}> {
   const hashedPassword = await hashPassword(newPassword);
 
   return await db.user.update({
@@ -458,7 +497,12 @@ export async function updateUserPassword(userId: string, newPassword: string) {
 }
 
 // Helper function to check if user exists and their verification status
-export async function getUserStatus(email: string) {
+export async function getUserStatus(email: string): Promise<{
+  exists: boolean;
+  verified: boolean;
+  hasPassword: boolean;
+  active: boolean;
+}> {
   const user = await db.user.findUnique({
     where: { email: email.toLowerCase() },
     select: {

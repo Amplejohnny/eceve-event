@@ -12,18 +12,46 @@ import {
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+interface ErrorObject {
+  message?: string;
+  name?: string;
+}
+
+interface LogData {
+  timestamp: string;
+  context: string;
+  error: {
+    message: string;
+    name: string;
+  };
+  metadata?: Record<string, unknown>;
+  userAgent: string;
+  url: string;
+}
+
+interface ApiErrorResponse {
+  error?: string;
+  code?: string;
+  fieldErrors?: {
+    email?: string;
+  };
+  retryAfter?: number;
+  resetIn?: number;
+}
+
 // Client-side logging utility
 const logClientError = (
-  error: any,
+  error: ErrorObject | Error | unknown,
   context: string,
-  metadata?: Record<string, any>
-) => {
-  const logData = {
+  metadata?: Record<string, unknown>
+): void => {
+  const errorObj = error instanceof Error ? error : (error as ErrorObject);
+  const logData: LogData = {
     timestamp: new Date().toISOString(),
     context,
     error: {
-      message: error.message || String(error),
-      name: error.name || "Unknown",
+      message: errorObj?.message || String(error),
+      name: errorObj?.name || "Unknown",
     },
     metadata,
     userAgent: navigator.userAgent,
@@ -36,14 +64,17 @@ const logClientError = (
   // sendToClientLoggingService(logData);
 };
 
-const logClientInfo = (message: string, metadata?: Record<string, any>) => {
+const logClientInfo = (
+  message: string,
+  metadata?: Record<string, unknown>
+): void => {
   console.log(
     `[VERIFY_REQUEST_CLIENT_INFO] ${new Date().toISOString()}: ${message}`,
     metadata || {}
   );
 };
 
-const VerifyRequestPage = () => {
+const VerifyRequestPage = (): React.JSX.Element => {
   const searchParams = useSearchParams();
   const emailParam = searchParams?.get("email") || "";
 
@@ -83,16 +114,17 @@ const VerifyRequestPage = () => {
     // Track user session start
     const sessionStart = Date.now();
 
-    return () => {
+    return (): void => {
       const sessionDuration = Date.now() - sessionStart;
       logClientInfo("VerifyRequest component unmounted", {
         sessionDuration,
-        resendCount,
-        resendAttempts,
+        // Access current values at cleanup time instead of closure values
+        resendCount: resendCount,
+        resendAttempts: resendAttempts,
         finalEmail: !!email,
       });
     };
-  }, []);
+  }, [emailParam, countdown, resendCount, resendAttempts, email]);
 
   // Mask email for privacy
   const maskEmail = (email: string): string => {
@@ -114,7 +146,7 @@ const VerifyRequestPage = () => {
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
+      return (): void => clearTimeout(timer);
     } else {
       setCanResend(true);
       logClientInfo("Resend timer completed", {
@@ -125,7 +157,7 @@ const VerifyRequestPage = () => {
   }, [countdown, resendCount]);
 
   // Enhanced error handling for API responses
-  const handleApiError = (data: any, response: Response) => {
+  const handleApiError = (data: ApiErrorResponse, response: Response): void => {
     logClientError(
       new Error(`API Error: ${response.status} ${response.statusText}`),
       "Resend verification API error",
@@ -181,7 +213,7 @@ const VerifyRequestPage = () => {
   };
 
   // Enhanced resend email handler with comprehensive logging
-  const handleResendEmail = async () => {
+  const handleResendEmail = async (): Promise<void> => {
     const attemptNumber = resendAttempts + 1;
     setResendAttempts(attemptNumber);
 
@@ -300,7 +332,7 @@ const VerifyRequestPage = () => {
   };
 
   // Enhanced email input handler with validation
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const newEmail = e.target.value.trim().slice(0, 255); // Enforce length limit
     setEmail(newEmail);
 

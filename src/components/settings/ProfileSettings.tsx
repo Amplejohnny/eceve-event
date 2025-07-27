@@ -23,6 +23,7 @@ import {
   getUserAvatarUrl,
 } from "@/lib/utils";
 import Link from "next/link";
+import Image from "next/image";
 
 interface ProfileData {
   image: string;
@@ -49,6 +50,15 @@ interface PasswordData {
 interface ValidationErrors {
   [key: string]: string;
 }
+
+// Field limits
+  const limits = {
+    bio: 500,
+    website: 100,
+    location: 100,
+    twitter: 50,
+    instagram: 50,
+  };
 
 const ProfileSettings: React.FC = () => {
   const { data: session, status } = useSession();
@@ -92,14 +102,7 @@ const ProfileSettings: React.FC = () => {
   // Loading state for initial data fetch
   const [initialLoading, setInitialLoading] = useState(true);
 
-  // Field limits
-  const limits = {
-    bio: 500,
-    website: 100,
-    location: 100,
-    twitter: 50,
-    instagram: 50,
-  };
+  
 
   // Enhanced validation functions using utils
   const validateProfileData = useCallback((): ValidationErrors => {
@@ -173,7 +176,7 @@ const ProfileSettings: React.FC = () => {
 
   // Fetch user profile data when session is available
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchUserProfile = async (): Promise<void> => {
       if (!session?.user) return;
 
       try {
@@ -330,7 +333,7 @@ const ProfileSettings: React.FC = () => {
   const handleProfileInputChange = (
     field: keyof ProfileData,
     value: string
-  ) => {
+  ): void => {
     setProfileData((prev) => ({
       ...prev,
       [field]: value,
@@ -348,7 +351,7 @@ const ProfileSettings: React.FC = () => {
   const handlePasswordInputChange = (
     field: keyof PasswordData,
     value: string
-  ) => {
+  ): void => {
     setPasswordData((prev) => ({
       ...prev,
       [field]: value,
@@ -363,7 +366,7 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
-  const handleProfileSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleProfileSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
     // Validate form
@@ -418,7 +421,7 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
 
     // Validate form
@@ -473,7 +476,7 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const file = e.target.files && e.target.files[0];
     if (file) {
       // Check file size (max 2MB)
@@ -495,14 +498,14 @@ const ProfileSettings: React.FC = () => {
       }
 
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = (e): void => {
         handleProfileInputChange("image", e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleTabChange = (tab: "profile" | "password") => {
+  const handleTabChange = (tab: "profile" | "password"): void => {
     setActiveTab(tab);
     setIsMobileMenuOpen(false);
     // Clear messages and errors when switching tabs
@@ -511,7 +514,7 @@ const ProfileSettings: React.FC = () => {
     setValidationErrors({});
   };
 
-  const togglePasswordVisibility = (field: "current" | "new" | "confirm") => {
+  const togglePasswordVisibility = (field: "current" | "new" | "confirm"): void => {
     switch (field) {
       case "current":
         setShowCurrentPassword(!showCurrentPassword);
@@ -525,7 +528,7 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
-  const renderFieldError = (field: string) => {
+  const renderFieldError = (field: string): React.JSX.Element | null => {
     if (validationErrors[field]) {
       return (
         <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
@@ -537,7 +540,7 @@ const ProfileSettings: React.FC = () => {
     return null;
   };
 
-  const renderMessage = (message: Message) => {
+  const renderMessage = (message: Message): React.JSX.Element | null => {
     if (!message.text) return null;
 
     return (
@@ -566,7 +569,7 @@ const ProfileSettings: React.FC = () => {
     icon: React.ReactNode,
     field: string,
     maxLength?: number
-  ) => (
+  ): React.JSX.Element => (
     <div className="relative">
       <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
         {icon}
@@ -585,7 +588,7 @@ const ProfileSettings: React.FC = () => {
   );
 
   // Enhanced bio display with truncation for preview
-  const renderBioPreview = () => {
+  const renderBioPreview = (): React.JSX.Element | null => {
     if (!profileData.bio) return null;
 
     return (
@@ -714,19 +717,23 @@ const ProfileSettings: React.FC = () => {
                     <div className="relative flex-shrink-0">
                       <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center border-2 border-gray-300">
                         {profileData.image ? (
-                          <img
+                          <Image
                             src={profileData.image}
                             alt="Profile"
                             className="w-full h-full object-cover"
+                            width={112}
+                            height={112}
                           />
                         ) : (
-                          <img
+                          <Image
                             src={getUserAvatarUrl(
                               undefined,
                               session?.user?.email || ""
                             )}
                             alt="Default Avatar"
                             className="w-full h-full object-cover"
+                            width={112}
+                            height={112}
                           />
                         )}
                       </div>

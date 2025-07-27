@@ -1,5 +1,6 @@
 "use client";
 
+import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -33,13 +34,17 @@ const ShareModal: React.FC<ShareModalProps> = ({
 }) => {
   const [copied, setCopied] = useState(false);
 
-  const handleCopyLink = async () => {
+  const handleCopyLink = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(eventUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error("Failed to copy link");
+      if (err instanceof Error) {
+        console.error("Error fetching event:", err);
+      } else {
+        console.error("Unexpected error:", err);
+      }
     }
   };
 
@@ -139,7 +144,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
   );
 };
 
-const EventSlugPage = () => {
+const EventSlugPage = (): JSX.Element => {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -156,7 +161,7 @@ const EventSlugPage = () => {
       return;
     }
 
-    const fetchEvent = async () => {
+    const fetchEvent = async (): Promise<void> => {
       try {
         await loadEvent(eventId);
       } catch (err) {
@@ -171,7 +176,7 @@ const EventSlugPage = () => {
     fetchEvent();
   }, [eventId, router, loadEvent]);
 
-  const handleFavoriteToggle = () => {
+  const handleFavoriteToggle = (): void => {
     if (!session?.user) {
       setShowVerificationMessage(true);
       setTimeout(() => setShowVerificationMessage(false), 3000);
@@ -180,11 +185,11 @@ const EventSlugPage = () => {
     setIsFavorite(!isFavorite);
   };
 
-  const handleBuyTickets = () => {
+  const handleBuyTickets = (): void => {
     router.push("/ticket");
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       weekday: "long",
@@ -194,7 +199,7 @@ const EventSlugPage = () => {
     });
   };
 
-  const formatTime = (timeString: string) => {
+  const formatTime = (timeString: string): string => {
     const [hours, minutes] = timeString.split(":");
     const date = new Date();
     date.setHours(parseInt(hours), parseInt(minutes));
@@ -205,7 +210,7 @@ const EventSlugPage = () => {
     });
   };
 
-  const formatPrice = (price: number) => {
+  const formatPrice = (price: number): string => {
     return `₦${(price / 100).toLocaleString()}`;
   };
 

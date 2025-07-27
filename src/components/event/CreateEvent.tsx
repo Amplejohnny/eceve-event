@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 
 const CATEGORIES = [
   "Entertainment",
@@ -150,7 +151,7 @@ const CreateEvent: React.FC = () => {
     );
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (): Promise<void> => {
     if (!validateCurrentStep()) {
       return;
     }
@@ -170,21 +171,21 @@ const CreateEvent: React.FC = () => {
     }
   };
 
-  const handleAddCustomTag = () => {
+  const handleAddCustomTag = (): void => {
     if (tagInput.trim()) {
       addTag(tagInput.trim());
       setTagInput("");
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = (e: React.KeyboardEvent): void => {
     if (e.key === "Enter") {
       e.preventDefault();
       handleAddCustomTag();
     }
   };
 
-  const renderError = (field: string) => {
+  const renderError = (field: string): React.JSX.Element | null => {
     if (errors[field]) {
       return (
         <div className="flex items-center mt-1 text-red-600 text-sm">
@@ -530,10 +531,12 @@ const CreateEvent: React.FC = () => {
                 >
                   {formData.imageUrl ? (
                     <div className="relative">
-                      <img
+                      <Image
                         src={formData.imageUrl}
                         alt="Event banner"
                         className="max-w-full h-48 object-cover mx-auto rounded-lg"
+                        width={800}
+                        height={240}
                       />
                       <button
                         title="delete EventBanner"
@@ -628,7 +631,7 @@ const CreateEvent: React.FC = () => {
                   <h3 className="font-semibold mb-4">Ticket Types</h3>
 
                   <div className="space-y-4">
-                    {formData.ticketTypes.map((ticket, index) => (
+                    {formData.ticketTypes.map((ticket) => (
                       <div
                         key={ticket.id}
                         className={`border rounded-lg p-4 ${
@@ -750,10 +753,12 @@ const CreateEvent: React.FC = () => {
                   {/* Event Banner */}
                   {formData.imageUrl && (
                     <div className="mb-6">
-                      <img
+                      <Image
                         src={formData.imageUrl}
                         alt="Event banner"
                         className="w-full h-48 object-cover rounded-lg"
+                        width={800}
+                        height={240}
                       />
                     </div>
                   )}

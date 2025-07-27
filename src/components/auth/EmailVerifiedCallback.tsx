@@ -5,18 +5,36 @@ import { useRouter } from "next/navigation";
 import { CircleCheck, AlertCircle, RefreshCw, Home } from "lucide-react";
 import Link from "next/link";
 
-// Client-side logging utility (matching LoginForm pattern)
+interface ErrorObject {
+  message?: string;
+  name?: string;
+}
+
+interface LogData {
+  timestamp: string;
+  context: string;
+  error: {
+    message: string;
+    name: string;
+  };
+  metadata?: Record<string, unknown>;
+  userAgent: string;
+  url: string;
+}
+
+// Client-side logging utility
 const logClientError = (
-  error: any,
+  error: ErrorObject | Error | unknown,
   context: string,
-  metadata?: Record<string, any>
-) => {
-  const logData = {
+  metadata?: Record<string, unknown>
+): void => {
+  const errorObj = error instanceof Error ? error : (error as ErrorObject);
+  const logData: LogData = {
     timestamp: new Date().toISOString(),
     context,
     error: {
-      message: error.message || String(error),
-      name: error.name || "Unknown",
+      message: errorObj?.message || String(error),
+      name: errorObj?.name || "Unknown",
     },
     metadata,
     userAgent: navigator.userAgent,
@@ -29,7 +47,10 @@ const logClientError = (
   // sendToClientLoggingService(logData);
 };
 
-const logClientInfo = (message: string, metadata?: Record<string, any>) => {
+const logClientInfo = (
+  message: string,
+  metadata?: Record<string, unknown>
+): void => {
   console.log(
     `[EMAIL_VERIFIED_CLIENT_INFO] ${new Date().toISOString()}: ${message}`,
     metadata || {}
@@ -37,7 +58,7 @@ const logClientInfo = (message: string, metadata?: Record<string, any>) => {
 };
 
 // Analytics tracking utility
-const trackEvent = (eventName: string, properties?: Record<string, any>) => {
+const trackEvent = (eventName: string, properties?: Record<string, unknown>): void => {
   try {
     // Example analytics tracking - replace with your analytics service
     logClientInfo(`Analytics: ${eventName}`, properties);
@@ -54,13 +75,14 @@ const trackEvent = (eventName: string, properties?: Record<string, any>) => {
   }
 };
 
-export default function EmailVerified() {
+export default function EmailVerified(): React.JSX.Element {
   const router = useRouter();
   const [countdown, setCountdown] = useState(5); // Increased for better UX
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [retryAttempts, setRetryAttempts] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [verificationToken, setVerificationToken] = useState<string | null>(
     null
   );
@@ -161,7 +183,7 @@ export default function EmailVerified() {
   );
 
   // Manual redirect handler
-  const handleManualRedirect = async () => {
+  const handleManualRedirect = async (): Promise<void> => {
     const attempt = retryAttempts + 1;
 
     trackEvent("email_verification_manual_redirect", {
@@ -187,11 +209,11 @@ export default function EmailVerified() {
       });
     }, 1000);
 
-    return () => clearInterval(timer);
+    return (): void => clearInterval(timer);
   }, [hasError, isRedirecting, performRedirect]);
 
   // Retry logic for failed redirects
-  const handleRetry = () => {
+  const handleRetry = (): void => {
     setHasError(false);
     setErrorMessage("");
     setCountdown(3); // Shorter countdown for retry

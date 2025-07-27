@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import Header from "@/components/settings/myEvents-steps/Header";
 import FilterBar from "@/components/settings/myEvents-steps/FilterBar";
@@ -90,7 +90,14 @@ interface ApiResponse<T> {
   };
 }
 
-export default function MyEvents() {
+interface PaginationState {
+  total: number;
+  limit: number;
+  offset: number;
+  hasMore: boolean;
+}
+
+export default function MyEvents(): React.JSX.Element {
   const { data: session, status } = useSession();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -99,12 +106,191 @@ export default function MyEvents() {
   const [tab, setTab] = useState<"myBookings" | "myEvents">("myBookings");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
+  const [pagination, setPagination] = useState<PaginationState>({
     total: 0,
     limit: 50,
     offset: 0,
     hasMore: false,
   });
+
+  // Use refs to track when we need to reset pagination vs load more
+  const shouldResetPagination = useRef(false);
+  const lastFetchParams = useRef({ tab, filterStatus });
+
+  // Specific fetch functions with correct typing
+  const fetchMyBookings = useCallback(
+    async (paginationData: PaginationState): Promise<void> => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const url = new URL("/api/my-bookings", window.location.origin);
+        if (filterStatus !== "all") {
+          url.searchParams.set("status", filterStatus);
+        }
+        url.searchParams.set("limit", paginationData.limit.toString());
+        url.searchParams.set("offset", paginationData.offset.toString());
+
+        const response = await fetch(url.toString());
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || `HTTP error! status: ${response.status}`
+          );
+        }
+
+        const data: ApiResponse<Ticket> = await response.json();
+
+        if (data.success) {
+          const items = data.data.tickets || [];
+          setTickets(items);
+          setPagination(data.data.pagination);
+        } else {
+          throw new Error("Failed to fetch bookings");
+        }
+      } catch (err) {
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch bookings"
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filterStatus]
+  );
+
+  const fetchMyEvents = useCallback(
+    async (paginationData: PaginationState): Promise<void> => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const url = new URL("/api/my-events", window.location.origin);
+        if (filterStatus !== "all") {
+          url.searchParams.set("status", filterStatus);
+        }
+        url.searchParams.set("limit", paginationData.limit.toString());
+        url.searchParams.set("offset", paginationData.offset.toString());
+
+        const response = await fetch(url.toString());
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.error || `HTTP error! status: ${response.status}`
+          );
+        }
+
+        const data: ApiResponse<Event> = await response.json();
+
+        if (data.success) {
+          const items = data.data.events || [];
+          setEvents(items);
+          setPagination(data.data.pagination);
+        } else {
+          throw new Error("Failed to fetch events");
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch events");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filterStatus]
+  );
+
+  // Main data fetching function
+  const loadData = useCallback(
+    async (resetPagination = false) => {
+      if (!session?.user) return;
+
+      const paginationToUse = resetPagination
+        ? { ...pagination, offset: 0 }
+        : pagination;
+
+      if (resetPagination) {
+        setPagination(paginationToUse);
+      }
+
+      if (tab === "myBookings") {
+        await fetchMyBookings(paginationToUse);
+      } else if (tab === "myEvents") {
+        await fetchMyEvents(paginationToUse);
+      }
+    },
+    [session?.user, tab, fetchMyBookings, fetchMyEvents, pagination]
+  );
+
+  // Effect for tab and filter changes (always reset pagination)
+  useEffect(() => {
+    const hasParamsChanged =
+      lastFetchParams.current.tab !== tab ||
+      lastFetchParams.current.filterStatus !== filterStatus;
+
+    if (hasParamsChanged) {
+      lastFetchParams.current = { tab, filterStatus };
+      shouldResetPagination.current = true;
+
+      const timeoutId = setTimeout(() => {
+        loadData(true); // Reset pagination for new filters/tab
+      }, 300);
+
+      return (): void => clearTimeout(timeoutId);
+    }
+  }, [tab, filterStatus, loadData]);
+
+  // Effect for pagination changes (load more data)
+  useEffect(() => {
+    if (pagination.offset > 0 && !shouldResetPagination.current) {
+      loadData(false); // Don't reset pagination, just load more
+    }
+    shouldResetPagination.current = false;
+  }, [pagination.offset, loadData]);
+
+  // Initial load effect - simplified to avoid circular dependencies
+  useEffect(() => {
+    if (session?.user) {
+      const initialLoad = async (): Promise<void> => {
+        const initialPagination = { ...pagination, offset: 0 };
+        setPagination(initialPagination);
+
+        if (tab === "myBookings") {
+          await fetchMyBookings(initialPagination);
+        } else if (tab === "myEvents") {
+          await fetchMyEvents(initialPagination);
+        }
+      };
+
+      initialLoad();
+    }
+  }, [session?.user]); // Removed other dependencies to avoid infinite loops
+
+  // Separate effect to handle tab changes for initial data loading
+  useEffect(() => {
+    if (session?.user && tab !== lastFetchParams.current.tab) {
+      const initialPagination = { ...pagination, offset: 0 };
+
+      if (tab === "myBookings") {
+        fetchMyBookings(initialPagination);
+      } else if (tab === "myEvents") {
+        fetchMyEvents(initialPagination);
+      }
+    }
+  }, [tab, session?.user, fetchMyBookings, fetchMyEvents]);
+
+  // Handle pagination control updates
+  const handlePaginationChange = useCallback(
+    (newPagination: PaginationState) => {
+      setPagination(newPagination);
+    },
+    []
+  );
+
+  // Retry function for error handling
+  const handleRetry = useCallback(() => {
+    loadData(false);
+  }, [loadData]);
 
   if (status === "loading") {
     return (
@@ -185,111 +371,6 @@ export default function MyEvents() {
     | "ORGANIZER"
     | "ADMIN";
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const newPagination = { ...pagination, offset: 0 };
-      setPagination(newPagination);
-
-      if (tab === "myBookings") {
-        await fetchMyBookings(newPagination);
-      } else if (tab === "myEvents") {
-        await fetchMyEvents(newPagination);
-      }
-    };
-
-    // Debounce the fetch operation
-    const timeoutId = setTimeout(() => {
-      fetchData();
-    }, 300);
-
-    // Cleanup function to cancel the timeout if dependencies change
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [tab, filterStatus]);
-
-  useEffect(() => {
-    if (pagination.offset > 0) {
-      if (tab === "myBookings") {
-        fetchMyBookings(pagination);
-      } else if (tab === "myEvents") {
-        fetchMyEvents(pagination);
-      }
-    }
-  }, [pagination.offset]);
-
-  const fetchMyBookings = async (paginationData = pagination) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const url = new URL("/api/my-bookings", window.location.origin);
-      if (filterStatus !== "all") {
-        url.searchParams.set("status", filterStatus);
-      }
-      url.searchParams.set("limit", paginationData.limit.toString());
-      url.searchParams.set("offset", paginationData.offset.toString());
-
-      const response = await fetch(url.toString());
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      const data: ApiResponse<Ticket> = await response.json();
-
-      if (data.success) {
-        setTickets(data.data.tickets || []);
-        setPagination(data.data.pagination);
-      } else {
-        throw new Error("Failed to fetch bookings");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch bookings");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMyEvents = async (paginationData = pagination) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const url = new URL("/api/my-events", window.location.origin);
-      if (filterStatus !== "all") {
-        url.searchParams.set("status", filterStatus);
-      }
-      url.searchParams.set("limit", paginationData.limit.toString());
-      url.searchParams.set("offset", paginationData.offset.toString());
-
-      const response = await fetch(url.toString());
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || `HTTP error! status: ${response.status}`
-        );
-      }
-
-      const data: ApiResponse<Event> = await response.json();
-
-      if (data.success) {
-        setEvents(data.data.events || []);
-        setPagination(data.data.pagination);
-      } else {
-        throw new Error("Failed to fetch events");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch events");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const sortedBookings = [...tickets].sort((a, b) => {
     if (sortBy === "date") {
       return (
@@ -325,13 +406,7 @@ export default function MyEvents() {
           <h3 className="font-medium mb-2">Error loading data</h3>
           <p>{error}</p>
           <button
-            onClick={() => {
-              if (tab === "myBookings") {
-                fetchMyBookings();
-              } else {
-                fetchMyEvents();
-              }
-            }}
+            onClick={handleRetry}
             className="mt-3 px-4 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
           >
             Try Again
@@ -399,7 +474,7 @@ export default function MyEvents() {
         {pagination.total > pagination.limit && (
           <PaginationControls
             pagination={pagination}
-            setPagination={setPagination}
+            setPagination={handlePaginationChange}
           />
         )}
       </div>

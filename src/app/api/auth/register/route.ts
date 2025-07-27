@@ -1,4 +1,3 @@
-// app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { createUser, getUserStatus } from "@/lib/auth";
 import { z } from "zod";
@@ -235,7 +234,7 @@ export async function POST(request: NextRequest) {
 
     logInfo("User registered successfully", {
       ip,
-      userId: newUser.id,
+      userId: newUser.email,
       email: email.substring(0, 3) + "***",
       processingTime,
       hasName: !!name,
@@ -246,10 +245,8 @@ export async function POST(request: NextRequest) {
         message:
           "Account created successfully! Please check your email to verify your account.",
         user: {
-          id: newUser.id,
           email: newUser.email,
           name: newUser.name,
-          role: newUser.role,
         },
         nextStep: "email_verification",
         redirectTo: "/auth/verify-request",

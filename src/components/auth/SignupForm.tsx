@@ -1,22 +1,50 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Eye, EyeOff, Moon, Sun, Check, X, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
+interface ErrorObject {
+  message?: string;
+  name?: string;
+}
+
+interface LogData {
+  timestamp: string;
+  context: string;
+  error: {
+    message: string;
+    name: string;
+  };
+  metadata?: Record<string, unknown>;
+  userAgent: string;
+  url: string;
+}
+
+interface ApiErrorResponse {
+  error?: string;
+  code?: string;
+  fieldErrors?: {
+    email?: string;
+  };
+  retryAfter?: number;
+  resetIn?: number;
+}
+
 // Client-side logging utility
 const logClientError = (
-  error: any,
+  error: ErrorObject | Error | unknown,
   context: string,
-  metadata?: Record<string, any>
-) => {
-  const logData = {
+  metadata?: Record<string, unknown>
+): void => {
+  const errorObj = error instanceof Error ? error : (error as ErrorObject);
+  const logData: LogData = {
     timestamp: new Date().toISOString(),
     context,
     error: {
-      message: error.message || String(error),
-      name: error.name || "Unknown",
+      message: errorObj?.message || String(error),
+      name: errorObj?.name || "Unknown",
     },
     metadata,
     userAgent: navigator.userAgent,
@@ -29,14 +57,24 @@ const logClientError = (
   // sendToClientLoggingService(logData);
 };
 
-const logClientInfo = (message: string, metadata?: Record<string, any>) => {
+const logClientInfo = (
+  message: string,
+  metadata?: Record<string, unknown>
+): void => {
   console.log(
     `[SIGNUP_CLIENT_INFO] ${new Date().toISOString()}: ${message}`,
     metadata || {}
   );
 };
 
-const SignupForm = () => {
+// Character limits
+const limits = {
+  name: 100,
+  email: 255,
+  password: 128,
+};
+
+const SignupForm = (): React.JSX.Element => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -76,15 +114,8 @@ const SignupForm = () => {
     },
   });
 
-  // Character limits
-  const limits = {
-    name: 100,
-    email: 255,
-    password: 128,
-  };
-
   // Enhanced email validation
-  const validateEmail = (email: string): boolean => {
+  const validateEmail = useCallback((email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const isValid = emailRegex.test(email) && email.length <= limits.email;
 
@@ -96,28 +127,42 @@ const SignupForm = () => {
     });
 
     return isValid;
-  };
+  }, []);
 
   // Enhanced password strength calculation
-  const calculatePasswordStrength = (password: string) => {
-    const criteria = {
-      length: password.length >= 8,
-      lowercase: /[a-z]/.test(password),
-      uppercase: /[A-Z]/.test(password),
-      number: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    };
+  const calculatePasswordStrength = useCallback(
+    (
+      password: string
+    ): {
+      score: number;
+      criteria: {
+        length: boolean;
+        lowercase: boolean;
+        uppercase: boolean;
+        number: boolean;
+        special: boolean;
+      };
+    } => {
+      const criteria = {
+        length: password.length >= 8,
+        lowercase: /[a-z]/.test(password),
+        uppercase: /[A-Z]/.test(password),
+        number: /\d/.test(password),
+        special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+      };
 
-    const score = Object.values(criteria).filter(Boolean).length;
+      const score = Object.values(criteria).filter(Boolean).length;
 
-    logClientInfo("Password strength calculated", {
-      score,
-      passwordLength: password.length,
-      criteriaCount: score,
-    });
+      logClientInfo("Password strength calculated", {
+        score,
+        passwordLength: password.length,
+        criteriaCount: score,
+      });
 
-    return { score, criteria };
-  };
+      return { score, criteria };
+    },
+    []
+  );
 
   // Client-side form validation
   const validateForm = (): { isValid: boolean; errors: Errors } => {
@@ -188,13 +233,13 @@ const SignupForm = () => {
     } else {
       setEmailValid(null);
     }
-  }, [formData.email]);
+  }, [formData.email, validateEmail]);
 
   useEffect(() => {
     if (formData.password) {
       setPasswordStrength(calculatePasswordStrength(formData.password));
     }
-  }, [formData.password]);
+  }, [formData.password, calculatePasswordStrength]);
 
   useEffect(() => {
     if (formData.password && formData.confirmPassword) {
@@ -228,7 +273,7 @@ const SignupForm = () => {
     return colorMap[score as keyof typeof colorMap] || "bg-gray-300";
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
 
     // Enforce character limits silently
@@ -260,7 +305,7 @@ const SignupForm = () => {
   };
 
   // Enhanced error handling
-  const handleApiError = (data: any, response: Response) => {
+  const handleApiError = (data: ApiErrorResponse, response: Response): void => {
     logClientError(
       new Error(`API Error: ${response.status} ${response.statusText}`),
       "API response error",
@@ -299,7 +344,7 @@ const SignupForm = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
 
     const attemptNumber = submitAttempts + 1;
@@ -398,7 +443,7 @@ const SignupForm = () => {
     }
   };
 
-  const toggleDarkMode = () => {
+  const toggleDarkMode = async (): Promise<void> => {
     setIsDarkMode(!isDarkMode);
     logClientInfo("Dark mode toggled", { isDarkMode: !isDarkMode });
   };

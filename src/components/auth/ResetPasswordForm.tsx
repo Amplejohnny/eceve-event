@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
-const ResetPasswordForm = () => {
+const ResetPasswordForm = (): React.JSX.Element => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -54,7 +54,7 @@ const ResetPasswordForm = () => {
   }, [token]);
 
   // Password validation
-  const validatePassword = (password: string) => {
+  const validatePassword = (password: string): boolean => {
     const criteria = {
       length: password.length >= 8,
       uppercase: /[A-Z]/.test(password),
@@ -102,7 +102,7 @@ const ResetPasswordForm = () => {
     }
   }, [formData.password]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     const limit = limits[name as keyof typeof limits];
     const trimmedValue = limit ? value.slice(0, limit) : value;
@@ -119,7 +119,7 @@ const ResetPasswordForm = () => {
     if (message) setMessage("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
 
     if (!token) {
@@ -190,7 +190,7 @@ const ResetPasswordForm = () => {
     }
   };
 
-  const toggleDarkMode = () => {
+  const toggleDarkMode = (): void => {
     setIsDarkMode(!isDarkMode);
   };
 
