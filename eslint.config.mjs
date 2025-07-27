@@ -11,7 +11,7 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
-
+  
   {
     files: ["**/*.ts", "**/*.tsx"],
     rules: {
@@ -37,7 +37,11 @@ const eslintConfig = [
     },
   },
   {
-    ignores: ["**/*.json"],
+    ignores: [
+      "**/*.json",
+      "src/generated/prisma/**/*",
+      "**/generated/prisma/**/*"
+    ],
   },
 ];
 

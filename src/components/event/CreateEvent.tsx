@@ -51,6 +51,10 @@ const PREDEFINED_TAGS = [
   "Advanced",
 ];
 
+interface CreateEventResult {
+  id: string;
+}
+
 const CreateEvent: React.FC = () => {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -158,7 +162,7 @@ const CreateEvent: React.FC = () => {
 
     try {
       setSubmitError("");
-      const result = await createEvent();
+      const result = (await createEvent()) as CreateEventResult;
       // Pass event ID via URL parameter
       router.push(`/event-success?eventId=${result.id}`);
       resetForm();

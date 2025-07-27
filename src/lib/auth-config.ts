@@ -198,6 +198,11 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async signIn({ user, account }) {
       try {
+        // Validate email exists
+        if (!user.email) {
+          console.error("Sign in failed: No email provided");
+          return false;
+        }
         // Handle credentials provider sign-ins (main login method)
         if (account?.provider === "credentials") {
           return true;
@@ -279,6 +284,12 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account, trigger }) {
       // Initial sign in
       if (user && account) {
+        // Validate email exists
+        if (!user.email) {
+          console.error("JWT callback failed: No email provided");
+          return token;
+        }
+
         const dbUser = await db.user.findUnique({
           where: { email: user.email },
         });
