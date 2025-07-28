@@ -50,7 +50,6 @@ const logWarning = (message: string, metadata?: Record<string, unknown>): void =
   console.warn(`[LOGIN_WARNING] ${timestamp}: ${message}`, metadata || {});
 };
 
-// Validation schema with better error messages
 const loginSchema = z.object({
   email: z
     .string()
@@ -86,9 +85,9 @@ function checkRateLimit(
   isBlocked: boolean;
 } {
   const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 minutes
-  const maxAttempts = 10; // More lenient than signup
-  const blockDuration = 30 * 60 * 1000; // 30 minutes block after max attempts
+  const windowMs = 15 * 60 * 1000;
+  const maxAttempts = 10;
+  const blockDuration = 30 * 60 * 1000;
 
   // Use IP as primary key, but track email attempts too
   const key = `${ip}:${email || "unknown"}`;
@@ -336,7 +335,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user has a password (shouldn't happen, but safety check)
     if (!user.password) {
       logWarning("Login attempt for user without password", {
         ip,
@@ -410,11 +408,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // At this point, authentication is successful
-    // Return success response with user info
-    // The actual session creation will be handled by your client-side code
-    // calling NextAuth's signIn function
-
     const processingTime = Date.now() - startTime;
 
     logInfo("User authentication successful", {
@@ -476,7 +469,6 @@ export async function POST(request: NextRequest) {
 
     // Handle specific login errors
     if (error instanceof Error) {
-      // Database connection errors
       if (
         error.message.includes("connect") ||
         error.message.includes("timeout") ||

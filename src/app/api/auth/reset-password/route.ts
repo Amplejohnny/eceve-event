@@ -30,11 +30,7 @@ const logError = (
     metadata,
   };
 
-  // In production, you'd want to use a proper logging service
   console.error(`[RESET_PASSWORD_ERROR] ${context}:`, logData);
-
-  // Example: Send to external logging service
-  // await sendToLoggingService(logData);
 };
 
 const logInfo = (message: string, metadata?: Record<string, unknown>): void => {
@@ -63,7 +59,6 @@ const logSecurityEvent = (
   console.log(`[SECURITY] ${level.toUpperCase()}: ${event}`, logData);
 };
 
-// Enhanced validation schema with better error messages
 const resetPasswordSchema = z
   .object({
     token: z
@@ -113,7 +108,7 @@ function checkRateLimit(ip: string): {
   resetTime: number;
 } {
   const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const windowMs = 15 * 60 * 1000;
   const maxAttempts = 3;
 
   const current = resetPasswordAttempts.get(ip);
@@ -224,7 +219,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse and validate request body
     let body;
     try {
       body = await req.json();

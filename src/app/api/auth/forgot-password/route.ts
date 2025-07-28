@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { createPasswordResetRequest } from "@/lib/auth";
 import { z } from "zod";
 
-// Rate limiting storage (in production, use Redis or database)
 const rateLimitStore = new Map<
   string,
   { count: number; resetTime: number; blocked: boolean }
@@ -23,7 +22,7 @@ const forgotPasswordSchema = z.object({
 function checkRateLimit(
   key: string,
   maxAttempts: number = 5,
-  windowMs: number = 15 * 60 * 1000 // 15 minutes
+  windowMs: number = 15 * 60 * 1000
 ): {
   allowed: boolean;
   remaining: number;
@@ -32,7 +31,6 @@ function checkRateLimit(
   const now = Date.now();
   const current = rateLimitStore.get(key);
 
-  // Clean up expired entries periodically
   if (Math.random() < 0.01) {
     // 1% chance to cleanup
     for (const [k, v] of rateLimitStore.entries()) {
@@ -111,7 +109,6 @@ function createSecurityLog(
     ...details,
   };
 
-  // In production, send to your logging service (e.g., Winston, Pino, etc.)
   console.log(`[SECURITY:${level.toUpperCase()}]`, JSON.stringify(logEntry));
 
   return logEntry;
@@ -121,10 +118,9 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
   const requestId = crypto.randomUUID();
   const ip = getClientIP(request);
-  let body; // Declare body here so it's accessible in catch block
+  let body;
 
   try {
-    // Log incoming request
     createSecurityLog(
       "info",
       "FORGOT_PASSWORD_REQUEST",
@@ -135,7 +131,6 @@ export async function POST(request: NextRequest) {
       request
     );
 
-    // Parse request body
     try {
       body = await request.json();
     } catch {
@@ -192,14 +187,14 @@ export async function POST(request: NextRequest) {
     const { email } = validation.data;
 
     // Rate limiting by IP
-    const ipRateLimit = checkRateLimit(`ip:${ip}`, 10, 15 * 60 * 1000); // 10 attempts per 15 min per IP
+    const ipRateLimit = checkRateLimit(`ip:${ip}`, 10, 15 * 60 * 1000);
     if (!ipRateLimit.allowed) {
       createSecurityLog(
         "warn",
         "FORGOT_PASSWORD_IP_RATE_LIMITED",
         {
           requestId,
-          email: email.replace(/(.{2}).*(@.*)/, "$1***$2"), // Mask email in logs
+          email: email.replace(/(.{2}).*(@.*)/, "$1***$2"),
           rateLimitKey: `ip:${ip}`,
           resetTime: new Date(ipRateLimit.resetTime).toISOString(),
         },
@@ -230,7 +225,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limiting by email
-    const emailRateLimit = checkRateLimit(`email:${email}`, 3, 60 * 60 * 1000); // 3 attempts per hour per email
+    const emailRateLimit = checkRateLimit(`email:${email}`, 3, 60 * 60 * 1000);
     if (!emailRateLimit.allowed) {
       createSecurityLog(
         "warn",
@@ -273,7 +268,7 @@ export async function POST(request: NextRequest) {
       /^test.*@.*$/i,
       /^admin.*@.*$/i,
       /^root.*@.*$/i,
-      /.*\+.*@.*$/, // Plus addressing might indicate testing
+      /.*\+.*@.*$/,
     ];
 
     const isSuspicious = suspiciousPatterns.some((pattern) =>
@@ -290,8 +285,6 @@ export async function POST(request: NextRequest) {
         },
         request
       );
-
-      // Still process but log for monitoring
     }
 
     // Process password reset request
@@ -320,7 +313,6 @@ export async function POST(request: NextRequest) {
         request
       );
 
-      // Always return the same response for security (timing attack prevention)
       return NextResponse.json(
         {
           success: true,
@@ -351,7 +343,6 @@ export async function POST(request: NextRequest) {
         request
       );
 
-      // Still return success message for security
       return NextResponse.json(
         {
           success: true,

@@ -29,11 +29,7 @@ const logError = (
     metadata,
   };
 
-  // In production, you'd want to use a proper logging service
   console.error(`[SIGNUP_ERROR] ${context}:`, logData);
-
-  // Example: Send to external logging service
-  // await sendToLoggingService(logData);
 };
 
 const logInfo = (message: string, metadata?: Record<string, unknown>): void => {
@@ -41,7 +37,6 @@ const logInfo = (message: string, metadata?: Record<string, unknown>): void => {
   console.log(`[SIGNUP_INFO] ${timestamp}: ${message}`, metadata || {});
 };
 
-// Validation schema with better error messages
 const signupSchema = z
   .object({
     email: z
@@ -83,7 +78,7 @@ function checkRateLimit(ip: string): {
   resetTime: number;
 } {
   const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const windowMs = 15 * 60 * 1000;
   const maxAttempts = 5;
 
   const current = signupAttempts.get(ip);
@@ -199,11 +194,10 @@ export async function POST(request: NextRequest) {
 
     logInfo("Input validation passed", {
       ip,
-      email: email.substring(0, 3) + "***", // Partial email for privacy
+      email: email.substring(0, 3) + "***",
       hasName: !!name,
     });
 
-    // Check if user already exists
     const userStatus = await getUserStatus(email);
 
     if (userStatus.exists) {
@@ -236,7 +230,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create new user
     const newUser = await createUser(email, password, name);
 
     const processingTime = Date.now() - startTime;

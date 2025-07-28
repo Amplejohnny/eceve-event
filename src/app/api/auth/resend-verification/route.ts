@@ -29,11 +29,7 @@ const logError = (
     metadata,
   };
 
-  // In production, you'd want to use a proper logging service
   console.error(`[RESEND_VERIFICATION_ERROR] ${context}:`, logData);
-
-  // Example: Send to external logging service
-  // await sendToLoggingService(logData);
 };
 
 const logInfo = (message: string, metadata?: Record<string, unknown>): void => {
@@ -44,7 +40,6 @@ const logInfo = (message: string, metadata?: Record<string, unknown>): void => {
   );
 };
 
-// Enhanced validation schema with better error messages
 const resendSchema = z.object({
   email: z
     .string()
@@ -66,8 +61,8 @@ function checkResendRateLimit(identifier: string): {
   resetTime: number;
 } {
   const now = Date.now();
-  const windowMs = 5 * 60 * 1000; // 5 minutes window
-  const maxAttempts = 3; // Max 3 resend attempts per 5 minutes
+  const windowMs = 5 * 60 * 1000;
+  const maxAttempts = 3;
 
   const current = resendAttempts.get(identifier);
 
@@ -137,7 +132,6 @@ export async function POST(request: NextRequest) {
   try {
     logInfo("Resend verification attempt started", { ip });
 
-    // Parse and validate request body
     let body;
     try {
       body = await request.json();
@@ -158,10 +152,9 @@ export async function POST(request: NextRequest) {
 
     logInfo("Input validation passed", {
       ip,
-      email: email.substring(0, 3) + "***", // Partial email for privacy
+      email: email.substring(0, 3) + "***",
     });
 
-    // Use both IP and email for rate limiting key to prevent abuse
     const rateLimitKey = `${ip}:${email}`;
 
     // Check rate limit
@@ -198,13 +191,11 @@ export async function POST(request: NextRequest) {
     const userStatus = await getUserStatus(email);
 
     if (!userStatus.exists) {
-      // Don't reveal if user exists for security, but log the attempt
       logInfo("Resend verification attempted for non-existent user", {
         ip,
         email: email.substring(0, 3) + "***",
       });
 
-      // Return success response to prevent email enumeration
       return NextResponse.json(
         {
           message:
