@@ -16,5 +16,3 @@ export default function AuthProvider({
     </SessionProvider>
   );
 }
-// This component wraps the children with the NextAuth SessionProvider to manage authentication state.
-// It allows the use of authentication features throughout the application.
