@@ -2,7 +2,15 @@ import EmailVerified from "@/components/auth/EmailVerifiedCallback";
 import { Suspense } from "react";
 
 export default function EmailVerifyPage() {
-  <Suspense fallback={<div>Loading...</div>}>
-    return <EmailVerified />;
-  </Suspense>;
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      }
+    >
+      <EmailVerified />
+    </Suspense>
+  );
 }
