@@ -1,5 +1,8 @@
 import EmailVerified from "@/components/auth/EmailVerifiedCallback";
+import { Suspense } from "react";
 
 export default function EmailVerifyPage() {
-  return <EmailVerified />;
+  <Suspense fallback={<div>Loading...</div>}>
+    return <EmailVerified />;
+  </Suspense>;
 }
