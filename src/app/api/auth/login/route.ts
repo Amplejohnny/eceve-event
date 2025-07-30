@@ -311,7 +311,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: "Invalid email or password",
+          error: "Invalid email or passworddd",
           code: "INVALID_CREDENTIALS",
         },
         { status: 401 }
@@ -365,7 +365,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: "Invalid email or password",
+          error: "Invalid email or passwordd",
           code: "INVALID_CREDENTIALS",
         },
         { status: 401 }

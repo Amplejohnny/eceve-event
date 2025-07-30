@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { CircleCheck, AlertCircle, RefreshCw, Home } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { CircleCheck, AlertCircle, RefreshCw, Home, Mail } from "lucide-react";
 import Link from "next/link";
 
 interface ErrorObject {
@@ -20,6 +20,16 @@ interface LogData {
   metadata?: Record<string, unknown>;
   userAgent: string;
   url: string;
+}
+
+interface VerificationResult {
+  success: boolean;
+  message: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string | null;
+  };
 }
 
 // Client-side logging utility
@@ -42,9 +52,6 @@ const logClientError = (
   };
 
   console.error(`[EMAIL_VERIFIED_CLIENT_ERROR] ${context}:`, logData);
-
-  // In production, send to logging service
-  // sendToClientLoggingService(logData);
 };
 
 const logClientInfo = (
@@ -58,15 +65,12 @@ const logClientInfo = (
 };
 
 // Analytics tracking utility
-const trackEvent = (eventName: string, properties?: Record<string, unknown>): void => {
+const trackEvent = (
+  eventName: string,
+  properties?: Record<string, unknown>
+): void => {
   try {
-    // Example analytics tracking - replace with your analytics service
     logClientInfo(`Analytics: ${eventName}`, properties);
-
-    // In production, replace with your analytics service:
-    // analytics.track(eventName, properties);
-    // gtag('event', eventName, properties);
-    // mixpanel.track(eventName, properties);
   } catch (error) {
     logClientError(error, "Analytics tracking failed", {
       eventName,
@@ -77,35 +81,119 @@ const trackEvent = (eventName: string, properties?: Record<string, unknown>): vo
 
 export default function EmailVerified(): React.JSX.Element {
   const router = useRouter();
-  const [countdown, setCountdown] = useState(5); // Increased for better UX
+  const searchParams = useSearchParams();
+
+  const [countdown, setCountdown] = useState(5);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [retryAttempts, setRetryAttempts] = useState(0);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [verificationToken, setVerificationToken] = useState<string | null>(
-    null
-  );
+  const [verificationStatus, setVerificationStatus] = useState<
+    "pending" | "success" | "error" | "already_verified"
+  >("pending");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [userInfo, setUserInfo] = useState<{
+    email: string;
+    name: string | null;
+  } | null>(null);
 
-  // Extract token from URL params for analytics
+  // Handle verification on component mount
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token") || urlParams.get("verification_token");
-    setVerificationToken(token);
+    const token = searchParams.get("token");
+    const email = searchParams.get("email");
+    const verified = searchParams.get("verified");
+    const error = searchParams.get("error");
 
-    // Track successful email verification view
-    trackEvent("email_verification_success_viewed", {
-      hasToken: !!token,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      referrer: document.referrer,
-    });
+    // Handle pre-verified states from URL params
+    if (verified === "true") {
+      setVerificationStatus("success");
+      trackEvent("email_verification_success_from_url");
+      return;
+    }
 
-    logClientInfo("Email verification page loaded", {
-      hasToken: !!token,
-      tokenLength: token?.length,
-    });
-  }, []);
+    if (error) {
+      setVerificationStatus("error");
+      setErrorMessage(decodeURIComponent(error));
+      trackEvent("email_verification_error_from_url", { error });
+      return;
+    }
+
+    // Perform verification if we have token and email
+    if (token && email) {
+      performEmailVerification(token, email);
+    } else {
+      // No verification params - might be a direct visit
+      setVerificationStatus("error");
+      setErrorMessage("Missing verification parameters");
+      trackEvent("email_verification_missing_params");
+    }
+  }, [searchParams]);
+
+  const performEmailVerification = async (token: string, email: string) => {
+    setIsVerifying(true);
+
+    try {
+      logClientInfo("Starting email verification", {
+        email,
+        hasToken: !!token,
+      });
+
+      const response = await fetch("/api/auth/verify-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token, email }),
+      });
+
+      const result: VerificationResult = await response.json();
+
+      if (result.success) {
+        setVerificationStatus(
+          result.message === "Email already verified"
+            ? "already_verified"
+            : "success"
+        );
+        setUserInfo({
+          email: result.user?.email || email,
+          name: result.user?.name || null,
+        });
+
+        trackEvent("email_verification_success", {
+          email,
+          alreadyVerified: result.message === "Email already verified",
+        });
+
+        logClientInfo("Email verification successful", {
+          email,
+          result: result.message,
+        });
+      } else {
+        setVerificationStatus("error");
+        setErrorMessage(result.message);
+
+        trackEvent("email_verification_failed", {
+          email,
+          error: result.message,
+        });
+
+        logClientError(new Error(result.message), "Email verification failed", {
+          email,
+        });
+      }
+    } catch (error) {
+      setVerificationStatus("error");
+      setErrorMessage("Network error during verification");
+
+      logClientError(error, "Email verification network error", { email });
+      trackEvent("email_verification_network_error", {
+        email,
+        error: String(error),
+      });
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   const performRedirect = useCallback(
     async (attempt: number = 1) => {
@@ -115,24 +203,19 @@ export default function EmailVerified(): React.JSX.Element {
 
         logClientInfo("Starting redirect", {
           attempt,
-          destination: "/",
+          destination: "/auth/login",
           countdown: countdown,
         });
 
-        // Track redirect attempt
         trackEvent("email_verification_redirect_attempt", {
           attempt,
           method: "automatic",
           countdownRemaining: countdown,
         });
 
-        // Simulate potential network check or validation
         await new Promise((resolve) => setTimeout(resolve, 100));
+        router.push("/auth/login");
 
-        // Perform the redirect
-        await router.push("/");
-
-        // Track successful redirect
         trackEvent("email_verification_redirect_success", {
           attempt,
           method: "automatic",
@@ -142,7 +225,6 @@ export default function EmailVerified(): React.JSX.Element {
       } catch (error) {
         logClientError(error, "Redirect failed", {
           attempt,
-          destination: "/",
           countdown,
         });
 
@@ -150,11 +232,9 @@ export default function EmailVerified(): React.JSX.Element {
         setHasError(true);
         setRetryAttempts(attempt);
 
-        // Track redirect failure
         trackEvent("email_verification_redirect_failed", {
           attempt,
           error: error instanceof Error ? error.message : String(error),
-          method: "automatic",
         });
 
         if (attempt === 1) {
@@ -172,31 +252,29 @@ export default function EmailVerified(): React.JSX.Element {
         }
       }
     },
-    [
-      countdown,
-      router,
-      setIsRedirecting,
-      setHasError,
-      setRetryAttempts,
-      setErrorMessage,
-    ]
+    [countdown, router]
   );
 
-  // Manual redirect handler
   const handleManualRedirect = async (): Promise<void> => {
     const attempt = retryAttempts + 1;
-
     trackEvent("email_verification_manual_redirect", {
       attempt,
       previousAutoAttempts: retryAttempts,
     });
-
     await performRedirect(attempt);
   };
 
-  // Countdown and auto-redirect logic
+  // Countdown and auto-redirect logic - only for successful verification
   useEffect(() => {
-    if (hasError || isRedirecting) return;
+    if (
+      hasError ||
+      isRedirecting ||
+      isVerifying ||
+      (verificationStatus !== "success" &&
+        verificationStatus !== "already_verified")
+    ) {
+      return;
+    }
 
     const timer = setInterval(() => {
       setCountdown((prev) => {
@@ -210,124 +288,228 @@ export default function EmailVerified(): React.JSX.Element {
     }, 1000);
 
     return (): void => clearInterval(timer);
-  }, [hasError, isRedirecting, performRedirect]);
+  }, [
+    hasError,
+    isRedirecting,
+    isVerifying,
+    verificationStatus,
+    performRedirect,
+  ]);
 
-  // Retry logic for failed redirects
   const handleRetry = (): void => {
     setHasError(false);
     setErrorMessage("");
-    setCountdown(3); // Shorter countdown for retry
+    setCountdown(3);
 
     trackEvent("email_verification_retry_initiated", {
       previousAttempts: retryAttempts,
     });
   };
 
+  const renderContent = () => {
+    // Show loading state during verification
+    if (isVerifying) {
+      return (
+        <>
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-blue-100 mb-6">
+            <RefreshCw className="h-8 w-8 text-blue-600 animate-spin" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Verifying Email...
+          </h1>
+          <p className="text-gray-600 mb-6">
+            Please wait while we verify your email address.
+          </p>
+        </>
+      );
+    }
+
+    // Show error state
+    if (verificationStatus === "error") {
+      return (
+        <>
+          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-6">
+            <AlertCircle className="h-8 w-8 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Verification Failed
+          </h1>
+          <p className="text-gray-600 mb-6">
+            {errorMessage ||
+              "We couldn't verify your email address. The link may be expired or invalid."}
+          </p>
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-6">
+            <p className="text-red-800 text-sm">
+              Please request a new verification email or contact support if the
+              problem persists.
+            </p>
+          </div>
+        </>
+      );
+    }
+
+    // Show success state
+    return (
+      <>
+        <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
+          <CircleCheck className="h-8 w-8 text-green-600" />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          Email Verified!
+        </h1>
+        <p className="text-gray-600 mb-6">
+          {verificationStatus === "already_verified"
+            ? "Your email was already verified. You can now access all features of your account."
+            : "Your email has been successfully verified. You can now access all features of your account."}
+        </p>
+        {userInfo && (
+          <div className="bg-green-50 border border-green-200 rounded-md p-3 mb-6">
+            <p className="text-green-800 text-sm">
+              Welcome{userInfo.name ? `, ${userInfo.name}` : ""}! Your account (
+              {userInfo.email}) is now active.
+            </p>
+          </div>
+        )}
+      </>
+    );
+  };
+
+  const renderStatusMessages = () => {
+    if (verificationStatus === "error") {
+      return null; // Error messages are handled in renderContent
+    }
+
+    if (
+      !hasError &&
+      !isRedirecting &&
+      countdown > 0 &&
+      (verificationStatus === "success" ||
+        verificationStatus === "already_verified")
+    ) {
+      return (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-6">
+          <p className="text-blue-800 text-sm">
+            Redirecting to Login Page in{" "}
+            <span className="font-semibold">{countdown}</span> seconds...
+          </p>
+        </div>
+      );
+    }
+
+    if (isRedirecting) {
+      return (
+        <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-6">
+          <div className="flex items-center justify-center">
+            <RefreshCw className="animate-spin h-4 w-4 text-blue-600 mr-2" />
+            <p className="text-blue-800 text-sm">Redirecting...</p>
+          </div>
+        </div>
+      );
+    }
+
+    if (hasError) {
+      return (
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-6">
+          <div className="flex items-center justify-center mb-2">
+            <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
+            <p className="text-red-800 text-sm font-medium">Redirect Failed</p>
+          </div>
+          <p className="text-red-700 text-xs">{errorMessage}</p>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const renderActionButtons = () => {
+    if (verificationStatus === "error") {
+      return (
+        <div className="space-y-3">
+          <Link
+            href="/auth/verify-request"
+            className="w-full group relative flex justify-center items-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+            onClick={() => trackEvent("email_verification_resend_clicked")}
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Request New Verification Email
+          </Link>
+          <Link
+            href="/"
+            className="w-full group relative flex justify-center items-center py-2.5 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+            onClick={() => trackEvent("email_verification_home_clicked")}
+          >
+            <Home className="h-4 w-4 mr-2" />
+            Go to Homepage
+          </Link>
+        </div>
+      );
+    }
+
+    // Success state buttons
+    if (hasError) {
+      return (
+        <div className="flex space-x-3">
+          <button
+            onClick={handleManualRedirect}
+            disabled={isRedirecting}
+            className="flex-1 group relative flex justify-center items-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          >
+            {isRedirecting ? (
+              <>
+                <RefreshCw className="animate-spin h-4 w-4 mr-2" />
+                Redirecting...
+              </>
+            ) : (
+              <>
+                <Home className="h-4 w-4 mr-2" />
+                Continue to Homepage
+              </>
+            )}
+          </button>
+          <button
+            onClick={handleRetry}
+            disabled={isRedirecting}
+            className="px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          >
+            Retry Auto
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <button
+        onClick={handleManualRedirect}
+        disabled={isRedirecting}
+        className="w-full group relative flex justify-center items-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+      >
+        {isRedirecting ? (
+          <>
+            <RefreshCw className="animate-spin h-4 w-4 mr-2" />
+            Redirecting...
+          </>
+        ) : (
+          <>
+            <Home className="h-4 w-4 mr-2" />
+            Continue to Homepage
+          </>
+        )}
+      </button>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        {/* Success Card */}
         <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-          {/* Success Icon */}
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
-            <CircleCheck className="h-8 w-8 text-green-600" />
-          </div>
+          {renderContent()}
+          {renderStatusMessages()}
 
-          {/* Main Content */}
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Email Verified!
-          </h1>
-
-          <p className="text-gray-600 mb-6">
-            Your email has been successfully verified. You can now access all
-            features of your account.
-          </p>
-
-          {/* Status Messages */}
-          {!hasError && !isRedirecting && countdown > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-6">
-              <p className="text-blue-800 text-sm">
-                Redirecting to homepage in{" "}
-                <span className="font-semibold">{countdown}</span> seconds...
-              </p>
-            </div>
-          )}
-
-          {isRedirecting && (
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-6">
-              <div className="flex items-center justify-center">
-                <RefreshCw className="animate-spin h-4 w-4 text-blue-600 mr-2" />
-                <p className="text-blue-800 text-sm">Redirecting...</p>
-              </div>
-            </div>
-          )}
-
-          {hasError && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-6">
-              <div className="flex items-center justify-center mb-2">
-                <AlertCircle className="h-4 w-4 text-red-600 mr-2" />
-                <p className="text-red-800 text-sm font-medium">
-                  Redirect Failed
-                </p>
-              </div>
-              <p className="text-red-700 text-xs">{errorMessage}</p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="space-y-3">
-            {/* Primary Action Button */}
-            {hasError ? (
-              <div className="flex space-x-3">
-                <button
-                  onClick={handleManualRedirect}
-                  disabled={isRedirecting}
-                  className="flex-1 group relative flex justify-center items-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                >
-                  {isRedirecting ? (
-                    <>
-                      <RefreshCw className="animate-spin h-4 w-4 mr-2" />
-                      Redirecting...
-                    </>
-                  ) : (
-                    <>
-                      <Home className="h-4 w-4 mr-2" />
-                      Continue to Homepage
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleRetry}
-                  disabled={isRedirecting}
-                  className="px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-                >
-                  Retry Auto
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleManualRedirect}
-                disabled={isRedirecting}
-                className="w-full group relative flex justify-center items-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-              >
-                {isRedirecting ? (
-                  <>
-                    <RefreshCw className="animate-spin h-4 w-4 mr-2" />
-                    Redirecting...
-                  </>
-                ) : (
-                  <>
-                    <Home className="h-4 w-4 mr-2" />
-                    Continue to Homepage
-                  </>
-                )}
-              </button>
-            )}
-          </div>
+          <div className="space-y-3">{renderActionButtons()}</div>
 
           {/* Additional Help */}
-          {retryAttempts >= 2 && (
+          {retryAttempts >= 2 && verificationStatus !== "error" && (
             <div className="mt-6 pt-4 border-t border-gray-200">
               <p className="text-xs text-gray-500 mb-2">
                 Having trouble? You can also:
@@ -342,26 +524,17 @@ export default function EmailVerified(): React.JSX.Element {
                 >
                   Go to Homepage
                 </Link>
-                <span className="text-gray-300">|</span>
-                <Link
-                  href="/profile"
-                  className="text-blue-600 hover:text-blue-500 transition-colors duration-200"
-                  onClick={() =>
-                    trackEvent("email_verification_profile_link_clicked")
-                  }
-                >
-                  View Profile
-                </Link>
               </div>
             </div>
           )}
         </div>
 
-        {/* Debug Info (only in development) */}
+        {/* Debug Info */}
         {process.env.NODE_ENV === "development" && (
           <div className="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600">
             <p>
-              Debug: Countdown: {countdown} | Redirecting:{" "}
+              Debug: Status: {verificationStatus} | Countdown: {countdown} |
+              Verifying: {String(isVerifying)} | Redirecting:{" "}
               {String(isRedirecting)} | Error: {String(hasError)} | Attempts:{" "}
               {retryAttempts}
             </p>

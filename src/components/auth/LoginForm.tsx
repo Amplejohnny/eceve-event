@@ -118,20 +118,22 @@ const LoginForm = (): React.JSX.Element => {
       if (result?.error) {
         // Handle NextAuth errors
         switch (result.error) {
-          case "CredentialsSignin":
-            setMessage("Invalid email or password. Please try again.");
-            break;
-          case "EmailNotVerified":
+          case "EMAIL_NOT_VERIFIED":
             setMessage(
-              "Please verify your email address before logging in. We've sent you a new verification link to your email."
+              "Please verify your email address before logging in. We've sent you a new verification link."
             );
             break;
-          case "AccountDeactivated":
+
+          case "INVALID_CREDENTIALS":
+            setMessage("Invalid email or password. Please try again.");
+            break;
+
+          case "ACCOUNT_DEACTIVATED":
             setMessage(
               "Your account has been deactivated. Please contact support for assistance."
             );
             break;
-          case "RateLimited":
+
           case "RATE_LIMITED":
             setMessage(
               "Too many login attempts. Please wait 15 minutes before trying again."
@@ -146,6 +148,27 @@ const LoginForm = (): React.JSX.Element => {
             setMessage(
               "Authentication service error. Please try again in a moment."
             );
+            break;
+
+          case "VERIFICATION_LINK_EXPIRED":
+            setMessage(
+              "The verification link is invalid or has expired. Please request a new one."
+            );
+            break;
+
+          case "CredentialsSignin":
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorParam = urlParams.get("error");
+
+            if (errorParam === "EMAIL_NOT_VERIFIED") {
+              setMessage(
+                "Please verify your email address before logging in. We've sent you a new verification link."
+              );
+            } else {
+              setMessage(
+                "Invalid credentials. Please check your email and password."
+              );
+            }
             break;
 
           case "Callback":
@@ -452,7 +475,7 @@ const LoginForm = (): React.JSX.Element => {
               <button
                 type="submit"
                 disabled={isLoading || !isFormValid()}
-                className={`w-full font-medium py-2.5 px-4 rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                className={`w-full font-medium py-2.5 px-4 cursor-pointer rounded-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                   isLoading || !isFormValid()
                     ? "bg-gray-400 cursor-not-allowed text-gray-200"
                     : "bg-blue-600 hover:bg-blue-700 text-white"

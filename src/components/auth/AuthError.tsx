@@ -148,7 +148,7 @@ export default function AuthErrorPage(): React.JSX.Element {
           variant: "error",
         };
 
-      case "Verification":
+      case "VERIFICATION_LINK_EXPIRED":
         return {
           title: "Verification Error",
           message:
@@ -168,6 +168,18 @@ export default function AuthErrorPage(): React.JSX.Element {
               },
           icon: <AlertTriangle className="h-8 w-8 text-orange-500" />,
           variant: "warning",
+        };
+      case "ACCOUNT_DEACTIVATED":
+        return {
+          title: "Account Deactivated",
+          message:
+            "Your account has been deactivated. Please contact support for assistance.",
+          action: {
+            label: "Contact support",
+            href: "/contact",
+          },
+          icon: <AlertTriangle className="h-8 w-8 text-red-500" />,
+          variant: "error",
         };
 
       default:

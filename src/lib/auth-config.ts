@@ -29,8 +29,8 @@ function checkRateLimit(email: string): {
   remaining: number;
 } {
   const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 minutes
-  const maxAttempts = 5; // Stricter for NextAuth
+  const windowMs = 15 * 60 * 1000;
+  const maxAttempts = 5;
 
   const current = loginAttempts.get(email);
 
@@ -72,10 +72,9 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as Adapter,
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,
   },
   providers: [
-    // Main credentials provider for all user logins
     CredentialsProvider({
       id: "credentials",
       name: "Email and Password",
@@ -110,19 +109,33 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Find user by email
           const user = await db.user.findUnique({
             where: { email },
+            // select: {
+            //   id: true,
+            //   email: true,
+            //   password: true,
+            //   name: true,
+            //   role: true,
+            //   isActive: true,
+            //   emailVerified: true,
+            // },
           });
 
-          if (!user || !user.isActive || !user.password) {
+          if (!user || !user.password) {
             throw new AuthError(
-              "Invalid email or password",
+              "Invalid email or passwordddd",
               "INVALID_CREDENTIALS"
             );
           }
 
-          // Verify password
+          if (!user.isActive) {
+            throw new AuthError(
+              "Your account has been deactivated. Please contact support.",
+              "ACCOUNT_DEACTIVATED"
+            );
+          }
+
           const isValidPassword = await verifyPassword(
             credentials.password,
             user.password
@@ -130,15 +143,13 @@ export const authOptions: NextAuthOptions = {
 
           if (!isValidPassword) {
             throw new AuthError(
-              "Invalid email or password",
+              "Invalid email or passworddddd",
               "INVALID_CREDENTIALS"
             );
           }
 
           // Check if email is verified
           if (!user.emailVerified) {
-            // User exists, password is correct, but email is not verified
-            // Automatically send a new verification email
             try {
               await resendVerificationEmailInternal(user.email);
               console.log(`Verification email resent to ${user.email}`);
@@ -161,26 +172,23 @@ export const authOptions: NextAuthOptions = {
             emailVerified: user.emailVerified,
           };
         } catch (error) {
-          // Re-throw AuthErrors to preserve error codes
           if (error instanceof AuthError) {
-            throw error;
+            const authError = new Error(error.message);
+            authError.name = error.code;
+            throw authError;
           }
 
-          // Log unexpected errors
-          console.error(
-            "Unexpected error during credentials authorization:",
-            error
+          // Handle unexpected errors
+          console.error("Unexpected error during authorization:", error);
+          const unexpectedError = new Error(
+            "Authentication failed. Please try again."
           );
-          throw new AuthError(
-            "Authentication failed. Please try again.",
-            "AUTH_ERROR"
-          );
+          unexpectedError.name = "AUTH_ERROR";
+          throw unexpectedError;
         }
       },
     }),
 
-    // Email provider ONLY for initial email verification during registration
-    // This is NOT used for regular login - only for verifying new accounts
     EmailProvider({
       server: {
         host: process.env.SMTP_HOST,
@@ -192,13 +200,12 @@ export const authOptions: NextAuthOptions = {
       },
       from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
       sendVerificationRequest,
-      maxAge: 30 * 60, // 30 minutes expiry for verification links
+      maxAge: 30 * 60,
     }),
   ],
   callbacks: {
     async signIn({ user, account }) {
       try {
-        // Validate email exists
         if (!user.email) {
           console.error("Sign in failed: No email provided");
           return false;
@@ -282,7 +289,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user, account, trigger }) {
-      // Initial sign in
       if (user && account) {
         // Validate email exists
         if (!user.email) {
@@ -328,11 +334,6 @@ export const authOptions: NextAuthOptions = {
     },
 
     async redirect({ url, baseUrl }) {
-      // Handle email verification callback
-      if (url.includes("/api/auth/callback/email")) {
-        return `${baseUrl}/auth/email-verified`;
-      }
-
       // Handle successful login redirects
       if (url.includes("/api/auth/login") || url === "/auth/login") {
         return `${baseUrl}`;
@@ -424,10 +425,10 @@ async function resendVerificationEmailInternal(
       });
     }
 
-    const nextAuthUrl = process.env.NEXTAUTH_URL || "";
-    const verificationUrl = `${nextAuthUrl}/api/auth/callback/email?callbackUrl=${encodeURIComponent(
-      nextAuthUrl
-    )}&token=${token}&email=${encodeURIComponent(email.toLowerCase())}`;
+    const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const verificationUrl = `${nextAuthUrl}/auth/email-verified?token=${token}&email=${encodeURIComponent(
+      email.toLowerCase()
+    )}`;
 
     await sendVerificationRequest({
       identifier: email.toLowerCase(),

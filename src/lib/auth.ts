@@ -107,7 +107,7 @@ export async function resetPasswordWithToken(
   }
 }
 
-// Registration function - creates user and triggers NextAuth email verification
+// Registration function - creates user
 export async function createUser(
   email: string,
   password: string,
@@ -167,10 +167,10 @@ export async function createUser(
     });
 
     // Send the verification email
-    const nextAuthUrl = process.env.NEXTAUTH_URL || "";
-    const verificationUrl = `${nextAuthUrl}/api/auth/callback/email?callbackUrl=${encodeURIComponent(
-      nextAuthUrl
-    )}&token=${token}&email=${encodeURIComponent(identifier)}`;
+    const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const verificationUrl = `${nextAuthUrl}/auth/email-verified?token=${token}&email=${encodeURIComponent(
+      identifier
+    )}`;
 
     await sendVerificationRequest({
       identifier,
@@ -267,10 +267,10 @@ export async function resendVerificationEmail(email: string): Promise<boolean> {
     }
 
     // Send the verification email
-    const nextAuthUrl = process.env.NEXTAUTH_URL || "";
-    const verificationUrl = `${nextAuthUrl}/api/auth/callback/email?callbackUrl=${encodeURIComponent(
-      nextAuthUrl
-    )}&token=${token}&email=${encodeURIComponent(email.toLowerCase())}`;
+    const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const verificationUrl = `${nextAuthUrl}/auth/email-verified?token=${token}&email=${encodeURIComponent(
+      email.toLowerCase()
+    )}`;
 
     await sendVerificationRequest({
       identifier: email.toLowerCase(),
@@ -353,6 +353,101 @@ export async function updateUser(
       role: true,
     },
   });
+}
+
+export async function verifyEmailToken(
+  token: string,
+  email: string
+): Promise<{
+  success: boolean;
+  message: string;
+  user?: { id: string; email: string; name: string | null };
+}> {
+  try {
+    // Find the verification token
+    const verificationRecord = await db.verificationToken.findFirst({
+      where: {
+        token,
+        identifier: email.toLowerCase(),
+        expires: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!verificationRecord) {
+      return {
+        success: false,
+        message: "Invalid or expired verification token",
+      };
+    }
+
+    // Find the user
+    const user = await db.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (!user) {
+      return {
+        success: false,
+        message: "User not found",
+      };
+    }
+
+    if (user.emailVerified) {
+      await db.verificationToken.deleteMany({
+        where: {
+          token: verificationRecord.token,
+          identifier: verificationRecord.identifier,
+        },
+      });
+
+      return {
+        success: true,
+        message: "Email already verified",
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        },
+      };
+    }
+
+    // Verify the user's email
+    const updatedUser = await db.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerified: new Date(),
+        isActive: true,
+      },
+    });
+
+    // Clean up the verification token
+    await db.verificationToken.deleteMany({
+      where: {
+        token: verificationRecord.token,
+        identifier: verificationRecord.identifier,
+      },
+    });
+
+    console.log(`Email verified successfully for user: ${user.email}`);
+
+    return {
+      success: true,
+      message: "Email verified successfully",
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+      },
+    };
+  } catch (error) {
+    console.error("Error verifying email token:", error);
+    return {
+      success: false,
+      message: "Failed to verify email",
+    };
+  }
 }
 
 // Helper functions for authentication
