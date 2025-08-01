@@ -800,7 +800,7 @@ const ProfileSettings: React.FC = () => {
                 >
                   {/* Profile Image */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-6">
-                    <div className="relative flex-shrink-0">
+                    <div className="relative flex-shrink-0 self-start sm:self-auto">
                       <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center border-2 border-gray-300">
                         {profileData.image ? (
                           <Image
@@ -814,16 +814,26 @@ const ProfileSettings: React.FC = () => {
                           <User className="w-12 h-12 lg:w-14 lg:h-14 text-gray-500" />
                         )}
                       </div>
-                      <label className="absolute bottom-0 right-0 bg-transparent border border-gray-300 text-gray-600 p-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors shadow-md">
-                        <Camera className="w-4 h-4 lg:w-5 lg:h-5" />
+
+                      {/* Camera upload button - positioned outside the image container */}
+                      <label className="absolute -bottom-0.5 -right-0.5 w-8 h-8 lg:w-9 lg:h-9 bg-white border-2 border-gray-300 text-gray-600 rounded-full cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-lg flex items-center justify-center group z-10">
+                        <Camera className="w-4 h-4 group-hover:text-gray-700 transition-colors" />
                         <input
                           type="file"
                           accept="image/*"
                           onChange={handleImageUpload}
                           className="hidden"
+                          aria-label="Upload profile photo"
                         />
+
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-20">
+                          Change photo
+                          <div className="absolute top-full right-2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-gray-900"></div>
+                        </div>
                       </label>
                     </div>
+
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-800 text-sm lg:text-base">
                         Profile Photo
