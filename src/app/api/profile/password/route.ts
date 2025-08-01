@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 import { updateUserPassword } from "@/lib/auth";
-import { verifyPassword } from "@/lib/utils";
+import { verifyPassword } from "@/lib/server-utils";
 import { z } from "zod";
 
 // Validation schema for password change

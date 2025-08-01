@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { maskEmail } from "@/lib/server-utils";
 
 interface ErrorObject {
   message?: string;
@@ -125,22 +126,6 @@ const VerifyRequestPage = (): React.JSX.Element => {
       });
     };
   }, [emailParam, countdown, resendCount, resendAttempts, email]);
-
-  // Mask email for privacy
-  const maskEmail = (email: string): string => {
-    if (!email || !email.includes("@")) return email;
-
-    const [localPart, domain] = email.split("@");
-    if (localPart.length <= 2) {
-      return `${"*".repeat(localPart.length)}@${domain}`;
-    }
-
-    const visibleStart = localPart.slice(0, 1);
-    const visibleEnd = localPart.slice(-1);
-    const maskedMiddle = "*".repeat(Math.max(localPart.length - 2, 1));
-
-    return `${visibleStart}${maskedMiddle}${visibleEnd}@${domain}`;
-  };
 
   // Enhanced countdown timer effect with logging
   useEffect(() => {

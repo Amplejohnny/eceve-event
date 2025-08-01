@@ -19,7 +19,7 @@ import {
   Edit,
 } from "lucide-react";
 import { FaXTwitter, FaFacebook } from "react-icons/fa6";
-import { getEventUrl } from "@/lib/utils";
+import { getEventUrl } from "@/lib/server-utils";
 import Image from "next/image";
 
 interface EventSuccessPageProps {

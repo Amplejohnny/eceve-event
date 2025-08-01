@@ -1,16 +1,11 @@
 import { getServerSession } from "next-auth/next";
-import { db } from "./db";
+import { db } from "@/lib/db";
 import { sendVerificationRequest, sendPasswordResetEmail } from "./email";
-import { hashPassword } from "./utils";
-import { randomBytes } from "crypto";
+import { generateSecureToken, hashPassword } from "@/lib/server-utils";
 import type { NextApiRequest } from "next";
-import { authOptions } from "./auth-config";
+import { authOptions } from "@/lib/auth-config";
 import type { Role } from "@/generated/prisma";
 
-// Password Reset Functions (integrated with sendPasswordResetEmail)
-export async function generatePasswordResetToken(): Promise<string> {
-  return randomBytes(32).toString("hex");
-}
 
 export async function createPasswordResetRequest(
   email: string
@@ -33,7 +28,7 @@ export async function createPasswordResetRequest(
       return true;
     }
 
-    const resetToken = await generatePasswordResetToken();
+    const resetToken = await generateSecureToken();
     const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour
 
     // Store reset token (you'll need to add these fields to User model)
@@ -154,7 +149,7 @@ export async function createUser(
 
     // Create a verification token record using NextAuth's system
     const identifier = newUser.email;
-    const token = randomBytes(32).toString("hex");
+    const token = await generateSecureToken();
     const expires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
     // NextAuth will handle this through the verification_token table
@@ -167,7 +162,7 @@ export async function createUser(
     });
 
     // Send the verification email
-    const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const nextAuthUrl = process.env.NEXTAUTH_URL || "";
     const verificationUrl = `${nextAuthUrl}/auth/email-verified?token=${token}&email=${encodeURIComponent(
       identifier
     )}`;
@@ -243,7 +238,7 @@ export async function resendVerificationEmail(email: string): Promise<boolean> {
       expires = existingToken.expires;
     } else {
       // Create new token
-      token = randomBytes(32).toString("hex");
+      token = await generateSecureToken();
       expires = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
       // Delete any expired tokens first
@@ -267,7 +262,7 @@ export async function resendVerificationEmail(email: string): Promise<boolean> {
     }
 
     // Send the verification email
-    const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const nextAuthUrl = process.env.NEXTAUTH_URL || "";
     const verificationUrl = `${nextAuthUrl}/auth/email-verified?token=${token}&email=${encodeURIComponent(
       email.toLowerCase()
     )}`;
@@ -673,18 +668,4 @@ export function hasPermission(
   const requiredLevel = roleHierarchy[requiredRole];
 
   return userLevel >= requiredLevel;
-}
-
-// Email masking utility for verification page
-export function maskEmail(email: string): string {
-  const [localPart, domain] = email.split("@");
-
-  if (localPart.length <= 4) {
-    return `${"x".repeat(localPart.length)}@${domain}`;
-  }
-
-  const visibleChars = localPart.slice(-4);
-  const maskedChars = "x".repeat(localPart.length - 4);
-
-  return `${maskedChars}${visibleChars}@${domain}`;
 }

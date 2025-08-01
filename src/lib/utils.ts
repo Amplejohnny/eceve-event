@@ -1,6 +1,5 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import bcrypt from "bcrypt";
 import {
   format,
   formatDistanceToNow,
@@ -99,26 +98,12 @@ export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
   if (imageUrl) return imageUrl;
 
   if (email) {
-    // Generate a deterministic color based on email
-    const colors = [
-      "bg-red-500",
-      "bg-blue-500",
-      "bg-green-500",
-      "bg-yellow-500",
-      "bg-purple-500",
-      "bg-pink-500",
-    ];
-    const colorIndex = email.charCodeAt(0) % colors.length;
     return `https://ui-avatars.com/api/?name=${encodeURIComponent(
       email
-    )}&background=${colors[colorIndex]
-      .replace("bg-", "")
-      .replace("-500", "")}&color=fff&size=128`;
+    )}&color=fff&size=128`;
   }
 
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    "Anonymous"
-  )}&background=6b7280&color=fff&size=128`;
+  return `https://ui-avatars.com/api/?name=pp&background=6B7280&color=fff&size=128`;
 }
 
 export function slugify(text: string): string {
@@ -180,27 +165,6 @@ export function groupBy<T, K extends keyof T>(
     groups[group].push(item);
     return groups;
   }, {} as Record<string, T[]>);
-}
-
-// URL utilities
-export function getBaseUrl(): string {
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
-  }
-
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-
-  return "http://localhost:3000";
-}
-
-export function getEventUrl(slug: string): string {
-  return `${getBaseUrl()}/events/${slug}`;
-}
-
-export function getEventShareUrl(slug: string): string {
-  return `${getBaseUrl()}/e/${slug}`;
 }
 
 // Image utilities
@@ -314,18 +278,4 @@ export function isValidUrl(url: string): boolean {
   } catch {
     return false;
   }
-}
-
-//hash password with bcrypt
-export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 10;
-  return await bcrypt.hash(password, saltRounds);
-}
-
-// Verify password with bcrypt
-export async function verifyPassword(
-  password: string,
-  hashedPassword: string
-): Promise<boolean> {
-  return await bcrypt.compare(password, hashedPassword);
 }

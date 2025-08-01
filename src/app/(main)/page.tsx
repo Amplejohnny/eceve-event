@@ -712,10 +712,10 @@ const HomePage: React.FC = () => {
             {/* Text Content */}
             <div className="px-2 sm:px-20">
               <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-1 md:mb-2">
-                Create an event with Conforeve
+                Create an event with Comforeve
               </h2>
               <p className="text-xs sm:text-sm md:text-base lg:text-lg opacity-90 leading-relaxed">
-                Got a show, event, activity? Create your event with Conforeve to
+                Got a show, event, activity? Create your event with Comforeve to
                 reach a wider audience.
               </p>
             </div>

@@ -12,6 +12,7 @@ import {
   Menu,
   Globe,
   MapPin,
+  User,
 } from "lucide-react";
 import { RiTwitterXLine } from "react-icons/ri";
 import { PiInstagramLogo } from "react-icons/pi";
@@ -20,7 +21,6 @@ import {
   getErrorMessage,
   debounce,
   truncateText,
-  getUserAvatarUrl,
 } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
@@ -190,7 +190,7 @@ const ProfileSettings: React.FC = () => {
           setProfileData({
             image:
               data.data.image ||
-              getUserAvatarUrl(undefined, session.user.email || ""),
+               "",
             name: data.data.name || session.user.name || "",
             bio: data.data.bio || "",
             website: data.data.website || "",
@@ -202,9 +202,9 @@ const ProfileSettings: React.FC = () => {
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
-        // Set default values from session if API fails - using getUserAvatarUrl
+        // Set default values from session if API fails
         setProfileData({
-          image: getUserAvatarUrl(undefined, session.user.email || ""),
+          image:  "",
           name: session.user.name || "",
           bio: "",
           website: "",
@@ -676,7 +676,7 @@ const ProfileSettings: React.FC = () => {
             <nav className="space-y-2">
               <button
                 onClick={() => handleTabChange("profile")}
-                className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-colors ${
+                className={`w-full text-left px-4 py-3 rounded-lg font-medium cursor-pointer transition-colors ${
                   activeTab === "profile"
                     ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
                     : "text-gray-700 hover:bg-gray-50"
@@ -686,7 +686,7 @@ const ProfileSettings: React.FC = () => {
               </button>
               <button
                 onClick={() => handleTabChange("password")}
-                className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-colors ${
+                className={`w-full text-left px-4 py-3 rounded-lg font-medium cursor-pointer transition-colors ${
                   activeTab === "password"
                     ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
                     : "text-gray-700 hover:bg-gray-50"
@@ -709,7 +709,7 @@ const ProfileSettings: React.FC = () => {
                   onSubmit={handleProfileSubmit}
                   className="space-y-4 lg:space-y-6"
                 >
-                  {/* Profile Image - Enhanced with getUserAvatarUrl fallback */}
+                  {/* Profile Image */}
                   <div className="flex flex-col sm:flex-row sm:items-center gap-4 lg:gap-6">
                     <div className="relative flex-shrink-0">
                       <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center border-2 border-gray-300">
@@ -722,16 +722,7 @@ const ProfileSettings: React.FC = () => {
                             height={112}
                           />
                         ) : (
-                          <Image
-                            src={getUserAvatarUrl(
-                              undefined,
-                              session?.user?.email || ""
-                            )}
-                            alt="Default Avatar"
-                            className="w-full h-full object-cover"
-                            width={112}
-                            height={112}
-                          />
+                          <User className="w-12 h-12 lg:w-14 lg:h-14 text-gray-500" />
                         )}
                       </div>
                       <label className="absolute bottom-0 right-0 bg-transparent border border-gray-300 text-gray-600 p-2 rounded-full cursor-pointer hover:bg-gray-100 transition-colors shadow-md">

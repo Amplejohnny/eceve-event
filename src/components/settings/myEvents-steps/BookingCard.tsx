@@ -3,11 +3,11 @@ import {
   formatDate,
   formatCurrency,
   getEventImageUrl,
-  getEventShareUrl,
   getErrorMessage,
   truncateText,
   getRelativeTime,
 } from "@/lib/utils";
+import { getEventShareUrl } from "@/lib/server-utils";
 import Image from "next/image";
 
 interface Ticket {
@@ -127,7 +127,9 @@ const handleDownloadPDF = (ticketId: string): void => {
   link.click();
 };
 
-export default function BookingCard({ ticket }: BookingCardProps): React.JSX.Element {
+export default function BookingCard({
+  ticket,
+}: BookingCardProps): React.JSX.Element {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       <div className="p-4 sm:p-6">

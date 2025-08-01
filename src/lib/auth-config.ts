@@ -5,8 +5,7 @@ import EmailProvider from "next-auth/providers/email";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { sendVerificationRequest, sendWelcomeEmail } from "@/lib/email";
-import { verifyPassword } from "@/lib/utils";
-import { randomBytes } from "crypto";
+import { generateSecureToken, verifyPassword } from "@/lib/server-utils";
 
 export class AuthError extends Error {
   public code: string;
@@ -404,7 +403,7 @@ async function resendVerificationEmailInternal(
       token = existingToken.token;
       expires = existingToken.expires;
     } else {
-      token = randomBytes(32).toString("hex");
+      token = await generateSecureToken();
       expires = new Date(Date.now() + 30 * 60 * 1000);
 
       await db.verificationToken.deleteMany({
@@ -425,7 +424,7 @@ async function resendVerificationEmailInternal(
       });
     }
 
-    const nextAuthUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
+    const nextAuthUrl = process.env.NEXTAUTH_URL || "";
     const verificationUrl = `${nextAuthUrl}/auth/email-verified?token=${token}&email=${encodeURIComponent(
       email.toLowerCase()
     )}`;

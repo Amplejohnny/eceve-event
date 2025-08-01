@@ -3,13 +3,13 @@ import {
   formatDate,
   formatCurrency,
   getEventImageUrl,
-  getEventShareUrl,
   getErrorMessage,
   truncateText,
   getRelativeTime,
   isEventActive,
   isEventPast,
 } from "@/lib/utils";
+import { getEventShareUrl } from "@/lib/server-utils";
 import Image from "next/image";
 
 interface TicketType {
@@ -92,7 +92,10 @@ const getAvailability = (quantity: number | null, sold: number): string => {
 };
 
 // Replace progress bar calculation
-const getProgressPercentage = (quantity: number | null, sold: number): number => {
+const getProgressPercentage = (
+  quantity: number | null,
+  sold: number
+): number => {
   if (quantity === null) {
     return 0; // Don't show progress bar for unlimited
   }
@@ -118,7 +121,9 @@ const handleShare = async (event: Event): Promise<void> => {
   }
 };
 
-export default function EventCard({ event }: EventCardProps): React.JSX.Element {
+export default function EventCard({
+  event,
+}: EventCardProps): React.JSX.Element {
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       <div className="p-4 sm:p-6">
