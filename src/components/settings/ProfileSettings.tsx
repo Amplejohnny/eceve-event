@@ -966,49 +966,285 @@ const ProfileSettings: React.FC = () => {
 
                   {/* Role */}
                   <div>
-                    <label
-                      htmlFor="role-select"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Role
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Account Role
                     </label>
+
+                    {/* Role Cards */}
+                    <div className="space-y-3">
+                      {/* User Role Card */}
+                      <div
+                        className={`relative p-3 sm:p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                          profileData.role === "USER"
+                            ? "border-blue-500 bg-blue-50 shadow-md"
+                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                        } ${
+                          profileData.role === "ORGANIZER" ||
+                          profileData.role === "ADMIN"
+                            ? "cursor-not-allowed opacity-60"
+                            : ""
+                        }`}
+                        onClick={() => {
+                          if (
+                            !(
+                              profileData.role === "ORGANIZER" ||
+                              profileData.role === "ADMIN"
+                            )
+                          ) {
+                            handleProfileInputChange("role", "USER");
+                          }
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                              profileData.role === "USER"
+                                ? "border-blue-500 bg-blue-500"
+                                : "border-gray-300 bg-white"
+                            }`}
+                          >
+                            {profileData.role === "USER" && (
+                              <div className="w-2 h-2 rounded-full bg-white"></div>
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <User className="w-4 h-4 text-gray-600" />
+                              <h3 className="font-semibold text-gray-900">
+                                User
+                              </h3>
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                              Browse and attend events, manage your profile, and
+                              discover amazing experiences in your area.
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                Browse Events
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                Join Events
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                Manage Profile
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Organizer Role Card */}
+                      <div
+                        className={`relative p-3 sm:p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${
+                          profileData.role === "ORGANIZER"
+                            ? "border-purple-500 bg-purple-50 shadow-md"
+                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                        } ${
+                          profileData.role === "ORGANIZER" ||
+                          profileData.role === "ADMIN"
+                            ? "cursor-not-allowed opacity-60"
+                            : ""
+                        }`}
+                        onClick={() => {
+                          if (
+                            !(
+                              profileData.role === "ORGANIZER" ||
+                              profileData.role === "ADMIN"
+                            )
+                          ) {
+                            handleProfileInputChange("role", "ORGANIZER");
+                          }
+                        }}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                              profileData.role === "ORGANIZER"
+                                ? "border-purple-500 bg-purple-500"
+                                : "border-gray-300 bg-white"
+                            }`}
+                          >
+                            {profileData.role === "ORGANIZER" && (
+                              <div className="w-2 h-2 rounded-full bg-white"></div>
+                            )}
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-4 h-4 text-gray-600">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                </svg>
+                              </div>
+                              <h3 className="font-semibold text-gray-900">
+                                Event Organizer
+                              </h3>
+                              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                                Premium
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 leading-relaxed">
+                              Create and manage events, build your community,
+                              and grow your audience with advanced organizer
+                              tools.
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                Create Events
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                Analytics
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                                Promotion Tools
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Locked state indicator */}
+                        {(profileData.role === "ORGANIZER" ||
+                          profileData.role === "ADMIN") && (
+                          <div className="absolute top-2 right-2">
+                            <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
+                              </svg>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hidden select for form submission */}
                     <select
+                      title="Select Role"
                       id="role-select"
                       value={profileData.role}
                       onChange={(e) =>
                         handleProfileInputChange("role", e.target.value)
                       }
-                      disabled={
-                        profileData.role === "ORGANIZER" ||
-                        profileData.role === "ADMIN"
-                      }
-                      className={`w-full px-3 lg:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base ${
-                        profileData.role === "ORGANIZER" ||
-                        profileData.role === "ADMIN"
-                          ? "bg-gray-100 text-gray-500 cursor-not-allowed border-gray-200"
-                          : "border-gray-300"
-                      }`}
+                      className="sr-only"
+                      tabIndex={-1}
                     >
                       <option value="USER">User</option>
                       <option value="ORGANIZER">Organizer</option>
                     </select>
 
-                    {/* Social Proof Requirement Notice */}
+                    {/* Social Proof Requirement Notice - Enhanced */}
                     {profileData.role === "ORGANIZER" && (
-                      <div className="mt-2 p-3 bg-blue-50 rounded-lg flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                        <div className="text-xs lg:text-sm">
-                          <p className="text-blue-800 font-medium">
-                            Organizer Social Proof Required
-                          </p>
-                          <p className="text-blue-700 mt-1">
-                            Please fill in at least 2 social proof fields
-                            (Website, Twitter, or Instagram) to become an
-                            organizer.
-                          </p>
-                          <p className="text-blue-600 mt-1">
-                            Current social proofs: {getSocialProofCount()}/2
-                          </p>
+                      <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <AlertCircle className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-blue-900 mb-2">
+                              Organizer Verification Required
+                            </h4>
+                            <p className="text-sm text-blue-800 mb-3 leading-relaxed">
+                              To maintain event quality and trust, organizers
+                              must provide at least 2 social proof verifications
+                              from the options below.
+                            </p>
+
+                            {/* Progress indicator */}
+                            <div className="mb-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-medium text-blue-700">
+                                  Verification Progress
+                                </span>
+                                <span className="text-xs font-medium text-blue-700">
+                                  {getSocialProofCount()}/3
+                                </span>
+                              </div>
+                              <div className="w-full bg-blue-200 rounded-full h-2">
+                                <div
+                                  className={`h-2 rounded-full transition-all duration-300 ${
+                                    getSocialProofCount() >= 2
+                                      ? "bg-green-500"
+                                      : "bg-blue-500"
+                                  }`}
+                                  style={{
+                                    width: `${Math.min(
+                                      (getSocialProofCount() / 2) * 100,
+                                      100
+                                    )}%`,
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+
+                            {/* Social proof checklist */}
+                            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+                              <div
+                                className={`flex items-center gap-2 text-xs ${
+                                  profileData.website
+                                    ? "text-green-700"
+                                    : "text-blue-600"
+                                }`}
+                              >
+                                {profileData.website ? (
+                                  <Check className="w-3 h-3 flex-shrink-0" />
+                                ) : (
+                                  <div className="w-3 h-3 border border-current rounded-sm flex-shrink-0"></div>
+                                )}
+                                <span className="truncate">Website URL</span>
+                              </div>
+                              <div
+                                className={`flex items-center gap-2 text-xs ${
+                                  profileData.twitter
+                                    ? "text-green-700"
+                                    : "text-blue-600"
+                                }`}
+                              >
+                                {profileData.twitter ? (
+                                  <Check className="w-3 h-3 flex-shrink-0" />
+                                ) : (
+                                  <div className="w-3 h-3 border border-current rounded-sm flex-shrink-0"></div>
+                                )}
+                                <span className="truncate">
+                                  Twitter Profile
+                                </span>
+                              </div>
+                              <div
+                                className={`flex items-center gap-2 text-xs ${
+                                  profileData.instagram
+                                    ? "text-green-700"
+                                    : "text-blue-600"
+                                }`}
+                              >
+                                {profileData.instagram ? (
+                                  <Check className="w-3 h-3 flex-shrink-0" />
+                                ) : (
+                                  <div className="w-3 h-3 border border-current rounded-sm flex-shrink-0"></div>
+                                )}
+                                <span className="truncate">
+                                  Instagram Profile
+                                </span>
+                              </div>
+                            </div>
+
+                            {getSocialProofCount() >= 2 && (
+                              <div className="mt-3 flex items-center gap-2 text-xs text-green-700 bg-green-50 px-2 sm:px-3 py-2 rounded-lg">
+                                <Check className="w-3 h-3 flex-shrink-0" />
+                                <span className="font-medium">
+                                  Verification requirements met!
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     )}
