@@ -14,6 +14,7 @@ const passwordChangeSchema = z
     newPassword: z
       .string()
       .min(8, "New password must be at least 8 characters")
+      .max(128, "New password must be less than 128 characters")
       .regex(
         /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
         "New password must contain at least one uppercase letter, one lowercase letter, and one number"
@@ -23,7 +24,23 @@ const passwordChangeSchema = z
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: "New passwords do not match",
     path: ["confirmPassword"],
+  })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: "New password must be different from current password",
+    path: ["newPassword"],
   });
+
+const calculatePasswordStrength = (password: string): number => {
+  const criteria = {
+    length: password.length >= 8,
+    lowercase: /[a-z]/.test(password),
+    uppercase: /[A-Z]/.test(password),
+    number: /\d/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  return Object.values(criteria).filter(Boolean).length;
+};
 
 // PUT - Change user password
 export async function PUT(request: NextRequest) {
@@ -83,6 +100,20 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const validatedData = passwordChangeSchema.parse(body);
 
+    const passwordStrength = calculatePasswordStrength(
+      validatedData.newPassword
+    );
+    if (passwordStrength < 3) {
+      return NextResponse.json(
+        {
+          error:
+            "Password is too weak. Please meet at least 3 out of 5 security requirements.",
+          code: "WEAK_PASSWORD",
+        },
+        { status: 400 }
+      );
+    }
+
     // Verify current password
     const isCurrentPasswordValid = await verifyPassword(
       validatedData.currentPassword,
@@ -128,13 +159,17 @@ export async function PUT(request: NextRequest) {
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
+      const fieldErrors = error.errors.reduce((acc, err) => {
+        const field = err.path[0] as string;
+        acc[field] = err.message;
+        return acc;
+      }, {} as Record<string, string>);
+
       return NextResponse.json(
         {
-          error: "Validation failed",
-          details: error.errors.map((e) => ({
-            field: e.path.join("."),
-            message: e.message,
-          })),
+          error: "Please check your input and try again.",
+          code: "VALIDATION_ERROR",
+          fieldErrors,
         },
         { status: 400 }
       );

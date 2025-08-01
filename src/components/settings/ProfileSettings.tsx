@@ -52,13 +52,13 @@ interface ValidationErrors {
 }
 
 // Field limits
-  const limits = {
-    bio: 500,
-    website: 100,
-    location: 100,
-    twitter: 50,
-    instagram: 50,
-  };
+const limits = {
+  bio: 500,
+  website: 100,
+  location: 100,
+  twitter: 50,
+  instagram: 50,
+};
 
 const ProfileSettings: React.FC = () => {
   const { data: session, status } = useSession();
@@ -101,8 +101,17 @@ const ProfileSettings: React.FC = () => {
 
   // Loading state for initial data fetch
   const [initialLoading, setInitialLoading] = useState(true);
-
-  
+  const [passwordStrength, setPasswordStrength] = useState({
+    score: 0,
+    criteria: {
+      length: false,
+      lowercase: false,
+      uppercase: false,
+      number: false,
+      special: false,
+    },
+  });
+  const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
 
   // Enhanced validation functions using utils
   const validateProfileData = useCallback((): ValidationErrors => {
@@ -143,6 +152,77 @@ const ProfileSettings: React.FC = () => {
     return errors;
   }, [profileData]);
 
+  // Add this enhanced password strength calculation function
+  const calculatePasswordStrength = useCallback(
+    (
+      password: string
+    ): {
+      score: number;
+      criteria: {
+        length: boolean;
+        lowercase: boolean;
+        uppercase: boolean;
+        number: boolean;
+        special: boolean;
+      };
+    } => {
+      const criteria = {
+        length: password.length >= 8,
+        lowercase: /[a-z]/.test(password),
+        uppercase: /[A-Z]/.test(password),
+        number: /\d/.test(password),
+        special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+      };
+
+      const score = Object.values(criteria).filter(Boolean).length;
+      return { score, criteria };
+    },
+    []
+  );
+
+  // Add these utility functions for password strength display
+  const getPasswordStrengthText = (score: number): string => {
+    const strengthMap = {
+      0: "Very Weak",
+      1: "Very Weak",
+      2: "Weak",
+      3: "Fair",
+      4: "Good",
+      5: "Strong",
+    };
+    return strengthMap[score as keyof typeof strengthMap] || "Very Weak";
+  };
+
+  const getPasswordStrengthColor = (score: number): string => {
+    const colorMap = {
+      0: "bg-red-500",
+      1: "bg-red-500",
+      2: "bg-orange-500",
+      3: "bg-yellow-500",
+      4: "bg-blue-500",
+      5: "bg-green-500",
+    };
+    return colorMap[score as keyof typeof colorMap] || "bg-gray-300";
+  };
+
+  // Add these useEffect hooks for real-time validation
+  useEffect(() => {
+    if (passwordData.newPassword) {
+      setPasswordStrength(calculatePasswordStrength(passwordData.newPassword));
+    }
+  }, [passwordData.newPassword, calculatePasswordStrength]);
+
+  useEffect(() => {
+    if (passwordData.newPassword && passwordData.confirmPassword) {
+      setPasswordsMatch(
+        passwordData.newPassword === passwordData.confirmPassword
+      );
+    } else {
+      setPasswordsMatch(null);
+    }
+  }, [passwordData.newPassword, passwordData.confirmPassword]);
+
+  // Update the validatePasswordData function
   const validatePasswordData = useCallback((): ValidationErrors => {
     const errors: ValidationErrors = {};
 
@@ -154,6 +234,11 @@ const ProfileSettings: React.FC = () => {
       errors.newPassword = "New password is required";
     } else if (passwordData.newPassword.length < 8) {
       errors.newPassword = "New password must be at least 8 characters";
+    } else if (passwordData.newPassword.length > 128) {
+      errors.newPassword = "Password must be less than 128 characters";
+    } else if (passwordStrength.score < 3) {
+      errors.newPassword =
+        "Password is too weak. Please meet more requirements.";
     }
 
     if (!passwordData.confirmPassword) {
@@ -163,7 +248,7 @@ const ProfileSettings: React.FC = () => {
     }
 
     return errors;
-  }, [passwordData]);
+  }, [passwordData, passwordStrength.score]);
 
   // Debounced validation using debounce from utils
   const debouncedValidateProfile = debounce(() => {
@@ -188,9 +273,7 @@ const ProfileSettings: React.FC = () => {
 
         if (data.success) {
           setProfileData({
-            image:
-              data.data.image ||
-               "",
+            image: data.data.image || "",
             name: data.data.name || session.user.name || "",
             bio: data.data.bio || "",
             website: data.data.website || "",
@@ -204,7 +287,7 @@ const ProfileSettings: React.FC = () => {
         console.error("Error fetching profile:", error);
         // Set default values from session if API fails
         setProfileData({
-          image:  "",
+          image: "",
           name: session.user.name || "",
           bio: "",
           website: "",
@@ -363,7 +446,9 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
-  const handleProfileSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleProfileSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault();
 
     // Validate form
@@ -418,7 +503,9 @@ const ProfileSettings: React.FC = () => {
     }
   };
 
-  const handlePasswordSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handlePasswordSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ): Promise<void> => {
     e.preventDefault();
 
     // Validate form
@@ -511,7 +598,9 @@ const ProfileSettings: React.FC = () => {
     setValidationErrors({});
   };
 
-  const togglePasswordVisibility = (field: "current" | "new" | "confirm"): void => {
+  const togglePasswordVisibility = (
+    field: "current" | "new" | "confirm"
+  ): void => {
     switch (field) {
       case "current":
         setShowCurrentPassword(!showCurrentPassword);
@@ -1009,6 +1098,7 @@ const ProfileSettings: React.FC = () => {
                             e.target.value
                           )
                         }
+                        maxLength={128}
                         className={`w-full px-3 lg:px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base ${
                           validationErrors.newPassword
                             ? "border-red-300"
@@ -1029,10 +1119,69 @@ const ProfileSettings: React.FC = () => {
                         )}
                       </button>
                     </div>
+
+                    {/* Password strength indicator */}
+                    {passwordData.newPassword && (
+                      <div className="mt-2">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-600">
+                            Password Strength:{" "}
+                            {getPasswordStrengthText(passwordStrength.score)}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                          <div
+                            className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor(
+                              passwordStrength.score
+                            )} ${
+                              passwordStrength.score === 0
+                                ? "w-0"
+                                : passwordStrength.score === 1
+                                ? "w-1/5"
+                                : passwordStrength.score === 2
+                                ? "w-2/5"
+                                : passwordStrength.score === 3
+                                ? "w-3/5"
+                                : passwordStrength.score === 4
+                                ? "w-4/5"
+                                : "w-full"
+                            }`}
+                            aria-hidden="true"
+                          />
+                        </div>
+                        <div className="text-xs space-y-1">
+                          {Object.entries(passwordStrength.criteria).map(
+                            ([key, met]) => (
+                              <div
+                                key={key}
+                                className="flex items-center space-x-2"
+                              >
+                                {met ? (
+                                  <Check size={12} className="text-green-500" />
+                                ) : (
+                                  <X size={12} className="text-red-500" />
+                                )}
+                                <span
+                                  className={`${
+                                    met ? "text-green-500" : "text-gray-500"
+                                  }`}
+                                >
+                                  {key === "length" && "At least 8 characters"}
+                                  {key === "lowercase" &&
+                                    "One lowercase letter"}
+                                  {key === "uppercase" &&
+                                    "One uppercase letter"}
+                                  {key === "number" && "One number"}
+                                  {key === "special" && "One special character"}
+                                </span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {renderFieldError("newPassword")}
-                    <div className="mt-2 text-xs lg:text-sm text-gray-500">
-                      Password must be at least 8 characters long
-                    </div>
                   </div>
 
                   {/* Confirm New Password */}
@@ -1053,11 +1202,32 @@ const ProfileSettings: React.FC = () => {
                         className={`w-full px-3 lg:px-4 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm lg:text-base ${
                           validationErrors.confirmPassword
                             ? "border-red-300"
+                            : passwordsMatch === false
+                            ? "border-orange-500"
+                            : passwordsMatch === true
+                            ? "border-green-500"
                             : "border-gray-300"
                         }`}
                         placeholder="Confirm your new password"
                         required
                       />
+                      <div className="absolute right-10 top-1/2 transform -translate-y-1/2">
+                        {passwordData.confirmPassword &&
+                          passwordsMatch !== null &&
+                          (passwordsMatch ? (
+                            <Check
+                              size={18}
+                              className="text-green-500"
+                              aria-label="Passwords match"
+                            />
+                          ) : (
+                            <X
+                              size={18}
+                              className="text-red-500"
+                              aria-label="Passwords don't match"
+                            />
+                          ))}
+                      </div>
                       <button
                         type="button"
                         onClick={() => togglePasswordVisibility("confirm")}
@@ -1070,6 +1240,17 @@ const ProfileSettings: React.FC = () => {
                         )}
                       </button>
                     </div>
+
+                    {passwordData.confirmPassword &&
+                      passwordsMatch === false && (
+                        <p
+                          className="text-orange-500 text-xs mt-1"
+                          role="alert"
+                        >
+                          Passwords don't match
+                        </p>
+                      )}
+
                     {renderFieldError("confirmPassword")}
                   </div>
 
