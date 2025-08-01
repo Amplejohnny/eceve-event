@@ -270,16 +270,16 @@ const Navbar: React.FC = () => {
             </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
+            <div className="flex items-baseline space-x-8">
               <NavLinks />
             </div>
           </div>
 
           {/* Desktop Auth/User Actions */}
           <div className="hidden md:block">
-            <div className="ml-4 flex items-center space-x-4">
+            <div className="flex items-center space-x-4">
               {isLoggedIn ? <LoggedInActions /> : <AuthButtons />}
             </div>
           </div>
