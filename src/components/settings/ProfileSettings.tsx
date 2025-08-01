@@ -98,6 +98,7 @@ const ProfileSettings: React.FC = () => {
   });
 
   // Loading state for initial data fetch
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [initialLoading, setInitialLoading] = useState(true);
   const [passwordStrength, setPasswordStrength] = useState({
     score: 0,
@@ -311,19 +312,6 @@ const ProfileSettings: React.FC = () => {
     }
   }, [profileData, debouncedValidateProfile]);
 
-  // Show loading state while checking authentication
-  if (status === "loading" || initialLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-pulse space-y-4 w-full max-w-2xl mx-auto p-4">
-          <div className="bg-gray-200 h-8 rounded-lg w-48"></div>
-          <div className="bg-gray-200 h-32 rounded-lg"></div>
-          <div className="bg-gray-200 h-10 rounded-lg"></div>
-          <div className="bg-gray-200 h-10 rounded-lg"></div>
-        </div>
-      </div>
-    );
-  }
 
   // Show error state if not authenticated
   if (!session?.user) {

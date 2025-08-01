@@ -130,7 +130,7 @@ const ProfileSettingsSkeleton = (): React.JSX.Element => {
           {/* Desktop Sidebar Skeleton */}
           <div className="hidden lg:block w-64 flex-shrink-0">
             <nav className="space-y-2">
-              <div className="px-4 py-3 rounded-lg bg-blue-50 border-l-4 border-blue-200">
+              <div className="px-4 py-3 rounded-lg bg-blue-50 border-l-4 border-blue-600">
                 <SkeletonLine width="w-24" />
               </div>
               <div className="px-4 py-3 rounded-lg">
