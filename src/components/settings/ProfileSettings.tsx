@@ -9,7 +9,6 @@ import {
   EyeOff,
   Check,
   X,
-  Menu,
   Globe,
   MapPin,
   User,
@@ -78,7 +77,6 @@ const ProfileSettings: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {}
   );
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Profile form state - initialize with default values
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -591,7 +589,6 @@ const ProfileSettings: React.FC = () => {
 
   const handleTabChange = (tab: "profile" | "password"): void => {
     setActiveTab(tab);
-    setIsMobileMenuOpen(false);
     // Clear messages and errors when switching tabs
     setProfileMessage({ type: "", text: "" });
     setPasswordMessage({ type: "", text: "" });
@@ -689,19 +686,36 @@ const ProfileSettings: React.FC = () => {
       <div className="max-w-6xl mx-auto">
         {/* Mobile Header */}
         <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                Account Settings
-              </h1>
-              <p className="text-sm text-gray-600">Manage your account</p>
-            </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">
+              Account Settings
+            </h1>
+            <p className="text-sm text-gray-600">Manage your account</p>
+          </div>
+        </div>
+
+        {/* Mobile Inline Tabs */}
+        <div className="lg:hidden bg-white border-b border-gray-200">
+          <div className="flex">
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 text-gray-600 hover:text-gray-900"
-              title="Toggle Menu"
+              onClick={() => handleTabChange("profile")}
+              className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "profile"
+                  ? "border-blue-500 text-blue-600 bg-blue-50"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
             >
-              <Menu className="w-6 h-6" />
+              Account Info
+            </button>
+            <button
+              onClick={() => handleTabChange("password")}
+              className={`flex-1 py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "password"
+                  ? "border-blue-500 text-blue-600 bg-blue-50"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              Change Password
             </button>
           </div>
         </div>
@@ -716,47 +730,6 @@ const ProfileSettings: React.FC = () => {
               Manage your account settings and preferences
             </p>
           </div>
-        </div>
-
-        {/* Mobile Menu Overlay */}
-        {isMobileMenuOpen && (
-          <div
-            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-        )}
-
-        {/* Mobile Navigation */}
-        <div
-          className={`lg:hidden fixed left-0 top-0 h-full w-64 bg-white z-50 transform transition-transform duration-300 ${
-            isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Settings</h2>
-          </div>
-          <nav className="p-4 space-y-2">
-            <button
-              onClick={() => handleTabChange("profile")}
-              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-colors ${
-                activeTab === "profile"
-                  ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              Account info
-            </button>
-            <button
-              onClick={() => handleTabChange("password")}
-              className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-colors ${
-                activeTab === "password"
-                  ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
-            >
-              Change Password
-            </button>
-          </nav>
         </div>
 
         <div className="lg:flex lg:gap-8 lg:p-6">
