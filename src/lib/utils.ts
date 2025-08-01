@@ -167,6 +167,75 @@ export function groupBy<T, K extends keyof T>(
   }, {} as Record<string, T[]>);
 }
 
+export function getBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL;
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return "http://localhost:3000";
+}
+
+export function getEventUrl(slug: string): string {
+  return `${getBaseUrl()}/events/${slug}`;
+}
+
+export function getEventShareUrl(slug: string): string {
+  return `${getBaseUrl()}/e/${slug}`;
+}
+
+// Email masking utility for verification page
+export const maskEmail = (email: string): string => {
+  if (!email || !email.includes("@")) return email;
+
+  const [localPart, domain] = email.split("@");
+  if (localPart.length <= 2) {
+    return `${"*".repeat(localPart.length)}@${domain}`;
+  }
+
+  const visibleStart = localPart.slice(0, 1);
+  const visibleEnd = localPart.slice(-1);
+  const maskedMiddle = "*".repeat(Math.max(localPart.length - 2, 1));
+
+  return `${visibleStart}${maskedMiddle}${visibleEnd}@${domain}`;
+};
+
+// Server-side request rate limiting helper
+export function createRateLimiter(windowMs: number, maxRequests: number) {
+  const requests = new Map<string, { count: number; resetTime: number }>();
+
+  return {
+    checkLimit: (
+      identifier: string
+    ): { allowed: boolean; remaining: number } => {
+      const now = Date.now();
+      const current = requests.get(identifier);
+
+      if (!current || now > current.resetTime) {
+        requests.set(identifier, {
+          count: 1,
+          resetTime: now + windowMs,
+        });
+        return { allowed: true, remaining: maxRequests - 1 };
+      }
+
+      if (current.count >= maxRequests) {
+        return { allowed: false, remaining: 0 };
+      }
+
+      current.count++;
+      return { allowed: true, remaining: maxRequests - current.count };
+    },
+
+    reset: (identifier: string): void => {
+      requests.delete(identifier);
+    },
+  };
+}
+
 // Image utilities
 export function getEventImageUrl(imageUrl?: string): string {
   if (imageUrl) return imageUrl;

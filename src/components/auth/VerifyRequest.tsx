@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { maskEmail } from "@/lib/server-utils";
+import { maskEmail } from "@/lib/utils";
 
 interface ErrorObject {
   message?: string;

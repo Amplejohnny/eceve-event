@@ -6,8 +6,8 @@ import {
   getErrorMessage,
   truncateText,
   getRelativeTime,
+  getEventShareUrl
 } from "@/lib/utils";
-import { getEventShareUrl } from "@/lib/server-utils";
 import Image from "next/image";
 
 interface Ticket {

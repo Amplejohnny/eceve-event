@@ -8,8 +8,8 @@ import {
   getRelativeTime,
   isEventActive,
   isEventPast,
+  getEventShareUrl
 } from "@/lib/utils";
-import { getEventShareUrl } from "@/lib/server-utils";
 import Image from "next/image";
 
 interface TicketType {
