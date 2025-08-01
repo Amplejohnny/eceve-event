@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Menu, X, Ticket, Star, User, Settings, LogOut } from "lucide-react";
+import { Menu, X, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import Image from "next/image";
@@ -112,115 +112,113 @@ const Navbar: React.FC = () => {
     </>
   );
 
-  const EmailVerificationNotice = (): React.JSX.Element => (
-    <div className="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md text-sm">
-      Email not verified
-    </div>
-  );
-
   const LoggedInActions = (): React.JSX.Element => {
     const dashboardInfo = getDashboardInfo();
 
     return (
-      <>
-        {/* Show email verification notice if not verified */}
-        {!isEmailVerified && <EmailVerificationNotice />}
+      <div className="flex items-center space-x-4">
+        {/* Email verification notice */}
+        {!isEmailVerified && (
+          <div className="bg-yellow-500 text-gray-900 px-3 py-1 rounded-md text-sm font-medium">
+            Email not verified
+          </div>
+        )}
 
-        {/* Create Event - visible to all users */}
-        <button className="text-white hover:text-yellow-400 transition-colors duration-200">
-          <Link href="/events/create">Create Event</Link>
-        </button>
+        {/* Profile Avatar Dropdown */}
+        <div className="relative">
+          <div
+            className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center cursor-pointer hover:bg-yellow-300 transition-colors duration-200"
+            onClick={toggleProfileDropdown}
+          >
+            <User className="w-4 h-4 text-gray-900" />
+          </div>
 
-        <div className="flex items-center space-x-4">
-          {/* Profile Dropdown */}``
-          <div className="relative">
-            <div
-              className="flex flex-col items-center group cursor-pointer"
-              onClick={toggleProfileDropdown}
-            >
-              <User className="w-5 h-5 text-white group-hover:text-yellow-400 transition-colors duration-200" />
-              <span className="text-xs text-white group-hover:text-yellow-400 transition-colors duration-200">
-                Profile
-              </span>
-            </div>
-
-            {/* Profile Dropdown Menu */}
-            {isProfileDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
-                <div className="px-4 py-2 text-gray-800 border-b border-gray-200">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <User className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm font-medium">
-                      {session?.user?.name || "User"}
-                    </span>
-                  </div>
-                  <div className="text-xs text-gray-500 mb-1">
-                    {session?.user?.email}
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        isEmailVerified
-                          ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
-                    >
-                      {isEmailVerified ? "Verified" : "Unverified"}
-                    </span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
-                      {userRole}
-                    </span>
-                  </div>
+          {/* Profile Dropdown Menu */}
+          {isProfileDropdownOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-2 z-50">
+              <div className="px-3 py-2 text-gray-800 border-b border-gray-200">
+                <div className="text-sm font-medium mb-1">
+                  {session?.user?.name || "User"}
                 </div>
-
-                {/* Profile Actions */}
-                {isEmailVerified ? (
-                  <>
-                    <button className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2">
-                      <User className="w-4 h-4" />
-                      <Link href="/my-events">My Events</Link>
-                    </button>
-
-                    <button className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2">
-                      <Star className="w-4 h-4" />
-                      <Link href="/favorites">Favorites</Link>
-                    </button>
-
-                    <button className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2">
-                      <Settings className="w-4 h-4" />
-                      <Link href="/profile-settings">Account Settings</Link>
-                    </button>
-
-                    {/* Dashboard - for ADMIN and ORGANIZER */}
-                    {dashboardInfo && (
-                      <button className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2">
-                        <Settings className="w-4 h-4" />
-                        <Link href={dashboardInfo.path}>
-                          {dashboardInfo.label}
-                        </Link>
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <button className="w-full text-left px-4 py-2 text-yellow-600 hover:bg-yellow-50 transition-colors duration-200">
-                    <Link href="/auth/verify-request">Verify Email</Link>
-                  </button>
-                )}
-
-                <div className="border-t border-gray-200 mt-2 pt-2">
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200 flex items-center space-x-2"
+                <div className="text-xs text-gray-500 mb-2">
+                  {session?.user?.email}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full ${
+                      isEmailVerified
+                        ? "bg-green-100 text-green-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
                   >
-                    <LogOut className="w-4 h-4" />
-                    <span>Sign Out</span>
-                  </button>
+                    {isEmailVerified ? "Verified" : "Unverified"}
+                  </span>
+                  <span className="text-xs px-2 py-1 bg-gray-100 text-gray-800 rounded-full">
+                    {userRole}
+                  </span>
                 </div>
               </div>
-            )}
-          </div>
+
+              {/* Profile Actions */}
+              {isEmailVerified ? (
+                <>
+                  <Link
+                    href="/my-events"
+                    className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                  >
+                    My Events
+                  </Link>
+
+                  <Link
+                    href="/favorites"
+                    className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                  >
+                    Favorites
+                  </Link>
+
+                  <Link
+                    href="/profile-settings"
+                    className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+                    onClick={() => setIsProfileDropdownOpen(false)}
+                  >
+                    Account Settings
+                  </Link>
+
+                  {/* Dashboard - for ADMIN and ORGANIZER */}
+                  {dashboardInfo && (
+                    <Link
+                      href={dashboardInfo.path}
+                      className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+                      onClick={() => setIsProfileDropdownOpen(false)}
+                    >
+                      {dashboardInfo.label}
+                    </Link>
+                  )}
+                </>
+              ) : (
+                <Link
+                  href="/auth/verify-request"
+                  className="w-full block px-3 py-1.5 text-sm text-yellow-600 hover:bg-yellow-50 transition-colors duration-200"
+                  onClick={() => setIsProfileDropdownOpen(false)}
+                >
+                  Verify Email
+                </Link>
+              )}
+
+              <div className="border-t border-gray-200 mt-1 pt-1">
+                <button
+                  onClick={handleSignOut}
+                  className="w-full text-left px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+                >
+                  Sign Out
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      </>
+      </div>
     );
   };
 
@@ -315,86 +313,99 @@ const Navbar: React.FC = () => {
                   {!isEmailVerified && (
                     <div className="bg-yellow-500 text-gray-900 px-3 py-2 rounded-md text-sm text-center">
                       Email not verified -{" "}
-                      <Link href="/auth/verify-request">
-                        <span className="underline cursor-pointer">
-                          Verify Now
-                        </span>
+                      <Link
+                        href="/auth/verify-request"
+                        className="underline font-medium"
+                      >
+                        Verify Now
                       </Link>
                     </div>
                   )}
 
-                  {/* Create Event - visible to all users, but only works for Admin/Organizers */}
-                  <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left">
-                    <Link href="/events/create">
-                      <Ticket className="inline-block w-4 h-4 mr-2" />
-                      Create Event
-                    </Link>
-                  </button>
+                  {/* User info */}
+                  <div className="text-white py-2">
+                    <div className="text-sm font-medium">
+                      {session?.user?.name || "User"}
+                    </div>
+                    <div className="text-xs text-gray-300">
+                      {session?.user?.email}
+                    </div>
+                  </div>
 
                   {/* Profile actions */}
                   {isEmailVerified ? (
                     <>
-                      <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2">
-                        <Link href="/my-events">
-                          <User className="w-5 h-5" />
-                          <span>My Events</span>
-                        </Link>
-                      </button>
+                      <Link
+                        href="/my-events"
+                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        My Events
+                      </Link>
 
-                      <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2">
-                        <Link href="/favorites">
-                          <Star className="w-4 h-4" />
-                          <span>Favorites</span>
-                        </Link>
-                      </button>
+                      <Link
+                        href="/favorites"
+                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Favorites
+                      </Link>
 
-                      <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2">
-                        <Link href="/profile-settings">
-                          <Settings className="w-4 h-4" />
-                          <span>Account Settings</span>
-                        </Link>
-                      </button>
+                      <Link
+                        href="/profile-settings"
+                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Account Settings
+                      </Link>
 
                       {/* Dashboard - for ADMIN and ORGANIZER */}
                       {((): React.JSX.Element | null => {
                         const dashboardInfo = getDashboardInfo();
                         return dashboardInfo ? (
-                          <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2">
-                            <Link href={dashboardInfo.path}>
-                              <Settings className="w-4 h-4" />
-                              <span>{dashboardInfo.label}</span>
-                            </Link>
-                          </button>
+                          <Link
+                            href={dashboardInfo.path}
+                            className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            {dashboardInfo.label}
+                          </Link>
                         ) : null;
                       })()}
                     </>
                   ) : (
-                    <button className="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 text-left">
-                      <Link href="/auth/verify-request">Verify Email</Link>
-                    </button>
+                    <Link
+                      href="/auth/verify-request"
+                      className="text-yellow-400 hover:text-yellow-300 transition-colors duration-200 text-left py-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Verify Email
+                    </Link>
                   )}
 
                   <button
                     onClick={handleSignOut}
-                    className="text-white hover:text-yellow-400 transition-colors duration-200 text-left flex items-center space-x-2"
+                    className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
                   >
-                    <LogOut className="w-4 h-4" />
-                    <span>Sign Out</span>
+                    Sign Out
                   </button>
                 </div>
               ) : (
                 <div className="flex flex-col space-y-3 pt-3 border-t border-gray-600">
-                  <button className="text-white hover:text-yellow-400 transition-colors duration-200 text-left">
-                    <Link href="/auth/login">
-                      <span>
-                        <User className="inline-block w-4 h-4 mr-2" />
-                      </span>
-                      Login
-                    </Link>
-                  </button>
-                  <button className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-900 transition-colors duration-200 font-medium text-center">
-                    <Link href="/auth/register">Sign Up</Link>
-                  </button>
+                  <Link
+                    href="/auth/login"
+                    className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    href="/auth/register"
+                    className="bg-yellow-400 text-gray-900 px-4 py-2 rounded-md hover:bg-yellow-300 transition-colors duration-200 font-medium text-center"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Sign Up
+                  </Link>
                 </div>
               )}
             </div>
