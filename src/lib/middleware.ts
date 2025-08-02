@@ -7,6 +7,7 @@ const PUBLIC_ROUTES = [
   "/",
   "/events",
   "/events/[slug]",
+  "/tickets",
   "/auth/login",
   "/auth/register",
   "/auth/verify-request",
@@ -30,7 +31,6 @@ const PROTECTED_ROUTES = [
   "/dashboard",
   "/profile-settings",
   "/my-events",
-  "/tickets",
   "/favorites",
 ];
 
@@ -48,7 +48,6 @@ const PROTECTED_API_ROUTES = [
   "/api/events/create",
   "/api/events/[id]/edit",
   "/api/events/[id]/delete",
-  "/api/tickets",
   "/api/favorites",
   "/api/profile",
   "/api/profile/password",
