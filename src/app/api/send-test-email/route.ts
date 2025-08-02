@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Send a test verification email
     await sendVerificationRequest({
       identifier: email,
-      url: `${process.env.NEXTAUTH_URL}/auth/verify-request?token=test-token&email=${email}`,
+      url: `${process.env.NEXTAUTH_URL}/auth/email-verified?token=test-token&email=${email}`,
       token: 'test-token',
       expires: new Date(Date.now() + 24 * 60 * 60 * 1000),
       provider: {
