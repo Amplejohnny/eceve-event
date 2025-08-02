@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { signIn, getSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { Eye, EyeOff, Moon, Sun, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -108,81 +108,30 @@ const LoginForm = (): React.JSX.Element => {
     setErrors({});
     setMessage("");
 
+    // In handleSubmit function, replace the entire signIn logic with:
     try {
-      const result = await signIn("credentials", {
-        email: formData.email.toLowerCase().trim(),
-        password: formData.password,
-        redirect: false, // Handle redirect manually for better UX
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email.toLowerCase().trim(),
+          password: formData.password,
+        }),
       });
 
-      if (result?.error) {
-        // Handle NextAuth errors
-        switch (result.error) {
-          case "EMAIL_NOT_VERIFIED":
-            setMessage(
-              "Please verify your email address before logging in. We've sent you a new verification link."
-            );
-            break;
+      const data = await response.json();
 
-          case "INVALID_CREDENTIALS":
-            setMessage("Invalid email or password. Please try again.");
-            break;
+      if (response.ok) {
+        // Success - now sign in with NextAuth using the verified credentials
+        const result = await signIn("credentials", {
+          email: formData.email.toLowerCase().trim(),
+          password: formData.password,
+          redirect: false,
+        });
 
-          case "ACCOUNT_DEACTIVATED":
-            setMessage(
-              "Your account has been deactivated. Please contact support for assistance."
-            );
-            break;
-
-          case "RATE_LIMITED":
-            setMessage(
-              "Too many login attempts. Please wait 15 minutes before trying again."
-            );
-            break;
-
-          case "MISSING_CREDENTIALS":
-            setMessage("Please enter both email and password.");
-            break;
-
-          case "AUTH_ERROR":
-            setMessage(
-              "Authentication service error. Please try again in a moment."
-            );
-            break;
-
-          case "VERIFICATION_LINK_EXPIRED":
-            setMessage(
-              "The verification link is invalid or has expired. Please request a new one."
-            );
-            break;
-
-          case "CredentialsSignin":
-            const urlParams = new URLSearchParams(window.location.search);
-            const errorParam = urlParams.get("error");
-
-            if (errorParam === "EMAIL_NOT_VERIFIED") {
-              setMessage(
-                "Please verify your email address before logging in. We've sent you a new verification link."
-              );
-            } else {
-              setMessage(
-                "Invalid credentials. Please check your email and password."
-              );
-            }
-            break;
-
-          case "Callback":
-            setMessage("Authentication callback error. Please try again.");
-            break;
-
-          default:
-            console.error("Unhandled auth error:", result.error);
-            setMessage("Something went wrong. Please try again.");
-        }
-      } else if (result?.ok) {
-        // Success - get the session and redirect
-        const session = await getSession();
-        if (session) {
+        if (result?.ok) {
           setMessage("Login successful! Redirecting...");
           setTimeout(() => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -191,23 +140,33 @@ const LoginForm = (): React.JSX.Element => {
           }, 1000);
         }
       } else {
-        setMessage("Session creation failed. Please try logging in again.");
+        // Handle specific error codes from your API
+        switch (data.code) {
+          case "EMAIL_NOT_VERIFIED":
+            setMessage(
+              "Please verify your email address before logging in. We've sent you a new verification link."
+            );
+            break;
+          case "INVALID_CREDENTIALS":
+            setMessage("Invalid email or password. Please try again.");
+            break;
+          case "ACCOUNT_DEACTIVATED":
+            setMessage(
+              "Your account has been deactivated. Please contact support for assistance."
+            );
+            break;
+          case "RATE_LIMITED":
+            setMessage(
+              "Too many login attempts. Please wait 15 minutes before trying again."
+            );
+            break;
+          default:
+            setMessage(data.error || "Something went wrong. Please try again.");
+        }
       }
     } catch (error) {
       console.error("Login error:", error);
-
-      // Check if it's a network error
-      if (error instanceof TypeError && error.message.includes("fetch")) {
-        setMessage(
-          "Network error. Please check your internet connection and try again."
-        );
-      } else if (error instanceof Error) {
-        setMessage(`Login failed: ${error.message}`);
-      } else {
-        setMessage(
-          "An unexpected error occurred. Please try again or contact support."
-        );
-      }
+      setMessage("Network error. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }

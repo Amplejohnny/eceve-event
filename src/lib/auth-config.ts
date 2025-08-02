@@ -5,51 +5,6 @@ import EmailProvider from "next-auth/providers/email";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
 import { sendVerificationRequest, sendWelcomeEmail } from "@/lib/email";
-import { generateSecureToken, verifyPassword } from "@/lib/server-utils";
-
-export class AuthError extends Error {
-  public code: string;
-
-  constructor(message: string, code: string) {
-    super(message);
-    this.code = code;
-    this.name = "AuthError";
-  }
-}
-
-// Enhanced rate limiting for NextAuth
-const loginAttempts = new Map<
-  string,
-  { count: number; resetTime: number; blocked: boolean }
->();
-
-function checkRateLimit(email: string): {
-  allowed: boolean;
-  remaining: number;
-} {
-  const now = Date.now();
-  const windowMs = 15 * 60 * 1000;
-  const maxAttempts = 5;
-
-  const current = loginAttempts.get(email);
-
-  if (!current || now > current.resetTime) {
-    loginAttempts.set(email, {
-      count: 1,
-      resetTime: now + windowMs,
-      blocked: false,
-    });
-    return { allowed: true, remaining: maxAttempts - 1 };
-  }
-
-  if (current.count >= maxAttempts) {
-    current.blocked = true;
-    return { allowed: false, remaining: 0 };
-  }
-
-  current.count++;
-  return { allowed: true, remaining: maxAttempts - current.count };
-}
 
 // Environment variables check
 const requiredEnvVars = {
@@ -90,79 +45,31 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new AuthError(
-            "Email and password are required",
-            "MISSING_CREDENTIALS"
-          );
+          return null;
         }
 
         const email = credentials.email.toLowerCase().trim();
 
-        // Rate limiting check
-        const rateLimit = checkRateLimit(email);
-        if (!rateLimit.allowed) {
-          throw new AuthError(
-            "Too many login attempts. Please try again later.",
-            "RATE_LIMITED"
-          );
-        }
-
         try {
+          // Since validation is already done by the API route,
+          // we just need to get the user for session creation
           const user = await db.user.findUnique({
             where: { email },
-            // select: {
-            //   id: true,
-            //   email: true,
-            //   password: true,
-            //   name: true,
-            //   role: true,
-            //   isActive: true,
-            //   emailVerified: true,
-            // },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              role: true,
+              isActive: true,
+              emailVerified: true,
+            },
           });
 
-          if (!user || !user.password) {
-            throw new AuthError(
-              "Invalid email or passwordddd",
-              "INVALID_CREDENTIALS"
-            );
+          if (!user || !user.isActive || !user.emailVerified) {
+            return null;
           }
 
-          if (!user.isActive) {
-            throw new AuthError(
-              "Your account has been deactivated. Please contact support.",
-              "ACCOUNT_DEACTIVATED"
-            );
-          }
-
-          const isValidPassword = await verifyPassword(
-            credentials.password,
-            user.password
-          );
-
-          if (!isValidPassword) {
-            throw new AuthError(
-              "Invalid email or passworddddd",
-              "INVALID_CREDENTIALS"
-            );
-          }
-
-          // Check if email is verified
-          if (!user.emailVerified) {
-            try {
-              await resendVerificationEmailInternal(user.email);
-              console.log(`Verification email resent to ${user.email}`);
-            } catch (error) {
-              console.error("Failed to resend verification email:", error);
-            }
-
-            throw new AuthError(
-              "Please verify your email address before logging in. We've sent you a new verification link.",
-              "EMAIL_NOT_VERIFIED"
-            );
-          }
-
-          // Return user object (password excluded for security)
+          // Return user object for session creation
           return {
             id: user.id,
             email: user.email || "",
@@ -171,19 +78,8 @@ export const authOptions: NextAuthOptions = {
             emailVerified: user.emailVerified,
           };
         } catch (error) {
-          if (error instanceof AuthError) {
-            const authError = new Error(error.message);
-            authError.name = error.code;
-            throw authError;
-          }
-
-          // Handle unexpected errors
-          console.error("Unexpected error during authorization:", error);
-          const unexpectedError = new Error(
-            "Authentication failed. Please try again."
-          );
-          unexpectedError.name = "AUTH_ERROR";
-          throw unexpectedError;
+          console.error("Error during authorize:", error);
+          return null;
         }
       },
     }),
@@ -209,6 +105,7 @@ export const authOptions: NextAuthOptions = {
           console.error("Sign in failed: No email provided");
           return false;
         }
+
         // Handle credentials provider sign-ins (main login method)
         if (account?.provider === "credentials") {
           return true;
@@ -369,97 +266,3 @@ export const authOptions: NextAuthOptions = {
   },
   debug: process.env.NODE_ENV === "development",
 };
-
-// Internal function to resend verification email to avoid circular dependency
-async function resendVerificationEmailInternal(
-  email: string
-): Promise<boolean> {
-  try {
-    const user = await db.user.findUnique({
-      where: { email: email.toLowerCase() },
-    });
-
-    if (!user || user.emailVerified) {
-      return false;
-    }
-
-    // Check if there's already a recent verification token
-    const existingToken = await db.verificationToken.findFirst({
-      where: {
-        identifier: email.toLowerCase(),
-        expires: {
-          gt: new Date(),
-        },
-      },
-      orderBy: {
-        expires: "desc",
-      },
-    });
-
-    let token: string;
-    let expires: Date;
-
-    if (existingToken) {
-      token = existingToken.token;
-      expires = existingToken.expires;
-    } else {
-      token = await generateSecureToken();
-      expires = new Date(Date.now() + 30 * 60 * 1000);
-
-      await db.verificationToken.deleteMany({
-        where: {
-          identifier: email.toLowerCase(),
-          expires: {
-            lt: new Date(),
-          },
-        },
-      });
-
-      await db.verificationToken.create({
-        data: {
-          identifier: email.toLowerCase(),
-          token,
-          expires,
-        },
-      });
-    }
-
-    const nextAuthUrl = process.env.NEXTAUTH_URL || "";
-    const verificationUrl = `${nextAuthUrl}/auth/email-verified?token=${token}&email=${encodeURIComponent(
-      email.toLowerCase()
-    )}`;
-
-    await sendVerificationRequest({
-      identifier: email.toLowerCase(),
-      url: verificationUrl,
-      provider: {
-        id: "email",
-        type: "email",
-        name: "Email",
-        server: {
-          host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || "587"),
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        },
-        from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
-        maxAge: 30 * 60,
-        options: {},
-        sendVerificationRequest,
-      },
-      expires,
-      token: "",
-      theme: {
-        brandColor: "#346df1",
-        buttonText: "#fff",
-      },
-    });
-
-    return true;
-  } catch (error) {
-    console.error("Error resending verification email:", error);
-    return false;
-  }
-}

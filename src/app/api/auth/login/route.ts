@@ -14,17 +14,18 @@ const logError = (
   metadata?: Record<string, unknown>
 ): void => {
   const timestamp = new Date().toISOString();
-  const errorInfo = error instanceof Error 
-    ? {
-        message: error.message,
-        name: error.constructor.name,
-        stack: error.stack,
-      }
-    : {
-        message: String(error),
-        name: "Unknown",
-        stack: undefined,
-      };
+  const errorInfo =
+    error instanceof Error
+      ? {
+          message: error.message,
+          name: error.constructor.name,
+          stack: error.stack,
+        }
+      : {
+          message: String(error),
+          name: "Unknown",
+          stack: undefined,
+        };
 
   const logData = {
     timestamp,
@@ -45,7 +46,10 @@ const logInfo = (message: string, metadata?: Record<string, unknown>): void => {
   console.log(`[LOGIN_INFO] ${timestamp}: ${message}`, metadata || {});
 };
 
-const logWarning = (message: string, metadata?: Record<string, unknown>): void => {
+const logWarning = (
+  message: string,
+  metadata?: Record<string, unknown>
+): void => {
   const timestamp = new Date().toISOString();
   console.warn(`[LOGIN_WARNING] ${timestamp}: ${message}`, metadata || {});
 };
@@ -311,7 +315,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: "Invalid email or passworddd",
+          error: "Invalid email or password",
           code: "INVALID_CREDENTIALS",
         },
         { status: 401 }
@@ -365,7 +369,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: "Invalid email or passwordd",
+          error: "Invalid email or password",
           code: "INVALID_CREDENTIALS",
         },
         { status: 401 }
