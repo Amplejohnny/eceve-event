@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { useEventStore } from "../../store/eventStore";
+import { useEventStore } from "@/store/eventStore";
 import { EventType } from "@/generated/prisma";
 import {
   ChevronLeft,
@@ -18,17 +18,6 @@ import {
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-
-interface ExtendedUser {
-  role: string;
-  email: string;
-  name?: string;
-  image?: string;
-}
-
-interface ExtendedSession {
-  user: ExtendedUser;
-}
 
 const CATEGORIES = [
   "Entertainment",
@@ -68,10 +57,7 @@ interface CreateEventResult {
 
 const CreateEvent: React.FC = () => {
   const router = useRouter();
-  const { data: session, status } = useSession() as {
-    data: ExtendedSession | null;
-    status: string;
-  };
+  const { data: session, status } = useSession();
   const {
     currentStep,
     formData,
@@ -95,6 +81,8 @@ const CreateEvent: React.FC = () => {
 
   const [submitError, setSubmitError] = useState("");
   const [tagInput, setTagInput] = useState("");
+  const canProceed = useMemo(() => canGoNext(), [canGoNext]);
+  const canGoBack = useMemo(() => canGoPrev(), [canGoPrev]);
 
   if (status === "loading") {
     return (
@@ -108,65 +96,69 @@ const CreateEvent: React.FC = () => {
     );
   }
 
- if (session?.user && !['ORGANIZER', 'ADMIN'].includes(session.user.role)) {
-  return (
-    <div className="min-h-[calc(100vh-200px)] bg-gray-50 flex items-center justify-center px-4 py-4 md:py-25">
-      <div className="max-w-sm w-full">
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-5 text-center">
-          {/* Lock Icon */}
-          <div className="mx-auto w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mb-3">
-            <svg
-              className="w-6 h-6 text-yellow-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-              />
-            </svg>
-          </div>
-
-          {/* Title */}
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
-            Organizer Access Required
-          </h2>
-
-          {/* Message */}
-          <p className="text-gray-600 mb-5 leading-relaxed text-sm">
-            You need to have an organizer account to create events. Please upgrade your account to start creating amazing events.
-          </p>
-
-          {/* Action Buttons */}
-          <div className="space-y-2">
-            <button className="w-full bg-yellow-500 text-black py-2.5 px-4 rounded-lg font-medium hover:bg-yellow-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
-              <Link href="/upgrade-to-organizer">Upgrade to Organizer</Link>
-            </button>
-            <button className="w-full bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-              <Link href="/">Back to Home</Link>
-            </button>
-          </div>
-
-          {/* Additional Help */}
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-xs text-gray-500">
-              Need help?{" "}
-              <Link
-                href="/contact"
-                className="text-yellow-600 hover:text-yellow-800 font-medium"
+  if (
+    session?.user &&
+    !["ORGANIZER", "ADMIN"].includes(session.user.role as string)
+  ) {
+    return (
+      <div className="min-h-[calc(100vh-200px)] bg-gray-50 flex items-center justify-center px-4 py-4 md:py-25">
+        <div className="max-w-sm w-full">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-5 text-center">
+            {/* Lock Icon */}
+            <div className="mx-auto w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mb-3">
+              <svg
+                className="w-6 h-6 text-yellow-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                Contact support
-              </Link>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
+              </svg>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl font-bold text-gray-900 mb-2">
+              Organizer Access Required
+            </h2>
+
+            {/* Message */}
+            <p className="text-gray-600 mb-5 leading-relaxed text-sm">
+              You need to have an organizer account to create events. Please
+              upgrade your account to start creating amazing events.
             </p>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              <button className="w-full bg-yellow-500 text-black py-2.5 px-4 rounded-lg font-medium hover:bg-yellow-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
+                <Link href="/upgrade-to-organizer">Upgrade to Organizer</Link>
+              </button>
+              <button className="w-full bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                <Link href="/">Back to Home</Link>
+              </button>
+            </div>
+
+            {/* Additional Help */}
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <p className="text-xs text-gray-500">
+                Need help?{" "}
+                <Link
+                  href="/contact"
+                  className="text-yellow-600 hover:text-yellow-800 font-medium"
+                >
+                  Contact support
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   // Show error state if not authenticated
   if (!session?.user) {
@@ -941,10 +933,14 @@ const CreateEvent: React.FC = () => {
         {/* Navigation */}
         <div className="flex justify-between items-center">
           <button
-            onClick={prevStep}
-            disabled={!canGoPrev() || isLoading}
+            onClick={() => {
+              if (canGoBack && !isLoading) {
+                prevStep();
+              }
+            }}
+            disabled={!canGoBack || isLoading}
             className={`px-4 py-2 rounded-md ${
-              canGoPrev() && !isLoading
+              canGoBack && !isLoading
                 ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
             }`}
@@ -956,9 +952,9 @@ const CreateEvent: React.FC = () => {
             {currentStep < 4 ? (
               <button
                 onClick={nextStep}
-                disabled={!canGoNext() || isLoading}
+                disabled={!canProceed || isLoading}
                 className={`px-6 py-2 rounded-md font-medium ${
-                  canGoNext() && !isLoading
+                  canProceed && !isLoading
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
@@ -968,9 +964,9 @@ const CreateEvent: React.FC = () => {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={!canGoNext() || isLoading}
+                disabled={!canProceed || isLoading}
                 className={`px-6 py-2 rounded-md font-medium ${
-                  canGoNext() && !isLoading
+                  canProceed && !isLoading
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}

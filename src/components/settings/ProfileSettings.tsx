@@ -60,7 +60,7 @@ const limits = {
 };
 
 const ProfileSettings: React.FC = () => {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -77,6 +77,7 @@ const ProfileSettings: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {}
   );
+  const [originalRole, setOriginalRole] = useState<string>("USER");
 
   // Profile form state - initialize with default values
   const [profileData, setProfileData] = useState<ProfileData>({
@@ -271,6 +272,8 @@ const ProfileSettings: React.FC = () => {
         const data = await response.json();
 
         if (data.success) {
+          const userRole = data.data.role || session.user.role || "USER";
+          setOriginalRole(userRole);
           setProfileData({
             image: data.data.image || "",
             name: data.data.name || session.user.name || "",
@@ -279,11 +282,13 @@ const ProfileSettings: React.FC = () => {
             location: data.data.location || "",
             twitter: data.data.twitter || "",
             instagram: data.data.instagram || "",
-            role: data.data.role || session.user.role || "USER",
+            role: userRole,
           });
         }
       } catch (error) {
         console.error("Error fetching profile:", error);
+        const userRole = session.user.role || "USER";
+        setOriginalRole(userRole);
         // Set default values from session if API fails
         setProfileData({
           image: "",
@@ -293,7 +298,7 @@ const ProfileSettings: React.FC = () => {
           location: "",
           twitter: "",
           instagram: "",
-          role: session.user.role || "USER",
+          role: userRole,
         });
       } finally {
         setInitialLoading(false);
@@ -311,7 +316,6 @@ const ProfileSettings: React.FC = () => {
       debouncedValidateProfile();
     }
   }, [profileData, debouncedValidateProfile]);
-
 
   // Show error state if not authenticated
   if (!session?.user) {
@@ -343,7 +347,7 @@ const ProfileSettings: React.FC = () => {
 
             {/* Message */}
             <p className="text-gray-600 mb-5 leading-relaxed text-sm">
-              You need to be logged in to create an event. Please sign in to
+              You need to be logged in to access your profile. Please sign in to
               your account to continue.
             </p>
 
@@ -479,10 +483,35 @@ const ProfileSettings: React.FC = () => {
 
       // Clear validation errors on success
       setValidationErrors({});
+      // IMPORTANT: Refresh the session if role was updated
+      if (data.data.role && data.data.role !== session?.user?.role) {
+        try {
+          // Force session refresh by calling update
+          await update();
+
+          // Show success message for role change
+          setProfileMessage({
+            type: "success",
+            text: `Profile updated successfully! Your role has been changed to ${data.data.role}. The page will refresh to apply changes.`,
+          });
+
+          // Force page refresh after 2 seconds to ensure navbar updates
+          setTimeout(() => {
+            window.location.reload();
+          }, 2000);
+        } catch (error) {
+          console.error("Session update failed:", error);
+          // Still show success but mention refresh needed
+          setProfileMessage({
+            type: "success",
+            text: `Profile updated successfully! Please refresh the page to see your new role.`,
+          });
+        }
+      }
     } catch (error) {
       setProfileMessage({
         type: "error",
-        text: getErrorMessage(error), // Using getErrorMessage from utils
+        text: getErrorMessage(error),
       });
     } finally {
       setIsLoading(false);
@@ -775,8 +804,6 @@ const ProfileSettings: React.FC = () => {
                           <User className="w-12 h-12 lg:w-14 lg:h-14 text-gray-500" />
                         )}
                       </div>
-
-                      {/* Camera upload button - positioned outside the image container */}
                       <label className="absolute -bottom-0.5 -right-0.5 w-8 h-8 lg:w-9 lg:h-9 bg-white border-2 border-gray-300 text-gray-600 rounded-full cursor-pointer hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-lg flex items-center justify-center group z-10">
                         <Camera className="w-4 h-4 group-hover:text-gray-700 transition-colors" />
                         <input
@@ -950,18 +977,15 @@ const ProfileSettings: React.FC = () => {
                             ? "border-blue-500 bg-blue-50 shadow-md"
                             : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                         } ${
-                          profileData.role === "ORGANIZER" ||
-                          profileData.role === "ADMIN"
+                          // Only disable if the original role is ORGANIZER or ADMIN
+                          originalRole === "ORGANIZER" ||
+                          originalRole === "ADMIN"
                             ? "cursor-not-allowed opacity-60"
                             : ""
                         }`}
                         onClick={() => {
-                          if (
-                            !(
-                              profileData.role === "ORGANIZER" ||
-                              profileData.role === "ADMIN"
-                            )
-                          ) {
+                          // Only allow role change if original role is USER
+                          if (originalRole === "USER") {
                             handleProfileInputChange("role", "USER");
                           }
                         }}
@@ -1006,6 +1030,22 @@ const ProfileSettings: React.FC = () => {
                             </div>
                           </div>
                         </div>
+
+                        {/* Locked state indicator - only show if original role is ORGANIZER or ADMIN */}
+                        {(originalRole === "ORGANIZER" ||
+                          originalRole === "ADMIN") && (
+                          <div className="absolute top-2 right-2">
+                            <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
+                              <svg
+                                className="w-3 h-3 text-white"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
+                              </svg>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Organizer Role Card */}
@@ -1015,18 +1055,15 @@ const ProfileSettings: React.FC = () => {
                             ? "border-purple-500 bg-purple-50 shadow-md"
                             : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                         } ${
-                          profileData.role === "ORGANIZER" ||
-                          profileData.role === "ADMIN"
+                          // Only disable if the original role is ORGANIZER or ADMIN
+                          originalRole === "ORGANIZER" ||
+                          originalRole === "ADMIN"
                             ? "cursor-not-allowed opacity-60"
                             : ""
                         }`}
                         onClick={() => {
-                          if (
-                            !(
-                              profileData.role === "ORGANIZER" ||
-                              profileData.role === "ADMIN"
-                            )
-                          ) {
+                          // Only allow role change if original role is USER
+                          if (originalRole === "USER") {
                             handleProfileInputChange("role", "ORGANIZER");
                           }
                         }}
@@ -1080,9 +1117,9 @@ const ProfileSettings: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Locked state indicator */}
-                        {(profileData.role === "ORGANIZER" ||
-                          profileData.role === "ADMIN") && (
+                        {/* Locked state indicator - only show if original role is ORGANIZER or ADMIN */}
+                        {(originalRole === "ORGANIZER" ||
+                          originalRole === "ADMIN") && (
                           <div className="absolute top-2 right-2">
                             <div className="w-6 h-6 bg-gray-400 rounded-full flex items-center justify-center">
                               <svg
@@ -1231,7 +1268,7 @@ const ProfileSettings: React.FC = () => {
                       disabled={isLoading || !canSaveProfile()}
                       className={`w-full sm:w-auto px-4 lg:px-6 py-2 lg:py-3 rounded-lg font-medium transition-all text-sm lg:text-base ${
                         canSaveProfile() && !isLoading
-                          ? "bg-[#312c55] text-white hover:bg-black"
+                          ? "bg-[#312c55] text-white cursor-pointer hover:bg-black"
                           : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-50"
                       }`}
                     >

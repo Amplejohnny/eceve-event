@@ -392,7 +392,7 @@ export default function MyEvents(): React.JSX.Element {
 
             {/* Message */}
             <p className="text-gray-600 mb-5 leading-relaxed text-sm">
-              You need to be logged in to create an event. Please sign in to
+              You need to be logged in to check your tickets and your events created. Please sign in to
               your account to continue.
             </p>
 
