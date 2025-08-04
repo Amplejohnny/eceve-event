@@ -269,7 +269,7 @@ const CreateEvent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 lg:pb-24">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -361,7 +361,7 @@ const CreateEvent: React.FC = () => {
         </div>
 
         {/* Form Content */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-8 sm:mb-12 lg:mb-16">
           {/* Step 1: Edit */}
           {currentStep === 1 && (
             <div className="space-y-6">
@@ -964,61 +964,63 @@ const CreateEvent: React.FC = () => {
         </div>
 
         {/* Navigation */}
-        <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
-          {/* Go back / Cancel button */}
-          {currentStep > 1 ? (
-            <button
-              onClick={prevStep}
-              disabled={!canGoPrev() || isLoading}
-              className={`w-full sm:w-auto px-4 py-2 rounded-md text-sm font-medium ${
-                canGoPrev() && !isLoading
-                  ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              Go back
-            </button>
-          ) : (
-            <button
-              onClick={() => router.push("/")}
-              disabled={isLoading}
-              className={`w-full sm:w-auto px-4 py-2 rounded-md text-sm font-medium ${
-                !isLoading
-                  ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              Cancel
-            </button>
-          )}
-
-          {/* Continue / Publish button */}
-          <div className="flex space-x-3 w-full sm:w-auto">
-            {currentStep < 4 ? (
+        <div className="mt-6 sm:mt-8 lg:mt-12 mb-8 sm:mb-12">
+          <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+            {/* Go back / Cancel button */}
+            {currentStep > 1 ? (
               <button
-                onClick={nextStep}
-                disabled={!canGoNext() || isLoading}
-                className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
-                  canGoNext() && !isLoading
-                    ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                onClick={prevStep}
+                disabled={!canGoPrev() || isLoading}
+                className={`w-full sm:w-auto px-4 py-2 rounded-md text-sm font-medium ${
+                  canGoPrev() && !isLoading
+                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 }`}
               >
-                Save & Continue
+                Go back
               </button>
             ) : (
               <button
-                onClick={handleSubmit}
-                disabled={!canGoNext() || isLoading}
-                className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
-                  canGoNext() && !isLoading
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                onClick={() => router.push("/")}
+                disabled={isLoading}
+                className={`w-full sm:w-auto px-4 py-2 rounded-md text-sm font-medium ${
+                  !isLoading
+                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 }`}
               >
-                {isLoading ? "Publishing..." : "Publish Event"}
+                Cancel
               </button>
             )}
+
+            {/* Continue / Publish button */}
+            <div className="flex space-x-3 w-full sm:w-auto">
+              {currentStep < 4 ? (
+                <button
+                  onClick={nextStep}
+                  disabled={!canGoNext() || isLoading}
+                  className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
+                    canGoNext() && !isLoading
+                      ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  Save & Continue
+                </button>
+              ) : (
+                <button
+                  onClick={handleSubmit}
+                  disabled={!canGoNext() || isLoading}
+                  className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
+                    canGoNext() && !isLoading
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  {isLoading ? "Publishing..." : "Publish Event"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
