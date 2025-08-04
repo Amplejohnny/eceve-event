@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import { EventType, EventStatus } from "@/generated/prisma";
 
+const timeStringToMinutes = (timeString: string): number => {
+  const [hours, minutes] = timeString.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
 export interface TicketType {
   id: string;
   name: string;
@@ -119,6 +124,7 @@ interface EventStore {
 
   // Validation
   validateStep: (step: number) => boolean;
+  validateStepWithErrors: (step: number) => boolean;
   validateCurrentStep: () => boolean;
   setError: (field: string, error: string) => void;
   clearError: (field: string) => void;
@@ -231,8 +237,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
   },
 
   canGoNext: () => {
-    const { currentStep, validateCurrentStep } = get();
-    return validateCurrentStep() && currentStep < eventSteps.length;
+    const { currentStep, validateStep } = get();
+    return validateStep(currentStep) && currentStep < eventSteps.length;
   },
 
   canGoPrev: () => {
@@ -248,36 +254,36 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
   // Form data management
   updateFormData: (data: Partial<EventFormData>) => {
-  set((state) => {
-    const newFormData = { ...state.formData, ...data };
+    set((state) => {
+      const newFormData = { ...state.formData, ...data };
 
-    // Auto-generate slug when title changes - use inline slug generation
-    if (data.title && data.title !== state.formData.title) {
-      // Inline slug generation instead of calling get().generateSlug()
-      newFormData.slug = data.title
-        .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^[-]+|[-]+$/g, "")
-        .substring(0, 50);
-    }
-
-    // Auto-adjust ticket types when event type changes
-    if (data.eventType && data.eventType !== state.formData.eventType) {
-      if (data.eventType === EventType.FREE) {
-        newFormData.ticketTypes = state.formData.ticketTypes.map(
-          (ticket) => ({
-            ...ticket,
-            price: 0,
-          })
-        );
+      // Auto-generate slug when title changes - use inline slug generation
+      if (data.title && data.title !== state.formData.title) {
+        // Inline slug generation instead of calling get().generateSlug()
+        newFormData.slug = data.title
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, "")
+          .replace(/\s+/g, "-")
+          .replace(/-+/g, "-")
+          .replace(/^[-]+|[-]+$/g, "")
+          .substring(0, 50);
       }
-    }
 
-    return { formData: newFormData };
-  });
-},
+      // Auto-adjust ticket types when event type changes
+      if (data.eventType && data.eventType !== state.formData.eventType) {
+        if (data.eventType === EventType.FREE) {
+          newFormData.ticketTypes = state.formData.ticketTypes.map(
+            (ticket) => ({
+              ...ticket,
+              price: 0,
+            })
+          );
+        }
+      }
+
+      return { formData: newFormData };
+    });
+  },
 
   setFormData: (data: EventFormData) => set({ formData: data }),
 
@@ -355,6 +361,112 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
   // Validation
   validateStep: (step: number) => {
+    const { formData } = get();
+
+    switch (step) {
+      case 1: // Edit Step
+        if (!formData.title.trim()) {
+          return false;
+        }
+        if (!formData.category.trim()) {
+          return false;
+        }
+        if (!formData.date) {
+          return false;
+        }
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const eventDate = new Date(formData.date);
+        eventDate.setHours(0, 0, 0, 0);
+
+        if (eventDate < today) {
+          return false;
+        }
+        if (!formData.startTime.trim()) {
+          return false;
+        }
+
+        if (formData.endTime && formData.endTime.trim()) {
+          // Convert times to comparable format
+          const startTimeMinutes = timeStringToMinutes(formData.startTime);
+          const endTimeMinutes = timeStringToMinutes(formData.endTime);
+
+          if (endTimeMinutes <= startTimeMinutes) {
+            return false;
+          }
+        }
+
+        if (!formData.location.trim()) {
+          return false;
+        }
+        if (!formData.description.trim()) {
+          return false;
+        }
+        if (formData.tags.length === 0) {
+          return false;
+        }
+        break;
+
+      case 2: // Banner Step
+        if (formData.bannerImage) {
+          const allowedTypes = [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/webp",
+          ];
+          const maxSize = 5 * 1024 * 1024; // 5MB
+
+          // Check file type
+          if (!allowedTypes.includes(formData.bannerImage.type)) {
+            return false;
+          }
+
+          // Check file size
+          if (formData.bannerImage.size > maxSize) {
+            return false;
+          }
+        }
+        break;
+
+      case 3: // Ticketing Step
+        if (formData.eventType === EventType.PAID) {
+          const hasValidTickets = formData.ticketTypes.some(
+            (ticket) =>
+              ticket.name.trim() &&
+              ticket.price > 0 &&
+              (ticket.quantity === undefined || ticket.quantity > 0)
+          );
+          if (!hasValidTickets) {
+            return false;
+          }
+        }
+
+        for (const ticket of formData.ticketTypes) {
+          if (!ticket.name.trim()) {
+            return false;
+          }
+          if (ticket.quantity !== undefined && ticket.quantity <= 0) {
+            return false;
+          }
+          if (formData.eventType === EventType.PAID && ticket.price <= 0) {
+            return false;
+          }
+        }
+        break;
+
+      case 4: // Review Step
+        return (
+          get().validateStep(1) &&
+          get().validateStep(2) &&
+          get().validateStep(3)
+        );
+    }
+
+    return true;
+  },
+
+  validateStepWithErrors: (step: number) => {
     const { formData, setError, clearAllErrors } = get();
     clearAllErrors();
 
@@ -372,7 +484,12 @@ export const useEventStore = create<EventStore>((set, get) => ({
           setError("date", "Event date is required");
           return false;
         }
-        if (formData.date < new Date()) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const eventDate = new Date(formData.date);
+        eventDate.setHours(0, 0, 0, 0);
+
+        if (eventDate < today) {
           setError("date", "Event date cannot be in the past");
           return false;
         }
@@ -380,13 +497,14 @@ export const useEventStore = create<EventStore>((set, get) => ({
           setError("startTime", "Start time is required");
           return false;
         }
-        if (
-          formData.endTime &&
-          formData.endTime.trim() &&
-          formData.endTime <= formData.startTime
-        ) {
-          setError("endTime", "End time must be after start time");
-          return false;
+        if (formData.endTime && formData.endTime.trim()) {
+          const startTimeMinutes = timeStringToMinutes(formData.startTime);
+          const endTimeMinutes = timeStringToMinutes(formData.endTime);
+
+          if (endTimeMinutes <= startTimeMinutes) {
+            setError("endTime", "End time must be after start time");
+            return false;
+          }
         }
         if (!formData.location.trim()) {
           setError("location", "Event location is required");
@@ -470,9 +588,9 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
       case 4: // Review Step
         return (
-          get().validateStep(1) &&
-          get().validateStep(2) &&
-          get().validateStep(3)
+          get().validateStepWithErrors(1) &&
+          get().validateStepWithErrors(2) &&
+          get().validateStepWithErrors(3)
         );
     }
 
@@ -481,7 +599,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
   validateCurrentStep: () => {
     const { currentStep } = get();
-    return get().validateStep(currentStep);
+    return get().validateStepWithErrors(currentStep);
   },
 
   setError: (field: string, error: string) => {

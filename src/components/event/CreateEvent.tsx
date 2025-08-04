@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { useEventStore } from "@/store/eventStore";
 import { EventType } from "@/generated/prisma";
@@ -81,8 +81,8 @@ const CreateEvent: React.FC = () => {
 
   const [submitError, setSubmitError] = useState("");
   const [tagInput, setTagInput] = useState("");
-  const canProceed = useMemo(() => canGoNext(), [canGoNext]);
-  const canGoBack = useMemo(() => canGoPrev(), [canGoPrev]);
+  // const canProceed = useMemo(() => canGoNext(), [canGoNext]);
+  // const canGoBack = useMemo(() => canGoPrev(), [canGoPrev]);
 
   if (status === "loading") {
     return (
@@ -276,7 +276,7 @@ const CreateEvent: React.FC = () => {
           <div className="flex items-center mb-4">
             <ChevronLeft
               className="w-6 h-6 text-gray-600 mr-2 cursor-pointer"
-              onClick={() => router.back()}
+              onClick={() => router.push("/")}
             />
             <h1 className="text-2xl font-bold text-gray-900">
               Create a New Event
@@ -284,43 +284,79 @@ const CreateEvent: React.FC = () => {
           </div>
 
           {/* Progress Steps */}
-          <div className="flex items-center space-x-4 mb-8">
-            {[
-              { step: 1, label: "Edit" },
-              { step: 2, label: "Banner" },
-              { step: 3, label: "Ticketing" },
-              { step: 4, label: "Review" },
-            ].map((item, index) => (
-              <React.Fragment key={item.step}>
-                <div className="flex items-center">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                      currentStep >= item.step
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
-                  >
-                    {item.step}
+          {/* Progress Steps - Mobile Responsive */}
+          <div className="mb-8">
+            {/* Mobile: Show only current step */}
+            <div className="block sm:hidden">
+              <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+                <span className="text-sm text-gray-600">
+                  Step {currentStep} of 4
+                </span>
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-medium">
+                    {currentStep}
                   </div>
-                  <span
-                    className={`ml-2 text-sm ${
-                      currentStep >= item.step
-                        ? "text-blue-600"
-                        : "text-gray-500"
-                    }`}
-                  >
-                    {item.label}
+                  <span className="text-sm font-medium text-blue-600">
+                    {
+                      [
+                        { step: 1, label: "Edit" },
+                        { step: 2, label: "Banner" },
+                        { step: 3, label: "Ticketing" },
+                        { step: 4, label: "Review" },
+                      ].find((item) => item.step === currentStep)?.label
+                    }
                   </span>
                 </div>
-                {index < 3 && (
-                  <div
-                    className={`flex-1 h-0.5 ${
-                      currentStep > item.step ? "bg-blue-600" : "bg-gray-200"
-                    }`}
-                  />
-                )}
-              </React.Fragment>
-            ))}
+              </div>
+
+              {/* Progress bar */}
+              <div className="mt-3 bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out"
+                  style={{ width: `${(currentStep / 4) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Desktop: Show all steps */}
+            <div className="hidden sm:flex items-center space-x-2 lg:space-x-4">
+              {[
+                { step: 1, label: "Edit" },
+                { step: 2, label: "Banner" },
+                { step: 3, label: "Ticketing" },
+                { step: 4, label: "Review" },
+              ].map((item, index) => (
+                <React.Fragment key={item.step}>
+                  <div className="flex items-center">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                        currentStep >= item.step
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200 text-gray-600"
+                      }`}
+                    >
+                      {item.step}
+                    </div>
+                    <span
+                      className={`ml-2 text-xs sm:text-sm font-medium ${
+                        currentStep >= item.step
+                          ? "text-blue-600"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {item.label}
+                    </span>
+                  </div>
+                  {index < 3 && (
+                    <div
+                      className={`flex-1 h-0.5 min-w-[20px] sm:min-w-[40px] ${
+                        currentStep > item.step ? "bg-blue-600" : "bg-gray-200"
+                      }`}
+                    />
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -342,7 +378,6 @@ const CreateEvent: React.FC = () => {
                       value={formData.title}
                       onChange={(e) => {
                         updateFormData({ title: e.target.value });
-                        clearError("title");
                       }}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.title ? "border-red-500" : "border-gray-300"
@@ -361,7 +396,6 @@ const CreateEvent: React.FC = () => {
                       value={formData.category}
                       onChange={(e) => {
                         updateFormData({ category: e.target.value });
-                        clearError("category");
                       }}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.category ? "border-red-500" : "border-gray-300"
@@ -385,7 +419,6 @@ const CreateEvent: React.FC = () => {
                       value={formData.description}
                       onChange={(e) => {
                         updateFormData({ description: e.target.value });
-                        clearError("description");
                       }}
                       rows={4}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -417,7 +450,6 @@ const CreateEvent: React.FC = () => {
                       }
                       onChange={(e) => {
                         updateFormData({ date: new Date(e.target.value) });
-                        clearError("date");
                       }}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.date ? "border-red-500" : "border-gray-300"
@@ -434,7 +466,6 @@ const CreateEvent: React.FC = () => {
                       value={formData.startTime}
                       onChange={(e) => {
                         updateFormData({ startTime: e.target.value });
-                        clearError("startTime");
                       }}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.startTime ? "border-red-500" : "border-gray-300"
@@ -451,7 +482,6 @@ const CreateEvent: React.FC = () => {
                       value={formData.endTime}
                       onChange={(e) => {
                         updateFormData({ endTime: e.target.value });
-                        clearError("endTime");
                       }}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.endTime ? "border-red-500" : "border-gray-300"
@@ -474,7 +504,6 @@ const CreateEvent: React.FC = () => {
                       value={formData.location}
                       onChange={(e) => {
                         updateFormData({ location: e.target.value });
-                        clearError("location");
                       }}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                         errors.location ? "border-red-500" : "border-gray-300"
@@ -551,7 +580,7 @@ const CreateEvent: React.FC = () => {
                         <button
                           key={tag}
                           onClick={() => addTag(tag)}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                          className="inline-flex cursor-pointer items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                         >
                           <Plus className="w-3 h-3 mr-1" />
                           {tag}
@@ -577,7 +606,7 @@ const CreateEvent: React.FC = () => {
                       <button
                         onClick={handleAddCustomTag}
                         disabled={!tagInput.trim()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
                       >
                         Add
                       </button>
@@ -613,7 +642,6 @@ const CreateEvent: React.FC = () => {
                         title="delete EventBanner"
                         onClick={() => {
                           updateFormData({ bannerImage: null, imageUrl: "" });
-                          clearError("bannerImage");
                         }}
                         className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                       >
@@ -637,7 +665,6 @@ const CreateEvent: React.FC = () => {
                             updateFormData({ bannerImage: file });
                             const url = URL.createObjectURL(file);
                             updateFormData({ imageUrl: url });
-                            clearError("bannerImage");
                           }
                         }}
                         className="block mx-auto"
@@ -725,10 +752,12 @@ const CreateEvent: React.FC = () => {
                                 updateTicketType(ticket.id, {
                                   name: e.target.value,
                                 });
-                                clearError(`ticket_${ticket.id}_name`);
                               }}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="e.g., General Admission"
+                              placeholder="e.g., Standard"
+                              onFocus={() =>
+                                clearError(`ticket_${ticket.id}_name`)
+                              }
                             />
                             {renderError(`ticket_${ticket.id}_name`)}
                           </div>
@@ -749,12 +778,14 @@ const CreateEvent: React.FC = () => {
                                     updateTicketType(ticket.id, {
                                       price: Number(e.target.value),
                                     });
-                                    clearError(`ticket_${ticket.id}_price`);
                                   }}
                                   className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                                   placeholder="0.00"
                                   min="0"
                                   step="0.01"
+                                  onFocus={() =>
+                                    clearError(`ticket_${ticket.id}_price`)
+                                  }
                                 />
                               </div>
                               {renderError(`ticket_${ticket.id}_price`)}
@@ -776,11 +807,13 @@ const CreateEvent: React.FC = () => {
                                 updateTicketType(ticket.id, {
                                   quantity: value,
                                 });
-                                clearError(`ticket_${ticket.id}_quantity`);
                               }}
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               placeholder="Unlimited"
                               min="1"
+                              onFocus={() =>
+                                clearError(`ticket_${ticket.id}_quantity`)
+                              }
                             />
                             {renderError(`ticket_${ticket.id}_quantity`)}
                           </div>
@@ -931,31 +964,43 @@ const CreateEvent: React.FC = () => {
         </div>
 
         {/* Navigation */}
-        <div className="flex justify-between items-center">
-          <button
-            onClick={() => {
-              if (canGoBack && !isLoading) {
-                prevStep();
-              }
-            }}
-            disabled={!canGoBack || isLoading}
-            className={`px-4 py-2 rounded-md ${
-              canGoBack && !isLoading
-                ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed"
-            }`}
-          >
-            Go back
-          </button>
+        <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
+          {/* Go back / Cancel button */}
+          {currentStep > 1 ? (
+            <button
+              onClick={prevStep}
+              disabled={!canGoPrev() || isLoading}
+              className={`w-full sm:w-auto px-4 py-2 rounded-md text-sm font-medium ${
+                canGoPrev() && !isLoading
+                  ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              Go back
+            </button>
+          ) : (
+            <button
+              onClick={() => router.push("/")}
+              disabled={isLoading}
+              className={`w-full sm:w-auto px-4 py-2 rounded-md text-sm font-medium ${
+                !isLoading
+                  ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              }`}
+            >
+              Cancel
+            </button>
+          )}
 
-          <div className="flex space-x-3">
+          {/* Continue / Publish button */}
+          <div className="flex space-x-3 w-full sm:w-auto">
             {currentStep < 4 ? (
               <button
                 onClick={nextStep}
-                disabled={!canProceed || isLoading}
-                className={`px-6 py-2 rounded-md font-medium ${
-                  canProceed && !isLoading
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                disabled={!canGoNext() || isLoading}
+                className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
+                  canGoNext() && !isLoading
+                    ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
@@ -964,9 +1009,9 @@ const CreateEvent: React.FC = () => {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={!canProceed || isLoading}
-                className={`px-6 py-2 rounded-md font-medium ${
-                  canProceed && !isLoading
+                disabled={!canGoNext() || isLoading}
+                className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
+                  canGoNext() && !isLoading
                     ? "bg-blue-600 text-white hover:bg-blue-700"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
