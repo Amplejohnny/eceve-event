@@ -23,6 +23,7 @@ import {
 } from "@/lib/utils";
 import Link from "next/link";
 import Image from "next/image";
+import ProfileSettingsSkeleton from "./ProfileSettingsSkeleton";
 
 interface ProfileData {
   image: string;
@@ -59,7 +60,11 @@ const limits = {
   instagram: 50,
 };
 
-const ProfileSettings: React.FC = () => {
+interface ProfileSettingsProps {
+  initialData?: ProfileData | null;
+}
+
+const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
   const { data: session, status, update } = useSession();
   const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -77,18 +82,34 @@ const ProfileSettings: React.FC = () => {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {}
   );
-  const [originalRole, setOriginalRole] = useState<string>("USER");
+  const [originalRole, setOriginalRole] = useState<string>(
+    () => initialData?.role || session?.user?.role || "USER"
+  );
 
   // Profile form state - initialize with default values
-  const [profileData, setProfileData] = useState<ProfileData>({
-    image: "",
-    name: "",
-    bio: "",
-    website: "",
-    location: "",
-    twitter: "",
-    instagram: "",
-    role: "USER",
+  const [profileData, setProfileData] = useState<ProfileData>(() => {
+    if (initialData) {
+      return {
+        image: initialData.image || "",
+        name: initialData.name || session?.user?.name || "",
+        bio: initialData.bio || "",
+        website: initialData.website || "",
+        location: initialData.location || "",
+        twitter: initialData.twitter || "",
+        instagram: initialData.instagram || "",
+        role: initialData.role || "USER",
+      };
+    }
+    return {
+      image: "",
+      name: session?.user?.name || "",
+      bio: "",
+      website: "",
+      location: "",
+      twitter: "",
+      instagram: "",
+      role: "USER",
+    };
   });
 
   // Password form state
@@ -99,8 +120,6 @@ const ProfileSettings: React.FC = () => {
   });
 
   // Loading state for initial data fetch
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [initialLoading, setInitialLoading] = useState(true);
   const [passwordStrength, setPasswordStrength] = useState({
     score: 0,
     criteria: {
@@ -112,6 +131,10 @@ const ProfileSettings: React.FC = () => {
     },
   });
   const [passwordsMatch, setPasswordsMatch] = useState<boolean | null>(null);
+
+  const isDataLoaded = Boolean(
+    session?.user && (profileData.name || session.user.name) && profileData.role
+  );
 
   // Enhanced validation functions using utils
   const validateProfileData = useCallback((): ValidationErrors => {
@@ -258,52 +281,7 @@ const ProfileSettings: React.FC = () => {
 
   // Fetch user profile data when session is available
   useEffect(() => {
-    const fetchUserProfile = async (): Promise<void> => {
-      if (!session?.user) return;
-
-      try {
-        setInitialLoading(true);
-        const response = await fetch("/api/profile");
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch profile");
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-          const userRole = data.data.role || session.user.role || "USER";
-          setOriginalRole(userRole);
-          setProfileData({
-            image: data.data.image || "",
-            name: data.data.name || session.user.name || "",
-            bio: data.data.bio || "",
-            website: data.data.website || "",
-            location: data.data.location || "",
-            twitter: data.data.twitter || "",
-            instagram: data.data.instagram || "",
-            role: userRole,
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        const userRole = session.user.role || "USER";
-        setOriginalRole(userRole);
-        // Set default values from session if API fails
-        setProfileData({
-          image: "",
-          name: session.user.name || "",
-          bio: "",
-          website: "",
-          location: "",
-          twitter: "",
-          instagram: "",
-          role: userRole,
-        });
-      } finally {
-        setInitialLoading(false);
-      }
-    };
+    const fetchUserProfile = async (): Promise<void> => {};
 
     if (status === "authenticated") {
       fetchUserProfile();
@@ -316,6 +294,21 @@ const ProfileSettings: React.FC = () => {
       debouncedValidateProfile();
     }
   }, [profileData, debouncedValidateProfile]);
+
+  useEffect(() => {
+    if (session?.user && !initialData) {
+      setProfileData(prev => ({
+        ...prev,
+        name: prev.name || session.user.name || "",
+        role: prev.role || session.user.role || "USER",
+      }));
+      setOriginalRole(session.user.role || "USER");
+    }
+  }, [session, initialData]);
+
+  if (status === "loading" || !isDataLoaded) {
+    return <ProfileSettingsSkeleton />;
+  }
 
   // Show error state if not authenticated
   if (!session?.user) {
