@@ -241,7 +241,7 @@ const Navbar: React.FC = () => {
               </div>
             </div>
             <div className="hidden md:block">
-              <div className="animate-pulse bg-gray-600 h-6 w-32 rounded"></div>
+              <div className="animate-pulse bg-gray-600 h-6 w-8 rounded-4xl"></div>
             </div>
           </div>
         </div>

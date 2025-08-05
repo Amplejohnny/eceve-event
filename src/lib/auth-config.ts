@@ -26,7 +26,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as Adapter,
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: 10 * 24 * 60 * 60,
   },
   providers: [
     CredentialsProvider({

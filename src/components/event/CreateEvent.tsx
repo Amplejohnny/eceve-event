@@ -9,6 +9,7 @@ import {
   Upload,
   Plus,
   X,
+  CalendarDays,
   MapPin,
   Calendar,
   Clock,
@@ -18,6 +19,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { Listbox, ListboxButton, ListboxOptions } from "@headlessui/react";
+import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
 
 const CATEGORIES = [
   "Entertainment",
@@ -283,7 +286,6 @@ const CreateEvent: React.FC = () => {
             </h1>
           </div>
 
-          {/* Progress Steps */}
           {/* Progress Steps - Mobile Responsive */}
           <div className="mb-8">
             {/* Mobile: Show only current step */}
@@ -389,25 +391,54 @@ const CreateEvent: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Event Category *
+                      Event Category <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      title="category"
+                    <Listbox
                       value={formData.category}
-                      onChange={(e) => {
-                        updateFormData({ category: e.target.value });
-                      }}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.category ? "border-red-500" : "border-gray-300"
-                      }`}
+                      onChange={(val) => updateFormData({ category: val })}
                     >
-                      <option value="">Please select one</option>
-                      {CATEGORIES.map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                    </select>
+                      <div className="relative">
+                        <ListboxButton
+                          className={`w-full rounded-md border bg-white py-2.5 pl-4 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm ${
+                            errors.category
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                        >
+                          <span className="block truncate">
+                            {formData.category || "Please select one"}
+                          </span>
+                          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                            <ChevronUpDownIcon className="h-4 w-4 text-gray-400" />
+                          </span>
+                        </ListboxButton>
+
+                        <ListboxOptions className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                          {CATEGORIES.map((category) => (
+                            <Listbox.Option
+                              key={category}
+                              value={category}
+                              className={({ active }) =>
+                                `cursor-pointer select-none px-4 py-2 ${
+                                  active
+                                    ? "bg-blue-100 text-blue-900"
+                                    : "text-gray-900"
+                                }`
+                              }
+                            >
+                              {({ selected }) => (
+                                <div className="flex justify-between items-center">
+                                  <span className="truncate">{category}</span>
+                                  {selected && (
+                                    <CheckIcon className="h-4 w-4 text-blue-600" />
+                                  )}
+                                </div>
+                              )}
+                            </Listbox.Option>
+                          ))}
+                        </ListboxOptions>
+                      </div>
+                    </Listbox>
                     {renderError("category")}
                   </div>
 
@@ -434,59 +465,77 @@ const CreateEvent: React.FC = () => {
               </div>
 
               <div>
-                <h2 className="text-lg font-semibold mb-4">Date & Time</h2>
+                <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                  Date & Time
+                </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Date Picker */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Event Date *
+                      Event Date <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="date"
-                      value={
-                        formData.date
-                          ? formData.date.toISOString().split("T")[0]
-                          : ""
-                      }
-                      onChange={(e) => {
-                        updateFormData({ date: new Date(e.target.value) });
-                      }}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.date ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={
+                          formData.date
+                            ? formData.date.toISOString().split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          updateFormData({ date: new Date(e.target.value) })
+                        }
+                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.date ? "border-red-500" : "border-gray-300"
+                        }`}
+                      />
+                      <CalendarDays className="w-4 h-4 text-gray-400 absolute left-3 top-2.5 pointer-events-none" />
+                    </div>
                     {renderError("date")}
                   </div>
+
+                  {/* Start Time */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Time *
+                      Start Time <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="time"
-                      value={formData.startTime}
-                      onChange={(e) => {
-                        updateFormData({ startTime: e.target.value });
-                      }}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.startTime ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
+                    <div className="relative">
+                      <input
+                        type="time"
+                        value={formData.startTime}
+                        onChange={(e) =>
+                          updateFormData({ startTime: e.target.value })
+                        }
+                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.startTime
+                            ? "border-red-500"
+                            : "border-gray-300"
+                        }`}
+                      />
+                      <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-2.5 pointer-events-none" />
+                    </div>
                     {renderError("startTime")}
                   </div>
+
+                  {/* End Time */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       End Time
                     </label>
-                    <input
-                      type="time"
-                      value={formData.endTime}
-                      onChange={(e) => {
-                        updateFormData({ endTime: e.target.value });
-                      }}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.endTime ? "border-red-500" : "border-gray-300"
-                      }`}
-                    />
+                    <div className="relative">
+                      <input
+                        type="time"
+                        value={formData.endTime}
+                        onChange={(e) =>
+                          updateFormData({ endTime: e.target.value })
+                        }
+                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          errors.endTime ? "border-red-500" : "border-gray-300"
+                        }`}
+                      />
+                      <Clock className="w-4 h-4 text-gray-400 absolute left-3 top-2.5 pointer-events-none" />
+                    </div>
                     {renderError("endTime")}
                   </div>
                 </div>
