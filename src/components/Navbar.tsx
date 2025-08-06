@@ -228,6 +228,7 @@ const Navbar: React.FC = () => {
       <nav className="bg-gray-800 border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
+            {/* Logo and Brand - Same as normal state */}
             <div className="flex items-center">
               <div className="flex items-center space-x-2">
                 <Image
@@ -240,8 +241,28 @@ const Navbar: React.FC = () => {
                 <span className="text-white text-xl font-bold">Comforeve</span>
               </div>
             </div>
+
+            {/* Desktop Navigation Skeleton - Centered */}
+            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
+              <div className="flex items-baseline space-x-8">
+                {/* Navigation links skeleton */}
+                <div className="animate-pulse bg-gray-600 h-5 w-12 rounded"></div>
+                <div className="animate-pulse bg-gray-600 h-5 w-14 rounded"></div>
+                <div className="animate-pulse bg-gray-600 h-5 w-20 rounded"></div>
+              </div>
+            </div>
+
+            {/* Desktop Auth/Profile Skeleton */}
             <div className="hidden md:block">
-              <div className="animate-pulse bg-gray-600 h-6 w-8 rounded-4xl"></div>
+              <div className="flex items-center space-x-4">
+                {/* Profile circle skeleton with proper dimensions */}
+                <div className="animate-pulse bg-gray-600 h-8 w-8 rounded-full"></div>
+              </div>
+            </div>
+
+            {/* Mobile menu button skeleton */}
+            <div className="md:hidden">
+              <div className="animate-pulse bg-gray-600 h-6 w-6 rounded"></div>
             </div>
           </div>
         </div>

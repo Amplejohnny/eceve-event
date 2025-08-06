@@ -138,7 +138,7 @@ const CreateEvent: React.FC = () => {
             {/* Action Buttons */}
             <div className="space-y-2">
               <button className="w-full bg-yellow-500 text-black py-2.5 px-4 rounded-lg font-medium hover:bg-yellow-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2">
-                <Link href="/upgrade-to-organizer">Upgrade to Organizer</Link>
+                <Link href="/profile-settings">Upgrade to Organizer</Link>
               </button>
               <button className="w-full bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
                 <Link href="/">Back to Home</Link>
@@ -199,7 +199,7 @@ const CreateEvent: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="space-y-2">
-              <button className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              <button className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 focus:ring-offset-2">
                 <Link href="/auth/login">Sign In</Link>
               </button>
               <button className="w-full bg-gray-100 text-gray-700 py-2.5 px-4 rounded-lg font-medium hover:bg-gray-200 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
@@ -272,7 +272,7 @@ const CreateEvent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 lg:pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-yellow-50 py-6 px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 lg:pb-24">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -290,15 +290,15 @@ const CreateEvent: React.FC = () => {
           <div className="mb-8">
             {/* Mobile: Show only current step */}
             <div className="block sm:hidden">
-              <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+              <div className="flex items-center justify-between bg-white/80 backdrop-blur-sm rounded-lg p-3 border border-gray-200">
                 <span className="text-sm text-gray-600">
                   Step {currentStep} of 4
                 </span>
                 <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-medium">
+                  <div className="w-6 h-6 bg-yellow-600 text-white rounded-full flex items-center justify-center text-xs font-medium">
                     {currentStep}
                   </div>
-                  <span className="text-sm font-medium text-blue-600">
+                  <span className="text-sm font-medium text-yellow-600">
                     {
                       [
                         { step: 1, label: "Edit" },
@@ -314,7 +314,7 @@ const CreateEvent: React.FC = () => {
               {/* Progress bar */}
               <div className="mt-3 bg-gray-200 rounded-full h-2">
                 <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-in-out"
+                  className="bg-gradient-to-r from-yellow-400 to-yellow-500 h-2 rounded-full transition-all duration-300 ease-in-out"
                   style={{ width: `${(currentStep / 4) * 100}%` }}
                 ></div>
               </div>
@@ -333,7 +333,7 @@ const CreateEvent: React.FC = () => {
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                         currentStep >= item.step
-                          ? "bg-blue-600 text-white"
+                          ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900"
                           : "bg-gray-200 text-gray-600"
                       }`}
                     >
@@ -342,7 +342,7 @@ const CreateEvent: React.FC = () => {
                     <span
                       className={`ml-2 text-xs sm:text-sm font-medium ${
                         currentStep >= item.step
-                          ? "text-blue-600"
+                          ? "text-yellow-600 font-semibold"
                           : "text-gray-500"
                       }`}
                     >
@@ -352,7 +352,9 @@ const CreateEvent: React.FC = () => {
                   {index < 3 && (
                     <div
                       className={`flex-1 h-0.5 min-w-[20px] sm:min-w-[40px] ${
-                        currentStep > item.step ? "bg-blue-600" : "bg-gray-200"
+                        currentStep > item.step
+                          ? "bg-gradient-to-r from-yellow-400 to-yellow-500"
+                          : "bg-gray-200"
                       }`}
                     />
                   )}
@@ -363,7 +365,7 @@ const CreateEvent: React.FC = () => {
         </div>
 
         {/* Form Content */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8 sm:mb-12 lg:mb-16">
+        <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 p-6 mb-8 sm:mb-12 lg:mb-16">
           {/* Step 1: Edit */}
           {currentStep === 1 && (
             <div className="space-y-6">
@@ -373,7 +375,7 @@ const CreateEvent: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Event Title *
+                      Event Title <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -381,7 +383,7 @@ const CreateEvent: React.FC = () => {
                       onChange={(e) => {
                         updateFormData({ title: e.target.value });
                       }}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                         errors.title ? "border-red-500" : "border-gray-300"
                       }`}
                       placeholder="Enter event title"
@@ -399,10 +401,10 @@ const CreateEvent: React.FC = () => {
                     >
                       <div className="relative">
                         <ListboxButton
-                          className={`w-full rounded-md border bg-white py-2.5 pl-4 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 sm:text-sm ${
+                          className={`w-full rounded-md border bg-white py-2.5 pl-4 pr-10 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm ${
                             errors.category
                               ? "border-red-500"
-                              : "border-gray-300"
+                              : "border-gray-300 hover:border-yellow-300"
                           }`}
                         >
                           <span className="block truncate">
@@ -444,7 +446,7 @@ const CreateEvent: React.FC = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Event Description *
+                      Event Description <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       value={formData.description}
@@ -452,7 +454,7 @@ const CreateEvent: React.FC = () => {
                         updateFormData({ description: e.target.value });
                       }}
                       rows={4}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                         errors.description
                           ? "border-red-500"
                           : "border-gray-300"
@@ -486,7 +488,7 @@ const CreateEvent: React.FC = () => {
                         onChange={(e) =>
                           updateFormData({ date: new Date(e.target.value) })
                         }
-                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                           errors.date ? "border-red-500" : "border-gray-300"
                         }`}
                       />
@@ -507,7 +509,7 @@ const CreateEvent: React.FC = () => {
                         onChange={(e) =>
                           updateFormData({ startTime: e.target.value })
                         }
-                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                           errors.startTime
                             ? "border-red-500"
                             : "border-gray-300"
@@ -530,7 +532,7 @@ const CreateEvent: React.FC = () => {
                         onChange={(e) =>
                           updateFormData({ endTime: e.target.value })
                         }
-                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                           errors.endTime ? "border-red-500" : "border-gray-300"
                         }`}
                       />
@@ -546,7 +548,7 @@ const CreateEvent: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location/City *
+                      Location/City <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -554,7 +556,7 @@ const CreateEvent: React.FC = () => {
                       onChange={(e) => {
                         updateFormData({ location: e.target.value });
                       }}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                         errors.location ? "border-red-500" : "border-gray-300"
                       }`}
                       placeholder="Enter city or location"
@@ -571,7 +573,7 @@ const CreateEvent: React.FC = () => {
                       onChange={(e) =>
                         updateFormData({ venue: e.target.value })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                       placeholder="Enter venue name"
                     />
                   </div>
@@ -586,7 +588,7 @@ const CreateEvent: React.FC = () => {
                     onChange={(e) =>
                       updateFormData({ address: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                     placeholder="Enter full address"
                   />
                 </div>
@@ -601,14 +603,14 @@ const CreateEvent: React.FC = () => {
                       {formData.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                          className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-800 border border-yellow-200"
                         >
                           <Tag className="w-3 h-3 mr-1" />
                           {tag}
                           <button
                             title="removeTag"
                             onClick={() => removeTag(tag)}
-                            className="ml-2 text-blue-600 hover:text-blue-800"
+                            className="ml-2 text-yellow-600 hover:text-yellow-800"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -629,7 +631,7 @@ const CreateEvent: React.FC = () => {
                         <button
                           key={tag}
                           onClick={() => addTag(tag)}
-                          className="inline-flex cursor-pointer items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+                          className="inline-flex cursor-pointer items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-yellow-100 hover:text-yellow-800 hover:border-yellow-200 border border-transparent transition-all duration-200"
                         >
                           <Plus className="w-3 h-3 mr-1" />
                           {tag}
@@ -649,13 +651,13 @@ const CreateEvent: React.FC = () => {
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
                         onKeyPress={handleKeyPress}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                         placeholder="Enter custom tag"
                       />
                       <button
                         onClick={handleAddCustomTag}
                         disabled={!tagInput.trim()}
-                        className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                        className="px-4 py-2 cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-md hover:from-yellow-500 hover:to-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
                       >
                         Add
                       </button>
@@ -738,8 +740,8 @@ const CreateEvent: React.FC = () => {
                   <div
                     className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
                       formData.eventType === EventType.PAID
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-300 hover:border-gray-400"
+                        ? "border-yellow-500 bg-yellow-50 shadow-md"
+                        : "border-gray-300 hover:border-yellow-300 hover:bg-yellow-50/30"
                     }`}
                     onClick={() =>
                       updateFormData({ eventType: EventType.PAID })
@@ -757,8 +759,8 @@ const CreateEvent: React.FC = () => {
                   <div
                     className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
                       formData.eventType === EventType.FREE
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-300 hover:border-gray-400"
+                        ? "border-yellow-500 bg-yellow-50 shadow-md"
+                        : "border-gray-300 hover:border-yellow-300 hover:bg-yellow-50/30"
                     }`}
                     onClick={() =>
                       updateFormData({ eventType: EventType.FREE })
@@ -802,7 +804,7 @@ const CreateEvent: React.FC = () => {
                                   name: e.target.value,
                                 });
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                               placeholder="e.g., Standard"
                               onFocus={() =>
                                 clearError(`ticket_${ticket.id}_name`)
@@ -828,7 +830,7 @@ const CreateEvent: React.FC = () => {
                                       price: Number(e.target.value),
                                     });
                                   }}
-                                  className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                                   placeholder="0.00"
                                   min="0"
                                   step="0.01"
@@ -857,7 +859,7 @@ const CreateEvent: React.FC = () => {
                                   quantity: value,
                                 });
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                               placeholder="Unlimited"
                               min="1"
                               onFocus={() =>
@@ -882,7 +884,7 @@ const CreateEvent: React.FC = () => {
 
                     <button
                       onClick={addTicketType}
-                      className="flex items-center text-blue-600 hover:text-blue-800"
+                      className="flex items-center text-yellow-600 hover:text-yellow-800 font-medium transition-colors duration-200"
                     >
                       <Plus className="w-4 h-4 mr-1" />
                       Add another ticket type
@@ -902,7 +904,7 @@ const CreateEvent: React.FC = () => {
                   Review Your Event
                 </h2>
 
-                <div className="bg-gray-50 rounded-lg p-6">
+                <div className="bg-gradient-to-br from-gray-50 to-yellow-50/30 rounded-lg p-6 border border-gray-200">
                   {/* Event Banner */}
                   {formData.imageUrl && (
                     <div className="mb-6">
@@ -952,7 +954,7 @@ const CreateEvent: React.FC = () => {
                           {formData.tags.map((tag) => (
                             <span
                               key={tag}
-                              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800"
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800 border border-yellow-200"
                             >
                               <Tag className="w-3 h-3 mr-1" />
                               {tag}
@@ -1022,7 +1024,7 @@ const CreateEvent: React.FC = () => {
                 disabled={!canGoPrev() || isLoading}
                 className={`w-full sm:w-auto px-4 py-2 rounded-md text-sm font-medium ${
                   canGoPrev() && !isLoading
-                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                    ? "bg-white text-gray-700 hover:bg-yellow-50 hover:text-yellow-800 cursor-pointer border border-gray-300 hover:border-yellow-300"
                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 }`}
               >
@@ -1034,7 +1036,7 @@ const CreateEvent: React.FC = () => {
                 disabled={isLoading}
                 className={`w-full sm:w-auto px-4 py-2 rounded-md text-sm font-medium ${
                   !isLoading
-                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer"
+                    ? "bg-white text-gray-700 hover:bg-yellow-50 hover:text-yellow-800 cursor-pointer border border-gray-300 hover:border-yellow-300"
                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 }`}
               >
@@ -1050,7 +1052,7 @@ const CreateEvent: React.FC = () => {
                   disabled={!canGoNext() || isLoading}
                   className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
                     canGoNext() && !isLoading
-                      ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                      ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-500 hover:to-yellow-600 cursor-pointer font-medium shadow-md"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
                 >
@@ -1062,7 +1064,7 @@ const CreateEvent: React.FC = () => {
                   disabled={!canGoNext() || isLoading}
                   className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
                     canGoNext() && !isLoading
-                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-500 hover:to-yellow-600 cursor-pointer font-medium shadow-md"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}
                 >
