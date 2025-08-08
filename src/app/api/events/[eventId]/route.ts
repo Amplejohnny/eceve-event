@@ -51,6 +51,17 @@ const isValidUUID = (id: string): boolean => {
   );
 };
 
+// Check if it's a Prisma cuid format
+const isValidCuid = (id: string): boolean => {
+  // Prisma cuid format: starts with 'c' followed by 24 alphanumeric characters
+  return /^c[a-z0-9]{24}$/i.test(id);
+};
+
+// Check if it looks like an ID (UUID or cuid) vs a slug
+const looksLikeId = (identifier: string): boolean => {
+  return isValidUUID(identifier) || isValidCuid(identifier);
+};
+
 const transformEventData = (event: EventWithRelations) => {
   return {
     id: event.id,
@@ -95,12 +106,17 @@ export async function GET(
       return createErrorResponse("Event ID is required", 400);
     }
 
-    // Check if eventId is a valid UUID or slug
-    const isUUID = isValidUUID(eventId);
+    console.log("Received eventId:", eventId); // Debug log
+    console.log("Is UUID:", isValidUUID(eventId)); // Debug log
+    console.log("Is CUID:", isValidCuid(eventId)); // Debug log
+    console.log("Looks like ID:", looksLikeId(eventId)); // Debug log
+
+    // Determine if this is an ID (UUID/cuid) or a slug
+    const searchById = looksLikeId(eventId);
 
     // Fetch event by ID or slug with all related data
     const event = await db.event.findUnique({
-      where: isUUID ? { id: eventId } : { slug: eventId },
+      where: searchById ? { id: eventId } : { slug: eventId },
       include: {
         ticketTypes: {
           orderBy: { price: "asc" },
@@ -128,8 +144,14 @@ export async function GET(
     });
 
     if (!event) {
-      return createErrorResponse("Event not found", 404);
+      const errorMessage = searchById
+        ? "Event not found with the provided ID"
+        : "Event not found with the provided slug";
+      console.log("Event not found. Search criteria:", { eventId, searchById }); // Debug log
+      return createErrorResponse(errorMessage, 404);
     }
+
+    console.log("Event found:", event.id, event.title); // Debug log
 
     // Transform the data to ensure consistent structure
     const transformedEvent = transformEventData(event);
@@ -137,6 +159,7 @@ export async function GET(
     return NextResponse.json(transformedEvent);
   } catch (error) {
     console.error("Error fetching event:", error);
+    console.error("EventId that caused error:", eventId); // Debug log
 
     // More specific error handling
     if (error instanceof Error) {
@@ -154,3 +177,8 @@ export async function GET(
     return createErrorResponse("Internal server error", 500);
   }
 }
+
+
+
+
+// https://www.comforeve.com/events/we-are-coming

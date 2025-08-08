@@ -85,9 +85,7 @@ const CreateEvent: React.FC = () => {
 
   const [submitError, setSubmitError] = useState("");
   const [tagInput, setTagInput] = useState("");
-  // const canProceed = useMemo(() => canGoNext(), [canGoNext]);
-  // const canGoBack = useMemo(() => canGoPrev(), [canGoPrev]);
-
+  
   if (status === "loading") {
     return (
       <div className="p-4 max-w-6xl mx-auto">
