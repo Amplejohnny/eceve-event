@@ -75,6 +75,7 @@ const CreateEvent: React.FC = () => {
     validateCurrentStep,
     canGoNext,
     canGoPrev,
+    canPublish,
     nextStep,
     prevStep,
     createEvent,
@@ -1141,9 +1142,9 @@ const CreateEvent: React.FC = () => {
               ) : (
                 <button
                   onClick={handleSubmit}
-                  disabled={!canGoNext() || isLoading}
+                  disabled={!canPublish() || isLoading}
                   className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
-                    canGoNext() && !isLoading
+                    canPublish() && !isLoading
                       ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-500 hover:to-yellow-600 cursor-pointer font-medium shadow-md"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}

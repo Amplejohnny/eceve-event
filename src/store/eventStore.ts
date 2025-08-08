@@ -107,6 +107,7 @@ interface EventStore {
   prevStep: () => void;
   canGoNext: () => boolean;
   canGoPrev: () => boolean;
+  canPublish: () => boolean;
 
   // Form data management
   updateFormData: (data: Partial<EventFormData>) => void;
@@ -244,6 +245,17 @@ export const useEventStore = create<EventStore>((set, get) => ({
   canGoPrev: () => {
     const { currentStep } = get();
     return currentStep > 1;
+  },
+
+  canPublish: () => {
+    const { currentStep, validateStep } = get();
+    // For the final step (step 4), validate all previous steps
+    if (currentStep === 4) {
+      return (
+        validateStep(1) && validateStep(2) && validateStep(3) && validateStep(4)
+      );
+    }
+    return false;
   },
 
   setCurrentEvent: (event: EventData | null) => set({ currentEvent: event }),
