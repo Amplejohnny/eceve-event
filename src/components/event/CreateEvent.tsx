@@ -471,11 +471,11 @@ const CreateEvent: React.FC = () => {
                   Date & Time
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Date Picker */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Event Start Date */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Event Date <span className="text-red-500">*</span>
+                      Event Start Date <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -495,6 +495,40 @@ const CreateEvent: React.FC = () => {
                       <CalendarDays className="w-4 h-4 text-gray-400 absolute left-3 top-2.5 pointer-events-none" />
                     </div>
                     {renderError("date")}
+                  </div>
+
+                  {/* Event End Date */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Event End Date
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={
+                          formData.endDate
+                            ? formData.endDate.toISOString().split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          updateFormData({
+                            endDate: e.target.value
+                              ? new Date(e.target.value)
+                              : null,
+                          })
+                        }
+                        min={
+                          formData.date
+                            ? formData.date.toISOString().split("T")[0]
+                            : ""
+                        }
+                        className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
+                          errors.endDate ? "border-red-500" : "border-gray-300"
+                        }`}
+                      />
+                      <CalendarDays className="w-4 h-4 text-gray-400 absolute left-3 top-2.5 pointer-events-none" />
+                    </div>
+                    {renderError("endDate")}
                   </div>
 
                   {/* Start Time */}
@@ -565,7 +599,7 @@ const CreateEvent: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Venue (Optional)
+                      Venue
                     </label>
                     <input
                       type="text"
@@ -580,7 +614,7 @@ const CreateEvent: React.FC = () => {
                 </div>
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Address (Optional)
+                    Address
                   </label>
                   <input
                     type="text"
@@ -650,7 +684,7 @@ const CreateEvent: React.FC = () => {
                         type="text"
                         value={tagInput}
                         onChange={(e) => setTagInput(e.target.value)}
-                        onKeyPress={handleKeyPress}
+                        onKeyDown={handleKeyPress}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                         placeholder="Enter custom tag"
                       />
@@ -676,9 +710,16 @@ const CreateEvent: React.FC = () => {
                 <h2 className="text-lg font-semibold mb-4">Event Banner</h2>
 
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center ${
-                    errors.bannerImage ? "border-red-500" : "border-gray-300"
+                  className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${
+                    errors.bannerImage
+                      ? "border-red-500 bg-red-50/30"
+                      : "border-gray-300 hover:border-yellow-400 hover:bg-yellow-50/30"
                   }`}
+                  onClick={() => {
+                    if (!formData.imageUrl) {
+                      document.getElementById("banner-upload-input")?.click();
+                    }
+                  }}
                 >
                   {formData.imageUrl ? (
                     <div className="relative">
@@ -690,11 +731,12 @@ const CreateEvent: React.FC = () => {
                         height={240}
                       />
                       <button
-                        title="delete EventBanner"
-                        onClick={() => {
+                        title="Delete Event Banner"
+                        onClick={(e) => {
+                          e.stopPropagation();
                           updateFormData({ bannerImage: null, imageUrl: "" });
                         }}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        className="absolute cursor-pointer top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -702,27 +744,31 @@ const CreateEvent: React.FC = () => {
                   ) : (
                     <div>
                       <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600 mb-2">Choose file</p>
+                      <p className="text-gray-600 mb-2">Click to choose file</p>
                       <p className="text-sm text-gray-500 mb-4">
                         Upload images must be at least 1792 pixels wide by 1024
                         pixels high. Valid file formats: JPG, PNG, WebP.
                       </p>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            updateFormData({ bannerImage: file });
-                            const url = URL.createObjectURL(file);
-                            updateFormData({ imageUrl: url });
-                          }
-                        }}
-                        className="block mx-auto"
-                      />
                     </div>
                   )}
                 </div>
+
+                {/* Hidden file input */}
+                <input
+                  id="banner-upload-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      updateFormData({ bannerImage: file });
+                      const url = URL.createObjectURL(file);
+                      updateFormData({ imageUrl: url });
+                    }
+                  }}
+                  className="hidden"
+                />
+
                 {renderError("bannerImage")}
               </div>
             </div>
@@ -813,21 +859,26 @@ const CreateEvent: React.FC = () => {
                             {renderError(`ticket_${ticket.id}_name`)}
                           </div>
 
+                          {/* Price Input - Only show for PAID events */}
                           {formData.eventType === EventType.PAID && (
                             <div className="w-32">
                               <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Price *
                               </label>
                               <div className="relative">
-                                <span className="absolute left-3 top-2 text-gray-500">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                                   ₦
                                 </span>
                                 <input
                                   type="number"
-                                  value={ticket.price}
+                                  value={ticket.price === 0 ? "" : ticket.price}
                                   onChange={(e) => {
+                                    const value =
+                                      e.target.value === ""
+                                        ? 0
+                                        : Number(e.target.value);
                                     updateTicketType(ticket.id, {
-                                      price: Number(e.target.value),
+                                      price: value,
                                     });
                                   }}
                                   className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
@@ -840,6 +891,20 @@ const CreateEvent: React.FC = () => {
                                 />
                               </div>
                               {renderError(`ticket_${ticket.id}_price`)}
+                            </div>
+                          )}
+
+                          {/* Free Event Price Display */}
+                          {formData.eventType === EventType.FREE && (
+                            <div className="w-32">
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Price
+                              </label>
+                              <div className="flex items-center h-10 px-3 py-2 border border-gray-200 rounded-md bg-gray-50">
+                                <span className="text-green-600 font-medium text-sm">
+                                  FREE
+                                </span>
+                              </div>
                             </div>
                           )}
 
@@ -871,9 +936,9 @@ const CreateEvent: React.FC = () => {
 
                           {formData.ticketTypes.length > 1 && (
                             <button
-                              title="ticketQuantity"
+                              title="Remove ticket type"
                               onClick={() => removeTicketType(ticket.id)}
-                              className="mt-6 text-red-500 hover:text-red-700"
+                              className="mt-6 text-red-500 hover:text-red-700 transition-colors duration-200"
                             >
                               <X className="w-5 h-5" />
                             </button>
@@ -927,24 +992,39 @@ const CreateEvent: React.FC = () => {
                       <p className="text-gray-600">{formData.category}</p>
                     </div>
 
-                    <div className="flex items-center text-gray-600">
+                    {/* Date & Time */}
+                    <div className="flex flex-wrap items-center text-gray-600">
                       <Calendar className="w-4 h-4 mr-2" />
                       <span>{formData.date?.toLocaleDateString()}</span>
+                      {formData.endDate && <span className="mx-2">-</span>}
+                      {formData.endDate && (
+                        <span>{formData.endDate.toLocaleDateString()}</span>
+                      )}
+
                       {formData.startTime && (
                         <>
                           <Clock className="w-4 h-4 ml-4 mr-2" />
                           <span>{formData.startTime}</span>
                           {formData.endTime && (
-                            <span> - {formData.endTime}</span>
+                            <>
+                              <span className="mx-2">-</span>
+                              <span>{formData.endTime}</span>
+                            </>
                           )}
                         </>
                       )}
                     </div>
 
-                    <div className="flex items-center text-gray-600">
+                    {/* Location */}
+                    <div className="flex flex-wrap items-center text-gray-600 mt-1">
                       <MapPin className="w-4 h-4 mr-2" />
                       <span>{formData.location}</span>
-                      {formData.venue && <span> • {formData.venue}</span>}
+                      {formData.venue && (
+                        <>
+                          <span className="mx-2">-</span>
+                          <span>{formData.venue}</span>
+                        </>
+                      )}
                     </div>
 
                     {formData.tags.length > 0 && (
