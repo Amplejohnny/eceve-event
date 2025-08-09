@@ -2,7 +2,6 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
-// Types
 interface EventWithRelations {
   id: string;
   title: string;
@@ -53,7 +52,6 @@ const isValidUUID = (id: string): boolean => {
 
 // Check if it's a Prisma cuid format
 const isValidCuid = (id: string): boolean => {
-  // Prisma cuid format: starts with 'c' followed by 24 alphanumeric characters
   return /^c[a-z0-9]{24}$/i.test(id);
 };
 
@@ -85,7 +83,7 @@ const transformEventData = (event: EventWithRelations) => {
       id: ticket.id,
       name: ticket.name,
       price: ticket.price,
-      quantity: ticket.quantity, // Keep as-is, let client handle null
+      quantity: ticket.quantity,
     })),
     organizer: event.organizer || null,
     createdAt: event.createdAt.toISOString(),
@@ -106,10 +104,10 @@ export async function GET(
       return createErrorResponse("Event ID is required", 400);
     }
 
-    console.log("Received eventId:", eventId); // Debug log
-    console.log("Is UUID:", isValidUUID(eventId)); // Debug log
-    console.log("Is CUID:", isValidCuid(eventId)); // Debug log
-    console.log("Looks like ID:", looksLikeId(eventId)); // Debug log
+    console.log("Received eventId:", eventId);
+    console.log("Is UUID:", isValidUUID(eventId));
+    console.log("Is CUID:", isValidCuid(eventId));
+    console.log("Looks like ID:", looksLikeId(eventId));
 
     // Determine if this is an ID (UUID/cuid) or a slug
     const searchById = looksLikeId(eventId);
