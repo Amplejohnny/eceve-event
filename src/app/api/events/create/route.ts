@@ -5,6 +5,27 @@ import { authOptions } from "@/lib/auth-config";
 import { createEvent } from "@/lib/event";
 import { EventType } from "@/generated/prisma";
 import { z } from "zod";
+import { db } from "@/lib/db";
+
+const generateUniqueSlug = async (baseTitle: string): Promise<string> => {
+  const baseSlug = baseTitle
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^[-]+|[-]+$/g, "")
+    .substring(0, 45);
+
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (await db.event.findUnique({ where: { slug } })) {
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+
+  return slug;
+};
 
 const createEventSchema = z.object({
   title: z.string().min(1, "Event title is required"),
@@ -37,7 +58,6 @@ const createEventSchema = z.object({
       })
     )
     .min(1, "At least one ticket type is required"),
-  slug: z.string().min(1, "Event slug is required"),
 });
 
 export async function POST(request: NextRequest) {
@@ -138,13 +158,15 @@ export async function POST(request: NextRequest) {
       quantity: ticket.quantity || null,
     }));
 
-    // Use the event library function
+    // Generate unique slug
+    const uniqueSlug = await generateUniqueSlug(validatedData.title);
+
     const event = await createEvent({
       ...validatedData,
+      slug: uniqueSlug,
       ticketTypes: transformedTicketTypes,
       organizerId: session.user.id,
     });
-
     return NextResponse.json(event, { status: 201 });
   } catch (error) {
     console.error("Error creating event:", error);

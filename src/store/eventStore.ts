@@ -269,18 +269,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
     set((state) => {
       const newFormData = { ...state.formData, ...data };
 
-      // Auto-generate slug when title changes - use inline slug generation
-      if (data.title && data.title !== state.formData.title) {
-        // Inline slug generation instead of calling get().generateSlug()
-        newFormData.slug = data.title
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/-+/g, "-")
-          .replace(/^[-]+|[-]+$/g, "")
-          .substring(0, 50);
-      }
-
       // Auto-adjust ticket types when event type changes
       if (data.eventType && data.eventType !== state.formData.eventType) {
         if (data.eventType === EventType.FREE) {
@@ -680,7 +668,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         tags: formData.tags,
         category: formData.category,
         imageUrl: formData.imageUrl,
-        slug: formData.slug,
         ticketTypes: formData.ticketTypes.map(({ id: _id, ...ticket }) => ({
           name: ticket.name,
           price: ticket.price,
