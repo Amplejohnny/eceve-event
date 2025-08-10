@@ -85,7 +85,9 @@ const CreateEvent: React.FC = () => {
 
   const [submitError, setSubmitError] = useState("");
   const [tagInput, setTagInput] = useState("");
-  
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState("");
+
   if (status === "loading") {
     return (
       <div className="p-4 max-w-6xl mx-auto">
@@ -224,6 +226,98 @@ const CreateEvent: React.FC = () => {
     );
   }
 
+  const handleImageUpload = async (file: File) => {
+    setIsUploadingImage(true);
+    setImageUploadError("");
+
+    try {
+      // Validate file on frontend first
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        throw new Error(
+          "Invalid file type. Only JPEG, PNG, and WebP are allowed."
+        );
+      }
+
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        throw new Error("File size too large. Maximum size is 5MB.");
+      }
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append("image", file);
+
+      console.log("Uploading image...", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+
+      // Upload to server
+      const response = await fetch("/api/upload/image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to upload image");
+      }
+
+      const result = await response.json();
+      console.log("Image upload successful:", result);
+
+      if (!result.imageUrl) {
+        throw new Error("No image URL returned from server");
+      }
+
+      // Update form data with the server URL
+      updateFormData({
+        bannerImage: file,
+        imageUrl: result.imageUrl,
+      });
+
+      // Clear any previous errors
+      clearError("bannerImage");
+
+      // Return the URL for use in handleSubmit
+      return result.imageUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "Failed to upload image";
+      setImageUploadError(errorMessage);
+
+      // Clear the form data on error
+      updateFormData({
+        bannerImage: null,
+        imageUrl: "",
+      });
+
+      throw error; // Re-throw so handleSubmit can catch it
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    await handleImageUpload(file);
+
+    // Reset the input so the same file can be selected again if needed
+    event.target.value = "";
+  };
+
   const handleSubmit = async (): Promise<void> => {
     if (!validateCurrentStep()) {
       return;
@@ -231,11 +325,33 @@ const CreateEvent: React.FC = () => {
 
     try {
       setSubmitError("");
+
+      let finalImageUrl = formData.imageUrl;
+
+      // Check if we have a banner image that needs to be uploaded
+      if (formData.bannerImage && !formData.imageUrl) {
+        console.log("Uploading banner image before creating event...");
+        finalImageUrl = await handleImageUpload(formData.bannerImage);
+        console.log("Image uploaded, got URL:", finalImageUrl);
+      }
+
+      // Log the final form data for debugging
+      console.log("Creating event with data:", {
+        title: formData.title,
+        category: formData.category,
+        hasImage: !!formData.imageUrl,
+        imageUrl: formData.imageUrl || "NOT_SET",
+        ticketTypes: formData.ticketTypes.length,
+      });
+
       const result = (await createEvent()) as CreateEventResult;
-      // Pass event ID via URL parameter
+      console.log("Event created successfully:", result);
+
+      // Navigate to success page
       router.push(`/event-success?eventId=${result.id}`);
       resetForm();
     } catch (error) {
+      console.error("Error in handleSubmit:", error);
       setSubmitError(
         error instanceof Error
           ? error.message
@@ -710,35 +826,68 @@ const CreateEvent: React.FC = () => {
 
                 <div
                   className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${
-                    errors.bannerImage
+                    imageUploadError
                       ? "border-red-500 bg-red-50/30"
-                      : "border-gray-300 hover:border-yellow-400 hover:bg-yellow-50/30"
+                      : formData.imageUrl
+                      ? "border-green-500 bg-green-50/30"
+                      : "border-gray-300 hover:border-yellow-400 hover:bg-yellow-50/30 cursor-pointer"
                   }`}
                   onClick={() => {
-                    if (!formData.imageUrl) {
+                    if (!formData.imageUrl && !isUploadingImage) {
                       document.getElementById("banner-upload-input")?.click();
                     }
                   }}
                 >
-                  {formData.imageUrl ? (
+                  {isUploadingImage ? (
+                    <div className="space-y-4">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto"></div>
+                      <p className="text-yellow-600 font-medium">
+                        Uploading image...
+                      </p>
+                    </div>
+                  ) : formData.imageUrl ? (
                     <div className="relative">
                       <Image
                         src={formData.imageUrl}
                         alt="Event banner"
-                        className="max-w-full h-48 object-cover mx-auto rounded-lg"
+                        className="max-w-full h-48 object-cover mx-auto rounded-lg shadow-md"
                         width={800}
                         height={240}
+                        onError={(_e) => {
+                          console.error(
+                            "Failed to load uploaded image:",
+                            formData.imageUrl
+                          );
+                          setImageUploadError(
+                            "Failed to load uploaded image. Please try uploading again."
+                          );
+                          updateFormData({ imageUrl: "", bannerImage: null });
+                        }}
                       />
                       <button
-                        title="Delete Event Banner"
+                        title="Remove Event Banner"
                         onClick={(e) => {
                           e.stopPropagation();
                           updateFormData({ bannerImage: null, imageUrl: "" });
+                          setImageUploadError("");
                         }}
-                        className="absolute cursor-pointer top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        className="absolute cursor-pointer top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors shadow-md"
                       >
                         <X className="w-4 h-4" />
                       </button>
+                      <div className="mt-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            document
+                              .getElementById("banner-upload-input")
+                              ?.click();
+                          }}
+                          className="text-yellow-600 hover:text-yellow-800 font-medium text-sm"
+                        >
+                          Replace Image
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div>
@@ -746,7 +895,8 @@ const CreateEvent: React.FC = () => {
                       <p className="text-gray-600 mb-2">Click to choose file</p>
                       <p className="text-sm text-gray-500 mb-4">
                         Upload images must be at least 1792 pixels wide by 1024
-                        pixels high. Valid file formats: JPG, PNG, WebP.
+                        pixels high. Valid file formats: JPG, PNG, WebP. Max
+                        size: 5MB.
                       </p>
                     </div>
                   )}
@@ -756,17 +906,27 @@ const CreateEvent: React.FC = () => {
                 <input
                   id="banner-upload-input"
                   type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      updateFormData({ bannerImage: file });
-                      const url = URL.createObjectURL(file);
-                      updateFormData({ imageUrl: url });
-                    }
-                  }}
+                  accept="image/jpeg,image/jpg,image/png,image/webp"
+                  onChange={handleFileChange}
+                  disabled={isUploadingImage}
                   className="hidden"
                 />
+
+                {/* Error Display */}
+                {imageUploadError && (
+                  <div className="mt-4 flex items-center text-red-600 text-sm bg-red-50 p-3 rounded-md border border-red-200">
+                    <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                    {imageUploadError}
+                  </div>
+                )}
+
+                {/* Success message */}
+                {formData.imageUrl && !imageUploadError && (
+                  <div className="mt-4 flex items-center text-green-600 text-sm bg-green-50 p-3 rounded-md border border-green-200">
+                    <CheckIcon className="w-4 h-4 mr-2 flex-shrink-0" />
+                    Image uploaded successfully!
+                  </div>
+                )}
 
                 {renderError("bannerImage")}
               </div>

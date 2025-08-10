@@ -123,6 +123,9 @@ interface EventStore {
   removeTicketType: (id: string) => void;
   updateTicketType: (id: string, updates: Partial<TicketType>) => void;
 
+  //Image validation
+  uploadEventImage: (file: File) => Promise<string>;
+
   // Validation
   validateStep: (step: number) => boolean;
   validateStepWithErrors: (step: number) => boolean;
@@ -357,6 +360,39 @@ export const useEventStore = create<EventStore>((set, get) => ({
         ),
       },
     }));
+  },
+
+  uploadEventImage: async (file: File): Promise<string> => {
+    const { setLoading, setError } = get();
+
+    try {
+      setLoading(true);
+
+      const formData = new FormData();
+      formData.append("image", file);
+
+      const response = await fetch("/api/upload/image", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to upload image");
+      }
+
+      const result = await response.json();
+      return result.imageUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      setError(
+        "imageUpload",
+        error instanceof Error ? error.message : "Failed to upload image"
+      );
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   },
 
   // Validation

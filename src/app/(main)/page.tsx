@@ -47,16 +47,16 @@ interface EventCardProps {
 }
 
 // Nigerian major cities for trendy events
-  const majorNigerianCities = [
-    "Lagos",
-    "Abuja",
-    "Kano",
-    "Rivers",
-    "Port Harcourt",
-    "Ibadan",
-    "Oyo",
-    "Ogun",
-  ];
+const majorNigerianCities = [
+  "Lagos",
+  "Abuja",
+  "Kano",
+  "Rivers",
+  "Port Harcourt",
+  "Ibadan",
+  "Oyo",
+  "Ogun",
+];
 
 const EventCard: React.FC<EventCardProps> = ({
   event,
@@ -105,7 +105,7 @@ const EventCard: React.FC<EventCardProps> = ({
     >
       <div className="h-48 relative overflow-hidden">
         <Image
-          src={event.imageUrl || "/api/placeholder/300/200"}
+          src={event.imageUrl || ""}
           alt={event.title}
           fill
           className="object-cover"
@@ -218,7 +218,7 @@ const HomePage: React.FC = () => {
     { key: "free", label: "Free" },
     { key: "paid", label: "Paid" },
   ];
-  
+
   // Check if screen is mobile
   useEffect(() => {
     const checkMobile = () => {

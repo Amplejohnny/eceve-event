@@ -306,6 +306,8 @@ const EventSlugPage = (): JSX.Element => {
                     <Calendar className="w-4 h-4" />
                     <span>
                       {currentEvent.date && formatDate(currentEvent.date)}
+                      {currentEvent.endDate &&
+                        ` - ${formatDate(currentEvent.endDate)}`}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600 mt-1">
