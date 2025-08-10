@@ -2,7 +2,7 @@
 
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Head from "next/head";
 import Image from "next/image";
@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import { FaXTwitter, FaFacebook, FaLinkedin } from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
-
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -41,7 +40,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       if (err instanceof Error) {
-        console.error("Error fetching event:", err);
+        console.error("Error copying link:", err);
       } else {
         console.error("Unexpected error:", err);
       }
@@ -147,8 +146,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
 const EventSlugPage = (): JSX.Element => {
   const { data: session } = useSession();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const eventId = searchParams.get("eventId");
+  const params = useParams();
+  const slug = params?.slug as string;
   const { loadEvent, currentEvent, isLoading } = useEventStore();
 
   const [isFavorite, setIsFavorite] = useState(false);
@@ -156,25 +155,31 @@ const EventSlugPage = (): JSX.Element => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!eventId) {
+    if (!slug) {
       router.push("/");
       return;
     }
 
+    console.log("Loading event with slug:", slug); // Debug log
+
     const fetchEvent = async (): Promise<void> => {
       try {
-        await loadEvent(eventId);
+        await loadEvent(slug);
       } catch (err) {
         if (err instanceof Error) {
           console.error("Error fetching event:", err);
         } else {
           console.error("Unexpected error:", err);
         }
+        // On error, redirect to home after a delay to show the error
+        setTimeout(() => {
+          router.push("/");
+        }, 3000);
       }
     };
 
     fetchEvent();
-  }, [eventId, router, loadEvent]);
+  }, [slug, router, loadEvent]);
 
   const handleFavoriteToggle = (): void => {
     if (!session?.user) {
@@ -237,6 +242,9 @@ const EventSlugPage = (): JSX.Element => {
           <p className="text-gray-600 mb-4">
             The event you're looking for doesn't exist.
           </p>
+          {slug && (
+            <p className="text-xs text-gray-400 mb-4">Searched for: {slug}</p>
+          )}
           <button
             onClick={() => router.push("/")}
             className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
@@ -247,6 +255,7 @@ const EventSlugPage = (): JSX.Element => {
       </div>
     );
   }
+
   return (
     <>
       <Head>
@@ -361,7 +370,7 @@ const EventSlugPage = (): JSX.Element => {
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
-                      {currentEvent.organizer?.name || "City Youth Movement"}
+                      {currentEvent.organizer?.name || ""}
                     </p>
                   </div>
                 </div>

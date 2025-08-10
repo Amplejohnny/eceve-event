@@ -175,8 +175,3 @@ export async function GET(
     return createErrorResponse("Internal server error", 500);
   }
 }
-
-
-
-
-// https://www.comforeve.com/events/we-are-coming

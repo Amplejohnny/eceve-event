@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     const transformedTicketTypes = validatedData.ticketTypes.map((ticket) => ({
       name: ticket.name,
       price: ticket.price,
-      quantity: ticket.quantity || null, // NULL means unlimited
+      quantity: ticket.quantity || null,
     }));
 
     // Use the event library function
