@@ -311,7 +311,16 @@ const CreateEvent: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    await handleImageUpload(file);
+    try {
+      const imageUrl = await handleImageUpload(file);
+      // Make sure both bannerImage and imageUrl are set
+      updateFormData({
+        bannerImage: file,
+        imageUrl: imageUrl,
+      });
+    } catch (error) {
+      console.error("Failed to upload image:", error);
+    }
 
     event.target.value = "";
   };
@@ -324,12 +333,11 @@ const CreateEvent: React.FC = () => {
     try {
       setSubmitError("");
 
-      let finalImageUrl = formData.imageUrl;
-
+      // Only upload if we have a banner image but no imageUrl
       if (formData.bannerImage && !formData.imageUrl) {
         console.log("Uploading banner image before creating event...");
-        finalImageUrl = await handleImageUpload(formData.bannerImage);
-        console.log("Image uploaded, got URL:", finalImageUrl);
+        const finalImageUrl = await handleImageUpload(formData.bannerImage);
+        updateFormData({ imageUrl: finalImageUrl });
       }
 
       // Log the final form data for debugging
@@ -830,7 +838,7 @@ const CreateEvent: React.FC = () => {
                       : "border-gray-300 hover:border-yellow-400 hover:bg-yellow-50/30 cursor-pointer"
                   }`}
                   onClick={() => {
-                    if (!formData.imageUrl && !isUploadingImage) {
+                    if (!isUploadingImage) {
                       document.getElementById("banner-upload-input")?.click();
                     }
                   }}
@@ -867,6 +875,7 @@ const CreateEvent: React.FC = () => {
                           e.stopPropagation();
                           updateFormData({ bannerImage: null, imageUrl: "" });
                           setImageUploadError("");
+                          clearError("bannerImage");
                         }}
                         className="absolute cursor-pointer top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors shadow-md"
                       >
@@ -1135,7 +1144,23 @@ const CreateEvent: React.FC = () => {
                         className="w-full h-48 object-cover rounded-lg"
                         width={800}
                         height={240}
+                        onError={(_e) => {
+                          console.error(
+                            "Failed to load image in review:",
+                            formData.imageUrl
+                          );
+                        }}
                       />
+                    </div>
+                  )}
+
+                  {/* Show placeholder if no image */}
+                  {!formData.imageUrl && (
+                    <div className="mb-6 bg-gray-100 rounded-lg h-48 flex items-center justify-center">
+                      <div className="text-center text-gray-500">
+                        <Upload className="w-8 h-8 mx-auto mb-2" />
+                        <p className="text-sm">No banner image uploaded</p>
+                      </div>
                     </div>
                   )}
 

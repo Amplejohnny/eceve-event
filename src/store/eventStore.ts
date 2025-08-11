@@ -462,6 +462,11 @@ export const useEventStore = create<EventStore>((set, get) => ({
           if (formData.bannerImage.size > maxSize) {
             return false;
           }
+
+          // If we have a bannerImage, we should also have imageUrl (uploaded successfully)
+          if (!formData.imageUrl) {
+            return false;
+          }
         }
         break;
 
@@ -580,6 +585,15 @@ export const useEventStore = create<EventStore>((set, get) => ({
             setError("bannerImage", "Image size must be less than 5MB");
             return false;
           }
+
+          // Check if upload completed successfully
+          if (!formData.imageUrl) {
+            setError(
+              "bannerImage",
+              "Image upload not completed. Please wait for upload to finish."
+            );
+            return false;
+          }
         }
         break;
 
@@ -690,6 +704,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
     setLoading(true);
 
     try {
+      console.log("Creating event with imageUrl:", formData.imageUrl);
+
       const eventData = {
         title: formData.title,
         description: formData.description,
@@ -703,13 +719,15 @@ export const useEventStore = create<EventStore>((set, get) => ({
         address: formData.address,
         tags: formData.tags,
         category: formData.category,
-        imageUrl: formData.imageUrl,
+        imageUrl: formData.imageUrl || undefined,
         ticketTypes: formData.ticketTypes.map(({ id: _id, ...ticket }) => ({
           name: ticket.name,
           price: ticket.price,
           ...(ticket.quantity !== undefined && { quantity: ticket.quantity }),
         })),
       };
+
+      console.log("Sending event data:", eventData);
 
       const response = await fetch("/api/events/create", {
         method: "POST",
