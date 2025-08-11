@@ -294,7 +294,6 @@ const CreateEvent: React.FC = () => {
         error instanceof Error ? error.message : "Failed to upload image";
       setImageUploadError(errorMessage);
 
-      // Clear the form data on error
       updateFormData({
         bannerImage: null,
         imageUrl: "",
@@ -314,7 +313,6 @@ const CreateEvent: React.FC = () => {
 
     await handleImageUpload(file);
 
-    // Reset the input so the same file can be selected again if needed
     event.target.value = "";
   };
 
@@ -328,7 +326,6 @@ const CreateEvent: React.FC = () => {
 
       let finalImageUrl = formData.imageUrl;
 
-      // Check if we have a banner image that needs to be uploaded
       if (formData.bannerImage && !formData.imageUrl) {
         console.log("Uploading banner image before creating event...");
         finalImageUrl = await handleImageUpload(formData.bannerImage);
