@@ -106,6 +106,21 @@ export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
   return `https://ui-avatars.com/api/?name=pp&background=6B7280&color=fff&size=128`;
 }
 
+// Image utilities
+export function getEventImageUrl(imageUrl?: string): string {
+  if (imageUrl && imageUrl.trim() !== "") return imageUrl;
+  return `https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D`;
+}
+
+
+//To call different fallback images
+export function getEventImage(
+  imageUrl?: string | null,
+  fallbackUrl: string = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&h=400&fit=crop"
+): string {
+  return imageUrl && imageUrl.trim() !== "" ? imageUrl : fallbackUrl;
+}
+
 export function slugify(text: string): string {
   return text
     .toLowerCase()
@@ -234,14 +249,6 @@ export function createRateLimiter(windowMs: number, maxRequests: number) {
       requests.delete(identifier);
     },
   };
-}
-
-// Image utilities
-export function getEventImageUrl(imageUrl?: string): string {
-  if (imageUrl) return imageUrl;
-
-  // Default event placeholder image
-  return `https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D`;
 }
 
 // Location utilities

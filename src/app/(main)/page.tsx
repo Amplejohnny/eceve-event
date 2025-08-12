@@ -13,6 +13,7 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEventStore } from "@/store/eventStore";
+import { getEventImageUrl } from "@/lib/utils";
 
 interface EventData {
   id: string;
@@ -105,7 +106,7 @@ const EventCard: React.FC<EventCardProps> = ({
     >
       <div className="h-48 relative overflow-hidden">
         <Image
-          src={event.imageUrl || ""}
+          src={getEventImageUrl(event.imageUrl)}
           alt={event.title}
           fill
           className="object-cover"

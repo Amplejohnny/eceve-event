@@ -19,7 +19,7 @@ import {
   Edit,
 } from "lucide-react";
 import { FaXTwitter, FaFacebook } from "react-icons/fa6";
-import { getEventUrl } from "@/lib/utils";
+import { getEventImageUrl, getEventUrl } from "@/lib/utils";
 import Image from "next/image";
 
 interface EventSuccessPageProps {
@@ -229,7 +229,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
           {event.imageUrl && (
             <div className="relative h-64 bg-gradient-to-r from-blue-500 to-purple-600">
               <Image
-                src={event.imageUrl}
+                src={getEventImageUrl(event.imageUrl)}
                 alt={event.title}
                 className="w-full h-full object-cover"
                 loading="lazy"

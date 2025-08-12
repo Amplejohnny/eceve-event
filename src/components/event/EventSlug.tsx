@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { FaXTwitter, FaFacebook, FaLinkedin } from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
+import { getEventImageUrl } from "@/lib/utils";
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -273,7 +274,7 @@ const EventSlugPage = (): JSX.Element => {
         <div className="relative h-64 md:h-80 bg-gradient-to-r from-red-600 to-green-600">
           {currentEvent.imageUrl && (
             <Image
-              src={currentEvent.imageUrl}
+              src={getEventImageUrl(currentEvent.imageUrl)}
               alt={currentEvent.title}
               fill
               className="object-cover"
