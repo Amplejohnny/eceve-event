@@ -54,6 +54,11 @@ const PREDEFINED_TAGS = [
   "Advanced",
 ];
 
+const timeStringToMinutes = (timeString: string): number => {
+  const [hours, minutes] = timeString.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
 interface CreateEventResult {
   id: string;
 }
@@ -70,10 +75,10 @@ const CreateEvent: React.FC = () => {
     addTag,
     removeTag,
     addTicketType,
-    removeTicketType,
+    // removeTicketType,
     updateTicketType,
     validateCurrentStep,
-    canGoNext,
+    // canGoNext,
     canGoPrev,
     canPublish,
     nextStep,
@@ -81,6 +86,7 @@ const CreateEvent: React.FC = () => {
     createEvent,
     resetForm,
     clearError,
+    setError,
   } = useEventStore();
 
   const [submitError, setSubmitError] = useState("");
@@ -325,6 +331,35 @@ const CreateEvent: React.FC = () => {
     event.target.value = "";
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleInputChange = (field: string, value: any) => {
+    // Update the form data
+    updateFormData({ [field]: value });
+
+    // Clear any existing error for this field
+    clearError(field);
+
+    // Optional: Add real-time validation
+    if (field === "title" && (!value || value.trim() === "")) {
+      setError("title", "Event title is required");
+    }
+    if (field === "category" && (!value || value.trim() === "")) {
+      setError("category", "Event category is required");
+    }
+    if (field === "description" && (!value || value.trim() === "")) {
+      setError("description", "Event description is required");
+    }
+    if (field === "location" && (!value || value.trim() === "")) {
+      setError("location", "Event location is required");
+    }
+    if (field === "startTime" && (!value || value.trim() === "")) {
+      setError("startTime", "Start time is required");
+    }
+    if (field === "date" && !value) {
+      setError("date", "Event date is required");
+    }
+  };
+
   const handleSubmit = async (): Promise<void> => {
     if (!validateCurrentStep()) {
       return;
@@ -369,6 +404,8 @@ const CreateEvent: React.FC = () => {
     if (tagInput.trim()) {
       addTag(tagInput.trim());
       setTagInput("");
+      // Clear tag errors when adding a tag
+      clearError("tags");
     }
   };
 
@@ -500,8 +537,14 @@ const CreateEvent: React.FC = () => {
                     <input
                       type="text"
                       value={formData.title}
-                      onChange={(e) => {
-                        updateFormData({ title: e.target.value });
+                      onChange={(e) =>
+                        handleInputChange("title", e.target.value)
+                      }
+                      onBlur={() => {
+                        // Validate on blur for better UX
+                        if (!formData.title.trim()) {
+                          setError("title", "Event title is required");
+                        }
                       }}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                         errors.title ? "border-red-500" : "border-gray-300"
@@ -517,7 +560,7 @@ const CreateEvent: React.FC = () => {
                     </label>
                     <Listbox
                       value={formData.category}
-                      onChange={(val) => updateFormData({ category: val })}
+                      onChange={(val) => handleInputChange("category", val)}
                     >
                       <div className="relative">
                         <ListboxButton
@@ -570,8 +613,16 @@ const CreateEvent: React.FC = () => {
                     </label>
                     <textarea
                       value={formData.description}
-                      onChange={(e) => {
-                        updateFormData({ description: e.target.value });
+                      onChange={(e) =>
+                        handleInputChange("description", e.target.value)
+                      }
+                      onBlur={() => {
+                        if (!formData.description.trim()) {
+                          setError(
+                            "description",
+                            "Event description is required"
+                          );
+                        }
                       }}
                       rows={4}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
@@ -605,9 +656,23 @@ const CreateEvent: React.FC = () => {
                             ? formData.date.toISOString().split("T")[0]
                             : ""
                         }
-                        onChange={(e) =>
-                          updateFormData({ date: new Date(e.target.value) })
-                        }
+                        onChange={(e) => {
+                          const newDate = new Date(e.target.value);
+                          handleInputChange("date", newDate);
+
+                          // Validate date is not in the past
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const eventDate = new Date(newDate);
+                          eventDate.setHours(0, 0, 0, 0);
+
+                          if (eventDate < today) {
+                            setError(
+                              "date",
+                              "Event date cannot be in the past"
+                            );
+                          }
+                        }}
                         className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                           errors.date ? "border-red-500" : "border-gray-300"
                         }`}
@@ -661,8 +726,13 @@ const CreateEvent: React.FC = () => {
                         type="time"
                         value={formData.startTime}
                         onChange={(e) =>
-                          updateFormData({ startTime: e.target.value })
+                          handleInputChange("startTime", e.target.value)
                         }
+                        onBlur={() => {
+                          if (!formData.startTime.trim()) {
+                            setError("startTime", "Start time is required");
+                          }
+                        }}
                         className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                           errors.startTime
                             ? "border-red-500"
@@ -683,9 +753,25 @@ const CreateEvent: React.FC = () => {
                       <input
                         type="time"
                         value={formData.endTime}
-                        onChange={(e) =>
-                          updateFormData({ endTime: e.target.value })
-                        }
+                        onChange={(e) => {
+                          const endTime = e.target.value;
+                          handleInputChange("endTime", endTime);
+
+                          // Validate end time vs start time if both are provided
+                          if (endTime && formData.startTime) {
+                            const startMinutes = timeStringToMinutes(
+                              formData.startTime
+                            );
+                            const endMinutes = timeStringToMinutes(endTime);
+
+                            if (endMinutes <= startMinutes) {
+                              setError(
+                                "endTime",
+                                "End time must be after start time"
+                              );
+                            }
+                          }
+                        }}
                         className={`w-full appearance-none pl-10 pr-4 py-2 rounded-lg border text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                           errors.endTime ? "border-red-500" : "border-gray-300"
                         }`}
@@ -707,8 +793,13 @@ const CreateEvent: React.FC = () => {
                     <input
                       type="text"
                       value={formData.location}
-                      onChange={(e) => {
-                        updateFormData({ location: e.target.value });
+                      onChange={(e) =>
+                        handleInputChange("location", e.target.value)
+                      }
+                      onBlur={() => {
+                        if (!formData.location.trim()) {
+                          setError("location", "Event location is required");
+                        }
                       }}
                       className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
                         errors.location ? "border-red-500" : "border-gray-300"
@@ -751,6 +842,14 @@ const CreateEvent: React.FC = () => {
               <div>
                 <h2 className="text-lg font-semibold mb-4">Tags *</h2>
                 <div className="space-y-4">
+                  {/* Show error if no tags - This one works correctly */}
+                  {formData.tags.length === 0 && errors.tags && (
+                    <div className="flex items-center text-red-600 text-sm bg-red-50 p-3 rounded-md border border-red-200">
+                      <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
+                      {errors.tags}
+                    </div>
+                  )}
+
                   {/* Selected Tags */}
                   {formData.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2">
@@ -763,7 +862,18 @@ const CreateEvent: React.FC = () => {
                           {tag}
                           <button
                             title="removeTag"
-                            onClick={() => removeTag(tag)}
+                            onClick={() => {
+                              removeTag(tag);
+                              // Clear error when removing tags if no tags will remain
+                              if (formData.tags.length === 1) {
+                                setError(
+                                  "tags",
+                                  "At least one tag is required"
+                                );
+                              } else {
+                                clearError("tags");
+                              }
+                            }}
                             className="ml-2 text-yellow-600 hover:text-yellow-800"
                           >
                             <X className="w-3 h-3" />
@@ -784,7 +894,11 @@ const CreateEvent: React.FC = () => {
                       ).map((tag) => (
                         <button
                           key={tag}
-                          onClick={() => addTag(tag)}
+                          onClick={() => {
+                            addTag(tag);
+                            // Clear any tag errors when adding a tag
+                            clearError("tags");
+                          }}
                           className="inline-flex cursor-pointer items-center px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-yellow-100 hover:text-yellow-800 hover:border-yellow-200 border border-transparent transition-all duration-200"
                         >
                           <Plus className="w-3 h-3 mr-1" />
@@ -809,7 +923,13 @@ const CreateEvent: React.FC = () => {
                         placeholder="Enter custom tag"
                       />
                       <button
-                        onClick={handleAddCustomTag}
+                        onClick={() => {
+                          handleAddCustomTag();
+                          // Clear any tag errors when adding a custom tag
+                          if (tagInput.trim()) {
+                            clearError("tags");
+                          }
+                        }}
                         disabled={!tagInput.trim()}
                         className="px-4 py-2 cursor-pointer bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-md hover:from-yellow-500 hover:to-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
                       >
@@ -817,7 +937,6 @@ const CreateEvent: React.FC = () => {
                       </button>
                     </div>
                   </div>
-                  {renderError("tags")}
                 </div>
               </div>
             </div>
@@ -998,7 +1117,7 @@ const CreateEvent: React.FC = () => {
                           errors[`ticket_${ticket.id}_name`] ||
                           errors[`ticket_${ticket.id}_price`] ||
                           errors[`ticket_${ticket.id}_quantity`]
-                            ? "border-red-500"
+                            ? "border-red-500 bg-red-50/30"
                             : "border-gray-300"
                         }`}
                       >
@@ -1014,17 +1133,27 @@ const CreateEvent: React.FC = () => {
                                 updateTicketType(ticket.id, {
                                   name: e.target.value,
                                 });
+                                clearError(`ticket_${ticket.id}_name`);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                              onBlur={() => {
+                                if (!ticket.name.trim()) {
+                                  setError(
+                                    `ticket_${ticket.id}_name`,
+                                    "Ticket name is required"
+                                  );
+                                }
+                              }}
+                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
+                                errors[`ticket_${ticket.id}_name`]
+                                  ? "border-red-500"
+                                  : "border-gray-300"
+                              }`}
                               placeholder="e.g., Standard"
-                              onFocus={() =>
-                                clearError(`ticket_${ticket.id}_name`)
-                              }
                             />
                             {renderError(`ticket_${ticket.id}_name`)}
                           </div>
 
-                          {/* Price Input - Only show for PAID events */}
+                          {/* Price input with validation */}
                           {formData.eventType === EventType.PAID && (
                             <div className="w-32">
                               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1045,34 +1174,34 @@ const CreateEvent: React.FC = () => {
                                     updateTicketType(ticket.id, {
                                       price: value,
                                     });
+                                    clearError(`ticket_${ticket.id}_price`);
                                   }}
-                                  className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                  onBlur={() => {
+                                    if (
+                                      formData.eventType === EventType.PAID &&
+                                      ticket.price <= 0
+                                    ) {
+                                      setError(
+                                        `ticket_${ticket.id}_price`,
+                                        "Price must be greater than 0 for paid events"
+                                      );
+                                    }
+                                  }}
+                                  className={`w-full pl-6 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
+                                    errors[`ticket_${ticket.id}_price`]
+                                      ? "border-red-500"
+                                      : "border-gray-300"
+                                  }`}
                                   placeholder="0.00"
                                   min="0"
                                   step="0.01"
-                                  onFocus={() =>
-                                    clearError(`ticket_${ticket.id}_price`)
-                                  }
                                 />
                               </div>
                               {renderError(`ticket_${ticket.id}_price`)}
                             </div>
                           )}
 
-                          {/* Free Event Price Display */}
-                          {formData.eventType === EventType.FREE && (
-                            <div className="w-32">
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Price
-                              </label>
-                              <div className="flex items-center h-10 px-3 py-2 border border-gray-200 rounded-md bg-gray-50">
-                                <span className="text-green-600 font-medium text-sm">
-                                  FREE
-                                </span>
-                              </div>
-                            </div>
-                          )}
-
+                          {/* Quantity input with validation */}
                           <div className="w-32">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Quantity
@@ -1088,26 +1217,29 @@ const CreateEvent: React.FC = () => {
                                 updateTicketType(ticket.id, {
                                   quantity: value,
                                 });
+                                clearError(`ticket_${ticket.id}_quantity`);
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                              onBlur={() => {
+                                if (
+                                  ticket.quantity !== undefined &&
+                                  ticket.quantity <= 0
+                                ) {
+                                  setError(
+                                    `ticket_${ticket.id}_quantity`,
+                                    "Quantity must be greater than 0"
+                                  );
+                                }
+                              }}
+                              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 ${
+                                errors[`ticket_${ticket.id}_quantity`]
+                                  ? "border-red-500"
+                                  : "border-gray-300"
+                              }`}
                               placeholder="Unlimited"
                               min="1"
-                              onFocus={() =>
-                                clearError(`ticket_${ticket.id}_quantity`)
-                              }
                             />
                             {renderError(`ticket_${ticket.id}_quantity`)}
                           </div>
-
-                          {formData.ticketTypes.length > 1 && (
-                            <button
-                              title="Remove ticket type"
-                              onClick={() => removeTicketType(ticket.id)}
-                              className="mt-6 text-red-500 hover:text-red-700 transition-colors duration-200"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                          )}
                         </div>
                       </div>
                     ))}
@@ -1309,10 +1441,18 @@ const CreateEvent: React.FC = () => {
             <div className="flex space-x-3 w-full sm:w-auto">
               {currentStep < 4 ? (
                 <button
-                  onClick={nextStep}
-                  disabled={!canGoNext() || isLoading}
+                  onClick={() => {
+                    // Force validation before trying to proceed
+                    if (validateCurrentStep()) {
+                      nextStep();
+                    } else {
+                      // Validation failed, errors should now be visible
+                      console.log("Validation failed, errors:", errors);
+                    }
+                  }}
+                  disabled={isLoading}
                   className={`w-full sm:w-auto px-4 sm:px-6 py-2 rounded-md text-sm font-medium ${
-                    canGoNext() && !isLoading
+                    !isLoading
                       ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 hover:from-yellow-500 hover:to-yellow-600 cursor-pointer font-medium shadow-md"
                       : "bg-gray-300 text-gray-500 cursor-not-allowed"
                   }`}

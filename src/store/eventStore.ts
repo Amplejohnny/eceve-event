@@ -241,8 +241,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
   },
 
   canGoNext: () => {
-    const { currentStep, validateStep } = get();
-    return validateStep(currentStep) && currentStep < eventSteps.length;
+    const { currentStep } = get();
+    return get().validateStep(currentStep) && currentStep < eventSteps.length;
   },
 
   canGoPrev: () => {
@@ -507,36 +507,109 @@ export const useEventStore = create<EventStore>((set, get) => ({
     return true;
   },
 
-  validateStepWithErrors: (step: number) => {
-    const { formData, setError, clearAllErrors } = get();
-    clearAllErrors();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  validateField: (field: string, value: any) => {
+    const { setError, clearError } = get();
 
-    switch (step) {
-      case 1: // Edit Step
-        if (!formData.title.trim()) {
-          setError("title", "Event title is required");
+    clearError(field);
+
+    switch (field) {
+      case "title":
+        if (!value || !value.trim()) {
+          setError(field, "Event title is required");
           return false;
         }
-        if (!formData.category.trim()) {
-          setError("category", "Event category is required");
+        break;
+      case "category":
+        if (!value || !value.trim()) {
+          setError(field, "Event category is required");
           return false;
         }
-        if (!formData.date) {
-          setError("date", "Event date is required");
+        break;
+      case "description":
+        if (!value || !value.trim()) {
+          setError(field, "Event description is required");
+          return false;
+        }
+        break;
+      case "location":
+        if (!value || !value.trim()) {
+          setError(field, "Event location is required");
+          return false;
+        }
+        break;
+      case "startTime":
+        if (!value || !value.trim()) {
+          setError(field, "Start time is required");
+          return false;
+        }
+        break;
+      case "date":
+        if (!value) {
+          setError(field, "Event date is required");
           return false;
         }
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const eventDate = new Date(formData.date);
+        const eventDate = new Date(value);
         eventDate.setHours(0, 0, 0, 0);
 
         if (eventDate < today) {
-          setError("date", "Event date cannot be in the past");
+          setError(field, "Event date cannot be in the past");
           return false;
+        }
+        break;
+    }
+
+    return true;
+  },
+
+  validateStepWithErrors: (step: number) => {
+    const { formData, setError } = get();
+
+    // Don't clear all errors immediately - only clear errors for fields being validated
+    let hasErrors = false;
+
+    switch (step) {
+      case 1: // Edit Step
+        // Clear only step 1 related errors
+        const step1Fields = [
+          "title",
+          "category",
+          "description",
+          "date",
+          "startTime",
+          "endTime",
+          "location",
+          "tags",
+        ];
+        step1Fields.forEach((field) => get().clearError(field));
+
+        if (!formData.title.trim()) {
+          setError("title", "Event title is required");
+          hasErrors = true;
+        }
+        if (!formData.category.trim()) {
+          setError("category", "Event category is required");
+          hasErrors = true;
+        }
+        if (!formData.date) {
+          setError("date", "Event date is required");
+          hasErrors = true;
+        } else {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const eventDate = new Date(formData.date);
+          eventDate.setHours(0, 0, 0, 0);
+
+          if (eventDate < today) {
+            setError("date", "Event date cannot be in the past");
+            hasErrors = true;
+          }
         }
         if (!formData.startTime.trim()) {
           setError("startTime", "Start time is required");
-          return false;
+          hasErrors = true;
         }
         if (formData.endTime && formData.endTime.trim()) {
           const startTimeMinutes = timeStringToMinutes(formData.startTime);
@@ -544,24 +617,27 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
           if (endTimeMinutes <= startTimeMinutes) {
             setError("endTime", "End time must be after start time");
-            return false;
+            hasErrors = true;
           }
         }
         if (!formData.location.trim()) {
           setError("location", "Event location is required");
-          return false;
+          hasErrors = true;
         }
         if (!formData.description.trim()) {
           setError("description", "Event description is required");
-          return false;
+          hasErrors = true;
         }
         if (formData.tags.length === 0) {
           setError("tags", "At least one tag is required");
-          return false;
+          hasErrors = true;
         }
         break;
 
       case 2: // Banner Step
+        // Clear banner related errors
+        get().clearError("bannerImage");
+
         if (formData.bannerImage) {
           const allowedTypes = [
             "image/jpeg",
@@ -571,33 +647,38 @@ export const useEventStore = create<EventStore>((set, get) => ({
           ];
           const maxSize = 5 * 1024 * 1024; // 5MB
 
-          // Check file type
           if (!allowedTypes.includes(formData.bannerImage.type)) {
             setError(
               "bannerImage",
               "Image must be in JPEG, PNG, or WebP format"
             );
-            return false;
+            hasErrors = true;
           }
 
-          // Check file size
           if (formData.bannerImage.size > maxSize) {
             setError("bannerImage", "Image size must be less than 5MB");
-            return false;
+            hasErrors = true;
           }
 
-          // Check if upload completed successfully
           if (!formData.imageUrl) {
             setError(
               "bannerImage",
               "Image upload not completed. Please wait for upload to finish."
             );
-            return false;
+            hasErrors = true;
           }
         }
         break;
 
       case 3: // Ticketing Step
+        // Clear ticket related errors
+        formData.ticketTypes.forEach((ticket) => {
+          get().clearError(`ticket_${ticket.id}_name`);
+          get().clearError(`ticket_${ticket.id}_price`);
+          get().clearError(`ticket_${ticket.id}_quantity`);
+        });
+        get().clearError("ticketTypes");
+
         if (formData.eventType === EventType.PAID) {
           const hasValidTickets = formData.ticketTypes.some(
             (ticket) =>
@@ -610,28 +691,28 @@ export const useEventStore = create<EventStore>((set, get) => ({
               "ticketTypes",
               "At least one valid paid ticket type is required"
             );
-            return false;
+            hasErrors = true;
           }
         }
 
         for (const ticket of formData.ticketTypes) {
           if (!ticket.name.trim()) {
             setError(`ticket_${ticket.id}_name`, "Ticket name is required");
-            return false;
+            hasErrors = true;
           }
           if (ticket.quantity !== undefined && ticket.quantity <= 0) {
             setError(
               `ticket_${ticket.id}_quantity`,
               "Ticket quantity must be greater than 0"
             );
-            return false;
+            hasErrors = true;
           }
           if (formData.eventType === EventType.PAID && ticket.price <= 0) {
             setError(
               `ticket_${ticket.id}_price`,
               "Ticket price must be greater than 0 for paid events"
             );
-            return false;
+            hasErrors = true;
           }
         }
         break;
@@ -644,12 +725,20 @@ export const useEventStore = create<EventStore>((set, get) => ({
         );
     }
 
-    return true;
+    return !hasErrors;
   },
 
   validateCurrentStep: () => {
     const { currentStep } = get();
-    return get().validateStepWithErrors(currentStep);
+    const isValid = get().validateStepWithErrors(currentStep);
+
+    // Log validation result for debugging
+    console.log(`Validating step ${currentStep}:`, isValid);
+    if (!isValid) {
+      console.log("Validation errors:", get().errors);
+    }
+
+    return isValid;
   },
 
   setError: (field: string, error: string) => {
