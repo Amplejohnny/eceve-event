@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { verifyEmailToken } from "@/lib/auth";
+import { sendWelcomeEmail } from "@/lib/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,6 +20,17 @@ export async function POST(request: NextRequest) {
     const result = await verifyEmailToken(token, email);
 
     if (result.success) {
+      if (result.message !== "Email already verified") {
+        try {
+          await sendWelcomeEmail({
+            email: email,
+            name: result.user?.name || "User",
+          });
+        } catch (error) {
+          console.error("Failed to send welcome email:", error);
+        }
+      }
+
       return NextResponse.json(result, { status: 200 });
     } else {
       return NextResponse.json(result, { status: 400 });
@@ -51,6 +63,17 @@ export async function GET(request: NextRequest) {
     const result = await verifyEmailToken(token, email);
 
     if (result.success) {
+      if (result.message !== "Email already verified") {
+        try {
+          await sendWelcomeEmail({
+            email: email,
+            name: result.user?.name || "User",
+          });
+        } catch (error) {
+          console.error("Failed to send welcome email:", error);
+        }
+      }
+
       return NextResponse.redirect(
         new URL("/auth/email-verified?verified=true", request.url)
       );

@@ -4,7 +4,7 @@ import type { Adapter } from "next-auth/adapters";
 import EmailProvider from "next-auth/providers/email";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from "@/lib/db";
-import { sendVerificationRequest, sendWelcomeEmail } from "@/lib/email";
+import { sendVerificationRequest } from "@/lib/email";
 
 // Environment variables check
 const requiredEnvVars = {
@@ -158,16 +158,6 @@ export const authOptions: NextAuthOptions = {
                 isActive: true,
               },
             });
-
-            // Send welcome email after email verification
-            try {
-              await sendWelcomeEmail({
-                email: user.email || "",
-                name: existingUser.name || "User",
-              });
-            } catch (error) {
-              console.error("Failed to send welcome email:", error);
-            }
 
             return true;
           }
