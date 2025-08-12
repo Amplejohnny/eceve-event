@@ -28,7 +28,7 @@ export default function Header({
           className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
             tab === "myBookings"
               ? "bg-blue-600 text-white shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
+              : "text-gray-600 hover:text-gray-900 cursor-pointer"
           }`}
         >
           My Bookings
@@ -39,7 +39,7 @@ export default function Header({
             className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
               tab === "myEvents"
                 ? "bg-blue-600 text-white shadow-sm"
-                : "text-gray-600 hover:text-gray-900"
+                : "text-gray-600 hover:text-gray-900 cursor-pointer"
             }`}
           >
             My Events

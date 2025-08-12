@@ -104,10 +104,7 @@ export async function GET(
       return createErrorResponse("Event ID is required", 400);
     }
 
-    console.log("Received eventId:", eventId);
-    console.log("Is UUID:", isValidUUID(eventId));
-    console.log("Is CUID:", isValidCuid(eventId));
-    console.log("Looks like ID:", looksLikeId(eventId));
+    // console.log("Looks like ID:", looksLikeId(eventId));
 
     // Determine if this is an ID (UUID/cuid) or a slug
     const searchById = looksLikeId(eventId);

@@ -8,7 +8,7 @@ import {
   getRelativeTime,
   isEventActive,
   isEventPast,
-  getEventShareUrl
+  getEventShareUrl,
 } from "@/lib/utils";
 import Image from "next/image";
 
@@ -132,6 +132,8 @@ export default function EventCard({
             <Image
               src={getEventImageUrl(event.imageUrl)}
               alt={event.title}
+              width={400}
+              height={240}
               className="w-full h-full object-cover"
             />
           </div>
