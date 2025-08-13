@@ -4,7 +4,6 @@ import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-// import Head from "next/head";
 import Image from "next/image";
 import {
   Calendar,
@@ -12,11 +11,10 @@ import {
   Star,
   Share2,
   X,
-  MessageCircle,
   Copy,
   Check,
 } from "lucide-react";
-import { FaXTwitter, FaFacebook, FaLinkedin } from "react-icons/fa6";
+import { FaXTwitter, FaFacebook, FaLinkedin, FaSquareWhatsapp } from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
 import { getEventImageUrl } from "@/lib/utils";
 interface ShareModalProps {
@@ -110,7 +108,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             rel="noopener noreferrer"
             className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
           >
-            <MessageCircle className="w-6 h-6" />
+            <FaSquareWhatsapp className="w-6 h-6" />
           </a>
           <a
             title="Share on LinkedIn"
