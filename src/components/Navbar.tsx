@@ -259,11 +259,6 @@ const Navbar: React.FC = () => {
                 <div className="animate-pulse bg-gray-600 h-8 w-8 rounded-full"></div>
               </div>
             </div>
-
-            {/* Mobile menu button skeleton */}
-            <div className="md:hidden">
-              <div className="animate-pulse bg-gray-600 h-6 w-6 rounded"></div>
-            </div>
           </div>
         </div>
       </nav>
