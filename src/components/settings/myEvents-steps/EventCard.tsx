@@ -125,10 +125,11 @@ export default function EventCard({
   event,
 }: EventCardProps): React.JSX.Element {
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-      <div className="p-4 sm:p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-          <div className="w-full lg:w-24 h-48 lg:h-24 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+    <div className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+      <div className="p-3">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-2">
+          {/* Event Image */}
+          <div className="w-full lg:w-20 h-32 sm:h-36 lg:h-20 bg-gray-100 rounded-md flex-shrink-0 overflow-hidden">
             <Image
               src={getEventImageUrl(event.imageUrl)}
               alt={event.title}
@@ -137,18 +138,34 @@ export default function EventCard({
               className="w-full h-full object-cover"
             />
           </div>
+
+          {/* Event Info */}
           <div className="flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-              <div className="flex-1">
-                <h2
-                  className="font-semibold text-lg sm:text-xl text-gray-900 mb-2"
-                  title={event.title}
-                >
-                  {truncateText(event.title, 60)}
-                </h2>
-                <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+              {/* Title and meta */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h2
+                    className="font-semibold text-sm sm:text-base text-gray-900 truncate"
+                    title={event.title}
+                  >
+                    {truncateText(event.title, 50)}
+                  </h2>
+                  {/* Status Badge */}
+                  <span
+                    className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${getStatusColor(
+                      event.displayStatus
+                    )}`}
+                  >
+                    {event.displayStatus.charAt(0).toUpperCase() +
+                      event.displayStatus.slice(1)}
+                  </span>
+                </div>
+
+                {/* Date and Location in one line */}
+                <div className="flex flex-wrap items-center text-xs sm:text-sm text-gray-600 gap-x-3 gap-y-1 mb-1">
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-3.5 h-3.5" />
                     <span
                       className={
                         isEventPast(event.date)
@@ -161,24 +178,29 @@ export default function EventCard({
                       {formatDate(event.date, "MMM dd, yyyy")}
                     </span>
                   </div>
+                  <span className="hidden sm:inline">•</span>
                   <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
-                    {event.venue || event.location}
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span className="truncate max-w-[150px] sm:max-w-[200px]">
+                      {event.venue || event.location}
+                    </span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+
+                {/* Stats */}
+                <div className="grid grid-cols-2 sm:flex sm:items-center sm:gap-4 text-[11px] sm:text-xs">
                   <div>
                     <span className="font-medium text-gray-900 flex items-center gap-1">
-                      <Users className="w-4 h-4" />
+                      <Users className="w-3.5 h-3.5" />
                       {event.totalTicketsSold} sold
                     </span>
                     <p className="text-gray-600">
-                      {event.ticketTypes.length} ticket type(s)
+                      {event.ticketTypes.length} type(s)
                     </p>
                   </div>
                   <div>
                     <span className="font-medium text-gray-900">
-                      Revenue: {formatCurrency(calculateRevenue(event))}
+                      {formatCurrency(calculateRevenue(event))}
                     </span>
                     <p className="text-gray-600">
                       Created {getRelativeTime(event.createdAt)}
@@ -186,32 +208,26 @@ export default function EventCard({
                   </div>
                 </div>
               </div>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(
-                  event.displayStatus
-                )}`}
-              >
-                {event.displayStatus.charAt(0).toUpperCase() +
-                  event.displayStatus.slice(1)}
-              </span>
             </div>
           </div>
+
+          {/* Actions */}
           <div className="flex-shrink-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <button
                 aria-label={`View ${event.title}`}
-                onClick={() => window.open(`/event/${event.slug}`, "_blank")}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-md transition-colors"
+                onClick={() => window.open(`/events/${event.slug}`, "_blank")}
+                className="flex cursor-pointer items-center gap-1 px-2 py-0.5 text-[11px] sm:text-xs text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded transition-colors"
               >
-                <Eye className="w-4 h-4" />
+                <Eye className="w-3.5 h-3.5" />
                 View
               </button>
               <button
                 aria-label={`Share ${event.title}`}
                 onClick={() => handleShare(event)}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors"
+                className="flex cursor-pointer items-center gap-1 px-2 py-0.5 text-[11px] sm:text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
               >
-                <Share2 className="w-4 h-4" />
+                <Share2 className="w-3.5 h-3.5" />
                 Share
               </button>
               <button
@@ -219,46 +235,47 @@ export default function EventCard({
                 onClick={() =>
                   window.open(`/dashboard/events/${event.id}/edit`, "_blank")
                 }
-                className="flex items-center gap-1 px-3 py-1.5 text-sm text-green-600 hover:text-green-700 hover:bg-green-50 rounded-md transition-colors"
+                className="flex cursor-pointer items-center gap-1 px-2 py-0.5 text-[11px] sm:text-xs text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors"
               >
-                <Edit className="w-4 h-4" />
+                <Edit className="w-3.5 h-3.5" />
                 Edit
               </button>
             </div>
           </div>
         </div>
+
+        {/* Ticket Types */}
         {event.ticketTypes.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <h4 className="text-sm font-medium text-gray-900 mb-2">
+          <div className="mt-2 pt-2 border-t border-gray-100">
+            <h4 className="text-xs font-medium text-gray-900 mb-1">
               Ticket Types
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {event.ticketTypes.map((ticketType) => (
-                <div key={ticketType.id} className="bg-gray-50 rounded-lg p-3">
+                <div key={ticketType.id} className="bg-gray-50 rounded p-2">
                   <div className="flex justify-between items-start">
                     <div>
-                      <p className="font-medium text-sm text-gray-900">
+                      <p className="font-medium text-xs text-gray-900">
                         {ticketType.name}
                       </p>
-                      <p className="text-xs text-gray-600">
+                      <p className="text-[11px] text-gray-600">
                         {formatCurrency(ticketType.price)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-gray-600">
+                      <p className="text-[11px] text-gray-600">
                         {getQuantityDisplay(
                           ticketType.quantity,
                           ticketType.sold
                         )}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-[11px] text-gray-500 mt-0.5">
                         {getAvailability(ticketType.quantity, ticketType.sold)}
                       </p>
-                      {/* Only show progress bar if quantity is not null */}
                       {ticketType.quantity !== null && (
-                        <div className="w-12 bg-gray-200 rounded-full h-1.5 mt-1">
+                        <div className="w-10 bg-gray-200 rounded-full h-1 mt-0.5">
                           <div
-                            className="bg-blue-600 h-1.5 rounded-full"
+                            className="bg-blue-600 h-1 rounded-full"
                             style={{
                               width: `${getProgressPercentage(
                                 ticketType.quantity,
