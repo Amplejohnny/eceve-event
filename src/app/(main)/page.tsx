@@ -7,7 +7,7 @@ import {
   Star,
   Calendar,
   Clock,
-  User,
+  // User,
   MapPinIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -101,19 +101,25 @@ const EventCard: React.FC<EventCardProps> = ({
 
   return (
     <div
-      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer"
+      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer w-full max-w-sm"
       onClick={handleCardClick}
     >
-      <div className="h-48 relative overflow-hidden">
+      {/* Image Section */}
+      <div className="h-40 sm:h-44 relative overflow-hidden">
         <Image
           src={getEventImageUrl(event.imageUrl)}
           alt={event.title}
           fill
-          className="object-cover"
+          className="object-cover transition-transform duration-300 hover:scale-105"
         />
+
+        {/* Favorite Icon */}
         <button
-          onClick={handleFavoriteClick}
-          className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleFavoriteClick(e);
+          }}
+          className="absolute top-2 right-2 p-1.5 bg-white rounded-full shadow-sm hover:bg-gray-50 transition-colors z-10"
           title={localFavorite ? "Remove from favorites" : "Add to favorites"}
           aria-label={
             localFavorite ? "Remove from favorites" : "Add to favorites"
@@ -128,43 +134,43 @@ const EventCard: React.FC<EventCardProps> = ({
             }
           />
         </button>
-      </div>
 
-      <div className="p-4">
-        <div className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full inline-block mb-2">
+        {/* Category Tag */}
+        <div className="absolute bottom-2 left-2 bg-yellow-300 text-gray-900 text-[11px] sm:text-xs px-2 py-0.5 rounded font-medium">
           {event.category}
         </div>
+      </div>
 
-        <div className="flex items-center text-blue-600 text-sm font-semibold mb-2">
-          <Calendar size={14} className="mr-1" />
+      {/* Content Section */}
+      <div className="py-1 px-3">
+        {/* Date */}
+        <div className="flex items-center text-blue-600 text-xs sm:text-sm font-medium mb-1">
+          <Calendar size={12} className="mr-1" />
           {formatDate(event.date)}
         </div>
 
-        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight">
+        {/* Title */}
+        <h3 className="font-semibold text-gray-900 text-sm sm:text-base mb-1.5 line-clamp-2 leading-snug">
           {event.title}
         </h3>
 
-        <div className="flex items-center text-gray-600 text-sm mb-2">
-          <Clock size={14} className="mr-1" />
+        {/* Time */}
+        <div className="flex items-center text-gray-600 text-xs sm:text-sm mb-1">
+          <Clock size={12} className="mr-1" />
           {event.endTime
             ? `${event.startTime} - ${event.endTime}`
             : event.startTime}
         </div>
 
-        <div className="flex items-center text-gray-600 text-sm mb-2">
-          <MapPinIcon size={14} className="mr-1" />
+        {/* Location */}
+        <div className="flex items-center text-gray-600 text-xs sm:text-sm mb-1">
+          <MapPinIcon size={12} className="mr-1" />
           <span className="truncate">{event.location}</span>
         </div>
 
-        {event.organizer && (
-          <div className="flex items-center text-gray-600 text-sm mb-2">
-            <User size={14} className="mr-1" />
-            <span className="truncate">{event.organizer.name}</span>
-          </div>
-        )}
-
+        {/* Price */}
         {lowestPrice !== null && (
-          <div className="flex items-center text-green-600 font-semibold">
+          <div className="flex items-center text-green-600 text-sm sm:text-base font-semibold mt-1">
             {lowestPrice === 0
               ? "Free"
               : `₦${(lowestPrice / 100).toLocaleString()}`}

@@ -5,16 +5,13 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { Calendar, Clock, Star, Share2, X, Copy, Check } from "lucide-react";
 import {
-  Calendar,
-  Clock,
-  Star,
-  Share2,
-  X,
-  Copy,
-  Check,
-} from "lucide-react";
-import { FaXTwitter, FaFacebook, FaLinkedin, FaSquareWhatsapp } from "react-icons/fa6";
+  FaXTwitter,
+  FaFacebook,
+  FaLinkedin,
+  FaSquareWhatsapp,
+} from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
 import { getEventImageUrl } from "@/lib/utils";
 interface ShareModalProps {
@@ -365,16 +362,69 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
               {/* Hosted By */}
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="font-medium text-gray-900 mb-4">Hosted by</h3>
+
+                {/* Debug info - remove this after fixing */}
+                {process.env.NODE_ENV === "development" && (
+                  <div className="mb-2 p-2 bg-gray-100 text-xs">
+                    <p>Debug - Organizer data:</p>
+                    <pre>{JSON.stringify(currentEvent.organizer, null, 2)}</pre>
+                  </div>
+                )}
+
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-gradient-to-r from-red-600 to-green-600 rounded-full flex items-center justify-center">
-                    <span className="text-white font-semibold">
-                      {currentEvent.organizer?.name?.charAt(0) || "C"}
-                    </span>
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-r from-red-600 to-green-600">
+                    {currentEvent.organizer?.image ? (
+                      <>
+                        {/* Debug - show what URL we're trying to load */}
+                        {process.env.NODE_ENV === "development" && (
+                          <div className="absolute -top-20 left-0 bg-black text-white p-1 text-xs z-10">
+                            Trying:{" "}
+                            {getEventImageUrl(currentEvent.organizer.image)}
+                          </div>
+                        )}
+                        <Image
+                          src={getEventImageUrl(currentEvent.organizer.image)}
+                          alt={currentEvent.organizer?.name || "Organizer"}
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error(
+                              "Failed to load organizer image:",
+                              getEventImageUrl(currentEvent.organizer?.image)
+                            );
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = "none";
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<span class="text-white font-semibold">${
+                                currentEvent.organizer?.name?.charAt(0) || "O"
+                              }</span>`;
+                            }
+                          }}
+                          onLoad={() => {
+                            console.log(
+                              "Successfully loaded organizer image:",
+                              getEventImageUrl(currentEvent.organizer?.image)
+                            );
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <span className="text-white font-semibold">
+                        {currentEvent.organizer?.name?.charAt(0) || "O"}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
-                      {currentEvent.organizer?.name || ""}
+                      {currentEvent.organizer?.name || "Event Organizer"}
                     </p>
+                    {currentEvent.organizer?.email && (
+                      <p className="text-sm text-gray-500">
+                        {currentEvent.organizer.email}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
