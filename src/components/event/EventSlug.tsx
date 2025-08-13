@@ -4,7 +4,7 @@ import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
-import Head from "next/head";
+// import Head from "next/head";
 import Image from "next/image";
 import {
   Calendar,
@@ -24,6 +24,11 @@ interface ShareModalProps {
   onClose: () => void;
   eventUrl: string;
   eventTitle: string;
+}
+
+interface EventSlugPageProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  initialEvent?: any; // Use your Event type here
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({
@@ -144,12 +149,13 @@ const ShareModal: React.FC<ShareModalProps> = ({
   );
 };
 
-const EventSlugPage = (): JSX.Element => {
+const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const { data: session } = useSession();
   const router = useRouter();
   const params = useParams();
   const slug = params?.slug as string;
-  const { loadEvent, currentEvent, isLoading } = useEventStore();
+  const { loadEvent, currentEvent, isLoading, setCurrentEvent } =
+    useEventStore();
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
@@ -158,6 +164,12 @@ const EventSlugPage = (): JSX.Element => {
   useEffect(() => {
     if (!slug) {
       router.push("/");
+      return;
+    }
+
+    // If we have initial event data from server, use it
+    if (initialEvent) {
+      setCurrentEvent(initialEvent);
       return;
     }
 
@@ -180,7 +192,7 @@ const EventSlugPage = (): JSX.Element => {
     };
 
     fetchEvent();
-  }, [slug, router, loadEvent]);
+  }, [slug, router, loadEvent, initialEvent, setCurrentEvent]);
 
   const handleFavoriteToggle = (): void => {
     if (!session?.user) {
@@ -259,16 +271,6 @@ const EventSlugPage = (): JSX.Element => {
 
   return (
     <>
-      <Head>
-        <title>{currentEvent.title}</title>
-        <meta name="description" content={currentEvent.description} />
-        <meta property="og:title" content={currentEvent.title} />
-        <meta property="og:description" content={currentEvent.description} />
-        {currentEvent.imageUrl && (
-          <meta property="og:image" content={currentEvent.imageUrl} />
-        )}
-      </Head>
-
       <div className="min-h-screen bg-gray-50">
         {/* Header Banner */}
         <div className="relative h-64 md:h-80 bg-gradient-to-r from-red-600 to-green-600">
@@ -491,7 +493,7 @@ const EventSlugPage = (): JSX.Element => {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         eventUrl={eventUrl}
-        eventTitle={currentEvent.title}
+        eventTitle={currentEvent.title || ""}
       />
     </>
   );
