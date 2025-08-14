@@ -32,6 +32,10 @@ const Navbar: React.FC = () => {
     setIsMobileMenuOpen(false);
   };
 
+  const handleNavLinkClick = (): void => {
+    setIsMobileMenuOpen(false);
+  };
+
   const handleSignOut = async (): Promise<void> => {
     try {
       await signOut({ callbackUrl: "/" });
@@ -55,7 +59,11 @@ const Navbar: React.FC = () => {
     return null;
   };
 
-  const NavLinks = (): React.JSX.Element => {
+  const NavLinks = ({
+    onLinkClick,
+  }: {
+    onLinkClick?: () => void;
+  }): React.JSX.Element => {
     const pathname = usePathname();
 
     const isActive = (path: string): boolean => {
@@ -74,6 +82,7 @@ const Navbar: React.FC = () => {
               ? "text-yellow-400 border-b-2 border-yellow-400"
               : "text-white hover:text-yellow-400 hover:border-b-2 hover:border-yellow-400"
           }`}
+          onClick={onLinkClick}
         >
           Home
         </Link>
@@ -84,6 +93,7 @@ const Navbar: React.FC = () => {
               ? "text-yellow-400 border-b-2 border-yellow-400"
               : "text-white hover:text-yellow-400 hover:border-b-2 hover:border-yellow-400"
           }`}
+          onClick={onLinkClick}
         >
           Events
         </Link>
@@ -94,6 +104,7 @@ const Navbar: React.FC = () => {
               ? "text-yellow-400 border-b-2 border-yellow-400"
               : "text-white hover:text-yellow-400 hover:border-b-2 hover:border-yellow-400"
           }`}
+          onClick={onLinkClick}
         >
           Create Event
         </Link>
@@ -321,7 +332,7 @@ const Navbar: React.FC = () => {
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-gray-700">
             <div className="flex flex-col space-y-3">
-              <NavLinks />
+              <NavLinks onLinkClick={handleNavLinkClick} />
 
               {isLoggedIn ? (
                 <div className="flex flex-col space-y-3 pt-3 border-t border-gray-600">
