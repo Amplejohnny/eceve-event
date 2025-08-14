@@ -7,6 +7,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+const getDeviceTheme = (): boolean => {
+  try {
+    if (typeof window !== "undefined" && window.matchMedia) {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false; // Default to light theme if window is undefined (SSR)
+  } catch (error) {
+    console.warn("Error reading device theme settings:", error);
+    return false; // Fallback to light theme on error
+  }
+};
+
 // Character limits
 const limits = {
   email: 255,
@@ -67,6 +79,27 @@ const LoginForm = (): React.JSX.Element => {
       formData.password !== ""
     );
   };
+
+  //checks device theme
+  useEffect(() => {
+    const devicePrefersDark = getDeviceTheme();
+    setIsDarkMode(devicePrefersDark);
+
+    // Optional: Listen for changes in device theme preference
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleThemeChange = (e: MediaQueryListEvent) => {
+      setIsDarkMode(e.matches);
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handleThemeChange);
+
+      // Cleanup listener on unmount
+      return () => {
+        mediaQuery.removeEventListener("change", handleThemeChange);
+      };
+    }
+  }, []);
 
   // Real-time validation effects
   useEffect(() => {
