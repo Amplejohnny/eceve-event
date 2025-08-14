@@ -18,7 +18,7 @@ import {
   ChevronUp,
   Edit,
 } from "lucide-react";
-import { FaXTwitter, FaFacebook } from "react-icons/fa6";
+import { FaXTwitter, FaFacebookF } from "react-icons/fa6";
 import { getEventImageUrl, getEventUrl } from "@/lib/utils";
 import Image from "next/image";
 
@@ -413,7 +413,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
                 onClick={shareToFacebook}
                 className="flex flex-col items-center justify-center p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <FaFacebook className="w-6 h-6 mb-2" />
+                <FaFacebookF className="w-6 h-6 mb-2" />
                 <span className="text-sm">Facebook</span>
               </button>
 

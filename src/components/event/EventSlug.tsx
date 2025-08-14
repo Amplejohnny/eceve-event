@@ -8,9 +8,9 @@ import Image from "next/image";
 import { Calendar, Clock, Star, Share2, X, Copy, Check } from "lucide-react";
 import {
   FaXTwitter,
-  FaFacebook,
-  FaLinkedin,
-  FaSquareWhatsapp,
+  FaFacebookF,
+  FaLinkedinIn,
+  FaWhatsapp,
 } from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
 import { getEventImageUrl } from "@/lib/utils";
@@ -50,16 +50,14 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
   const shareLinks = {
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-      eventUrl
+      `${eventTitle}\n\n${eventUrl}`
     )}`,
-    twitter: `https://twitter.com/intent/tweet?url=${encodeURIComponent(
-      eventUrl
-    )}&text=${encodeURIComponent(eventTitle)}`,
-    whatsapp: `https://wa.me/?text=${encodeURIComponent(
-      `${eventTitle} ${eventUrl}`
+    twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      `${eventTitle}\n\n${eventUrl}`
     )}`,
+    whatsapp: `https://wa.me/?text=${encodeURIComponent(eventUrl)}`,
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-      eventUrl
+      `${eventTitle}\n\n${eventUrl}`
     )}`,
   };
 
@@ -87,7 +85,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             rel="noopener noreferrer"
             className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
           >
-            <FaFacebook className="w-6 h-6" />
+            <FaFacebookF className="w-6 h-6" />
           </a>
           <a
             title="Share on Twitter"
@@ -105,7 +103,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             rel="noopener noreferrer"
             className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
           >
-            <FaSquareWhatsapp className="w-6 h-6" />
+            <FaWhatsapp className="w-6 h-6" />
           </a>
           <a
             title="Share on LinkedIn"
@@ -114,7 +112,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             rel="noopener noreferrer"
             className="p-3 bg-blue-700 text-white rounded-full hover:bg-blue-800 transition-colors"
           >
-            <FaLinkedin className="w-6 h-6" />
+            <FaLinkedinIn className="w-6 h-6" />
           </a>
         </div>
 

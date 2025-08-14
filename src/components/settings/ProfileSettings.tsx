@@ -13,7 +13,7 @@ import {
   MapPin,
   User,
 } from "lucide-react";
-import { RiTwitterXLine, RiLinkedinFill } from "react-icons/ri";
+import { FaXTwitter, FaLinkedinIn } from "react-icons/fa6";
 import { PiInstagramLogo } from "react-icons/pi";
 import {
   isValidUrl,
@@ -949,7 +949,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                         profileData.linkedin,
                         (value) => handleProfileInputChange("linkedin", value),
                         "https://www.linkedin.com/in/yourusername",
-                        <RiLinkedinFill className="w-4 h-4" />,
+                        <FaLinkedinIn className="w-4 h-4" />,
                         "linkedin",
                         limits.linkedin
                       )}
@@ -966,7 +966,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                         profileData.twitter,
                         (value) => handleProfileInputChange("twitter", value),
                         "@yourusername",
-                        <RiTwitterXLine className="w-4 h-4" />,
+                        <FaXTwitter className="w-4 h-4" />,
                         "twitter",
                         limits.twitter
                       )}
