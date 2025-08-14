@@ -13,7 +13,7 @@ import {
   MapPin,
   User,
 } from "lucide-react";
-import { RiTwitterXLine } from "react-icons/ri";
+import { RiTwitterXLine, RiLinkedinFill } from "react-icons/ri";
 import { PiInstagramLogo } from "react-icons/pi";
 import {
   isValidUrl,
@@ -30,6 +30,7 @@ interface ProfileData {
   name: string;
   bio: string;
   website: string;
+  linkedin: string;
   location: string;
   twitter: string;
   instagram: string;
@@ -55,6 +56,7 @@ interface ValidationErrors {
 const limits = {
   bio: 500,
   website: 100,
+  linkedin: 100,
   location: 100,
   twitter: 50,
   instagram: 50,
@@ -94,6 +96,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
         name: initialData.name || session?.user?.name || "",
         bio: initialData.bio || "",
         website: initialData.website || "",
+        linkedin: initialData.linkedin || "",
         location: initialData.location || "",
         twitter: initialData.twitter || "",
         instagram: initialData.instagram || "",
@@ -105,6 +108,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
       name: session?.user?.name || "",
       bio: "",
       website: "",
+      linkedin: "",
       location: "",
       twitter: "",
       instagram: "",
@@ -150,6 +154,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
     // Website validation using isValidUrl from utils
     if (profileData.website && !isValidUrl(profileData.website)) {
       errors.website = "Please enter a valid website URL";
+    }
+
+    //LinkedIn validation using isValidUrl from utils
+    if (profileData.linkedin && !isValidUrl(profileData.linkedin)) {
+      errors.linkedin = "Please enter a valid LinkedIn URL";
     }
 
     // Bio validation with truncation helper
@@ -290,14 +299,22 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
 
   // Trigger validation when profile data changes
   useEffect(() => {
-    if (profileData.name || profileData.website || profileData.bio) {
+    if (
+      profileData.name ||
+      profileData.website ||
+      profileData.bio ||
+      profileData.location ||
+      profileData.twitter ||
+      profileData.instagram ||
+      profileData.linkedin
+    ) {
       debouncedValidateProfile();
     }
   }, [profileData, debouncedValidateProfile]);
 
   useEffect(() => {
     if (session?.user && !initialData) {
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
         name: prev.name || session.user.name || "",
         role: prev.role || session.user.role || "USER",
@@ -377,10 +394,11 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
     if (profileData.role === "ORGANIZER") {
       const socialProofs = [
         profileData.website,
+        profileData.linkedin,
         profileData.twitter,
         profileData.instagram,
       ].filter(Boolean);
-      return socialProofs.length >= 2;
+      return socialProofs.length >= 1;
     }
     return Object.keys(validateProfileData()).length === 0;
   };
@@ -388,6 +406,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
   const getSocialProofCount = (): number => {
     return [
       profileData.website,
+      profileData.linkedin,
       profileData.twitter,
       profileData.instagram,
     ].filter(Boolean).length;
@@ -920,6 +939,23 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
 
                   {/* Social Media */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                    {/* LinkedIn */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        LinkedIn
+                      </label>
+                      {renderInputWithIcon(
+                        "url",
+                        profileData.linkedin,
+                        (value) => handleProfileInputChange("linkedin", value),
+                        "https://www.linkedin.com/in/yourusername",
+                        <RiLinkedinFill className="w-4 h-4" />,
+                        "linkedin",
+                        limits.linkedin
+                      )}
+                      {renderFieldError("linkedin")}
+                    </div>
+
                     {/* Twitter */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1143,7 +1179,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                       <option value="ORGANIZER">Organizer</option>
                     </select>
 
-                    {/* Social Proof Requirement Notice - Enhanced */}
+                    {/* Social Proof Requirement Notice */}
                     {profileData.role === "ORGANIZER" && (
                       <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
                         <div className="flex items-start gap-3">
@@ -1156,8 +1192,8 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                             </h4>
                             <p className="text-sm text-blue-800 mb-3 leading-relaxed">
                               To maintain event quality and trust, organizers
-                              must provide at least 2 social proof verifications
-                              from the options below.
+                              must provide at least one social proof
+                              verification from the options below.
                             </p>
 
                             {/* Progress indicator */}
@@ -1167,19 +1203,19 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                                   Verification Progress
                                 </span>
                                 <span className="text-xs font-medium text-blue-700">
-                                  {getSocialProofCount()}/3
+                                  {getSocialProofCount()}/4
                                 </span>
                               </div>
                               <div className="w-full bg-blue-200 rounded-full h-2">
                                 <div
                                   className={`h-2 rounded-full transition-all duration-300 ${
-                                    getSocialProofCount() >= 2
+                                    getSocialProofCount() >= 1
                                       ? "bg-green-500"
                                       : "bg-blue-500"
                                   }`}
                                   style={{
                                     width: `${Math.min(
-                                      (getSocialProofCount() / 2) * 100,
+                                      (getSocialProofCount() / 1) * 100,
                                       100
                                     )}%`,
                                   }}
@@ -1202,6 +1238,20 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ initialData }) => {
                                   <div className="w-3 h-3 border border-current rounded-sm flex-shrink-0"></div>
                                 )}
                                 <span className="truncate">Website URL</span>
+                              </div>
+                              <div
+                                className={`flex items-center gap-2 text-xs ${
+                                  profileData.linkedin
+                                    ? "text-green-700"
+                                    : "text-blue-600"
+                                }`}
+                              >
+                                {profileData.linkedin ? (
+                                  <Check className="w-3 h-3 flex-shrink-0" />
+                                ) : (
+                                  <div className="w-3 h-3 border border-current rounded-sm flex-shrink-0"></div>
+                                )}
+                                <span className="truncate">LinkedIn URL</span>
                               </div>
                               <div
                                 className={`flex items-center gap-2 text-xs ${

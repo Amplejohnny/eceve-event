@@ -318,6 +318,7 @@ export async function updateUser(
     website: string;
     twitter: string;
     instagram: string;
+    linkedin: string;
     isActive: boolean;
   }>
 ): Promise<{
@@ -330,6 +331,7 @@ export async function updateUser(
   location: string | null;
   twitter: string | null;
   instagram: string | null;
+  linkedin: string | null;
   role: Role;
 }> {
   return await db.user.update({
@@ -345,6 +347,7 @@ export async function updateUser(
       location: true,
       twitter: true,
       instagram: true,
+      linkedin: true,
       role: true,
     },
   });

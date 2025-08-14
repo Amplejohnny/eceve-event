@@ -58,6 +58,7 @@ export async function getEventBySlug(slug: string) {
           website: true,
           twitter: true,
           instagram: true,
+          linkedin: true,
         },
       },
       ticketTypes: {

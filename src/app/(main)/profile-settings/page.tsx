@@ -9,6 +9,7 @@ interface ProfileData {
   name: string;
   bio: string;
   website: string;
+  linkedin: string;
   location: string;
   twitter: string;
   instagram: string;

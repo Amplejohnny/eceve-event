@@ -15,6 +15,7 @@ const profileUpdateSchema = z.object({
     .optional(),
   bio: z.string().max(500, "Bio too long").optional(),
   website: z.string().url("Invalid website URL").optional().or(z.literal("")),
+  linkedin: z.string().url("Invalid LinkedIn URL").optional().or(z.literal("")),
   location: z.string().max(100, "Location too long").optional(),
   twitter: z.string().max(50, "Twitter handle too long").optional(),
   instagram: z.string().max(50, "Instagram handle too long").optional(),
@@ -47,6 +48,7 @@ export async function GET(_request: NextRequest) {
         location: true,
         twitter: true,
         instagram: true,
+        linkedin: true,
         role: true,
         emailVerified: true,
         isActive: true,
@@ -84,6 +86,7 @@ export async function GET(_request: NextRequest) {
         location: user.location || "",
         twitter: user.twitter || "",
         instagram: user.instagram || "",
+        linkedin: user.linkedin || "",
         role: user.role || session.user.role || "USER",
       },
     });
@@ -121,6 +124,7 @@ export async function PUT(request: NextRequest) {
         location: true,
         twitter: true,
         instagram: true,
+        linkedin: true,
         role: true,
         emailVerified: true,
         isActive: true,
@@ -156,6 +160,9 @@ export async function PUT(request: NextRequest) {
         validatedData.website !== undefined
           ? validatedData.website
           : user.website,
+        validatedData.linkedin !== undefined
+          ? validatedData.linkedin
+          : user.linkedin,
         validatedData.twitter !== undefined
           ? validatedData.twitter
           : user.twitter,
@@ -169,7 +176,7 @@ export async function PUT(request: NextRequest) {
           {
             error: "Social proof required",
             message:
-              "Please provide at least 2 social proof fields (Website, Twitter, or Instagram) to become an organizer",
+              "Please provide at least 2 social proof fields (Website, Twitter, LinkedIn, or Instagram) to become an organizer",
           },
           { status: 400 }
         );
@@ -199,6 +206,7 @@ export async function PUT(request: NextRequest) {
         location: updatedUser.location || "",
         twitter: updatedUser.twitter || "",
         instagram: updatedUser.instagram || "",
+        linkedin: updatedUser.linkedin || "",
         role: updatedUser.role || session.user.role || "USER",
       },
     });
@@ -251,6 +259,7 @@ export async function PATCH(request: NextRequest) {
         location: true,
         twitter: true,
         instagram: true,
+        linkedin: true,
         role: true,
         emailVerified: true,
         isActive: true,
@@ -291,6 +300,7 @@ export async function PATCH(request: NextRequest) {
       "location",
       "twitter",
       "instagram",
+      "linkedin",
       "image",
     ];
     if (!allowedFields.includes(field)) {
@@ -321,6 +331,8 @@ export async function PATCH(request: NextRequest) {
       fieldValue = updatedUser.twitter || "";
     } else if (field === "instagram") {
       fieldValue = updatedUser.instagram || "";
+    } else if (field === "linkedin") {
+      fieldValue = updatedUser.linkedin || "";
     }
 
     return NextResponse.json({

@@ -69,6 +69,12 @@ const ProfileSkeleton = (): React.JSX.Element => (
         <SkeletonInput />
       </div>
 
+      {/* LinkedIn Skeleton */}
+      <div>
+        <SkeletonLine width="w-20" className="mb-2" />
+        <SkeletonInput />
+      </div>
+
       {/* Location Skeleton */}
       <div>
         <SkeletonLine width="w-20" className="mb-2" />

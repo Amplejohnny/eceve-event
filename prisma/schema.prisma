@@ -22,6 +22,7 @@ model User {
   website          String?
   twitter          String?
   instagram        String?
+  linkedin         String?
   isActive         Boolean   @default(true)
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
