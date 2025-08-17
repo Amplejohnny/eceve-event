@@ -1,8 +1,44 @@
-// Here's your complete working API route:
-
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+
+interface EventWithRelations {
+  id: string;
+  title: string;
+  description: string | null;
+  eventType: string;
+  date: Date;
+  endDate: Date | null;
+  startTime: string | null;
+  endTime: string | null;
+  location: string | null;
+  venue: string | null;
+  address: string | null;
+  tags: string[];
+  category: string | null;
+  imageUrl: string | null;
+  isPublic: boolean;
+  status: string;
+  slug: string;
+  organizerId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  ticketTypes: Array<{
+    id: string;
+    name: string;
+    price: number;
+    quantity: number | null;
+  }>;
+  organizer: {
+    id: string;
+    name: string | null;
+    email: string;
+    image: string | null;
+  } | null;
+  _count: {
+    tickets: number;
+  };
+}
 
 // Helper functions
 const createErrorResponse = (message: string, status: number) => {
@@ -23,8 +59,7 @@ const looksLikeId = (identifier: string): boolean => {
   return isValidUUID(identifier) || isValidCuid(identifier);
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const transformEventData = (event: any) => {
+const transformEventData = (event: EventWithRelations) => {
   return {
     id: event.id,
     title: event.title,
@@ -43,8 +78,7 @@ const transformEventData = (event: any) => {
     isPublic: event.isPublic ?? true,
     status: event.status,
     slug: event.slug,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ticketTypes: event.ticketTypes.map((ticket: any) => ({
+    ticketTypes: event.ticketTypes.map((ticket) => ({
       id: ticket.id,
       name: ticket.name,
       price: ticket.price,
@@ -55,7 +89,7 @@ const transformEventData = (event: any) => {
           id: event.organizer.id,
           name: event.organizer.name,
           email: event.organizer.email,
-          image: event.organizer.image, // This should now work!
+          image: event.organizer.image,
         }
       : null,
     createdAt: event.createdAt.toISOString(),
@@ -77,14 +111,21 @@ export async function GET(
 
     const searchById = looksLikeId(eventId);
 
-    // Fetch event - IMPORTANT: Use organizer: true instead of select
+    // Fetch event by ID or slug with all related data
     const event = await db.event.findUnique({
       where: searchById ? { id: eventId } : { slug: eventId },
       include: {
         ticketTypes: {
           orderBy: { price: "asc" },
         },
-        organizer: true, // Get ALL organizer fields
+        organizer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        },
         _count: {
           select: {
             tickets: {
@@ -106,12 +147,11 @@ export async function GET(
       return createErrorResponse(errorMessage, 404);
     }
 
-    // Transform the data
     const transformedEvent = transformEventData(event);
 
     return NextResponse.json(transformedEvent);
   } catch (error) {
-    console.error("Error fetching event:", error);
+    console.error("API Error:", error);
 
     if (error instanceof Error) {
       if (error.message.includes("connection")) {

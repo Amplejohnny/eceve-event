@@ -927,8 +927,12 @@ export const useEventStore = create<EventStore>((set, get) => ({
   loadEvent: async (eventId: string) => {
     const { setLoading, setCurrentEvent, setEventError, clearAllErrors } =
       get();
-    setLoading(true);
+
+    // Clear previous state first
+    setCurrentEvent(null);
+    setEventError(null);
     clearAllErrors();
+    setLoading(true);
 
     try {
       if (!eventId || eventId.trim() === "") {
@@ -959,6 +963,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
       }
 
       setCurrentEvent(event);
+      setEventError(null); // Clear any previous errors
       return event;
     } catch (error) {
       console.error("Error loading event:", error);

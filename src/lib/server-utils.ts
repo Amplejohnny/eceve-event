@@ -44,8 +44,10 @@ export async function getEvent(slug: string) {
       include: {
         organizer: {
           select: {
+            id: true,
             name: true,
             email: true,
+            image: true,
           },
         },
         ticketTypes: {

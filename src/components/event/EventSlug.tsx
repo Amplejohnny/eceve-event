@@ -156,35 +156,38 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
-    if (!slug) {
-      router.push("/");
-      return;
-    }
+  if (!slug) {
+    router.push("/");
+    return;
+  }
 
-    // If we have initial event data from server, use it
-    if (initialEvent) {
-      setCurrentEvent(initialEvent);
-      return;
-    }
+  // If we have initial event data from server, use it
+  if (initialEvent) {
+    setCurrentEvent(initialEvent);
+    return;
+  }
 
-    const fetchEvent = async (): Promise<void> => {
-      try {
-        await loadEvent(slug);
-      } catch (err) {
-        if (err instanceof Error) {
-          console.error("Error fetching event:", err);
-        } else {
-          console.error("Unexpected error:", err);
-        }
-        // On error, redirect to home after a delay to show the error
-        setTimeout(() => {
-          router.push("/");
-        }, 3000);
+  // Clear current event before loading new one
+  setCurrentEvent(null);
+
+  const fetchEvent = async (): Promise<void> => {
+    try {
+      await loadEvent(slug);
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error("Error fetching event:", err);
+      } else {
+        console.error("Unexpected error:", err);
       }
-    };
+      // On error, redirect to home after a delay to show the error
+      setTimeout(() => {
+        router.push("/");
+      }, 3000);
+    }
+  };
 
-    fetchEvent();
-  }, [slug, router, loadEvent, initialEvent, setCurrentEvent]);
+  fetchEvent();
+}, [slug, router, loadEvent, initialEvent, setCurrentEvent]);
 
   const handleFavoriteToggle = (): void => {
     if (!session?.user) {
@@ -202,34 +205,6 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   useEffect(() => {
     setImageError(false);
   }, [currentEvent?.organizer?.image]);
-
-  useEffect(() => {
-    if (currentEvent) {
-      console.log("🔍 CLIENT-SIDE DEBUG:");
-      console.log("- Event loaded:", !!currentEvent);
-      console.log("- Event ID:", currentEvent.id);
-      console.log("- Event title:", currentEvent.title);
-      console.log("- Organizer exists:", !!currentEvent.organizer);
-      console.log("- Organizer object:", currentEvent.organizer);
-
-      if (currentEvent.organizer) {
-        console.log("- Organizer ID:", currentEvent.organizer.id);
-        console.log("- Organizer name:", currentEvent.organizer.name);
-        console.log("- Organizer email:", currentEvent.organizer.email);
-        console.log("- Organizer image:", currentEvent.organizer.image);
-        console.log("- Image type:", typeof currentEvent.organizer.image);
-        console.log("- Image is null:", currentEvent.organizer.image === null);
-        console.log(
-          "- Image is undefined:",
-          currentEvent.organizer.image === undefined
-        );
-        console.log(
-          "- Image is empty string:",
-          currentEvent.organizer.image === ""
-        );
-      }
-    }
-  }, [currentEvent]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -493,7 +468,7 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                   </div>
                   <button
                     onClick={handleBuyTickets}
-                    className="w-full bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+                    className="w-full cursor-pointer bg-yellow-400 text-white py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors"
                   >
                     {currentEvent.eventType === "FREE"
                       ? "Get Tickets"
