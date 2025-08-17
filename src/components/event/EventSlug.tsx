@@ -153,6 +153,7 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     if (!slug) {
@@ -165,8 +166,6 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
       setCurrentEvent(initialEvent);
       return;
     }
-
-    console.log("Loading event with slug:", slug); // Debug log
 
     const fetchEvent = async (): Promise<void> => {
       try {
@@ -199,6 +198,38 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const handleBuyTickets = (): void => {
     router.push("/ticket");
   };
+
+  useEffect(() => {
+    setImageError(false);
+  }, [currentEvent?.organizer?.image]);
+
+  useEffect(() => {
+    if (currentEvent) {
+      console.log("🔍 CLIENT-SIDE DEBUG:");
+      console.log("- Event loaded:", !!currentEvent);
+      console.log("- Event ID:", currentEvent.id);
+      console.log("- Event title:", currentEvent.title);
+      console.log("- Organizer exists:", !!currentEvent.organizer);
+      console.log("- Organizer object:", currentEvent.organizer);
+
+      if (currentEvent.organizer) {
+        console.log("- Organizer ID:", currentEvent.organizer.id);
+        console.log("- Organizer name:", currentEvent.organizer.name);
+        console.log("- Organizer email:", currentEvent.organizer.email);
+        console.log("- Organizer image:", currentEvent.organizer.image);
+        console.log("- Image type:", typeof currentEvent.organizer.image);
+        console.log("- Image is null:", currentEvent.organizer.image === null);
+        console.log(
+          "- Image is undefined:",
+          currentEvent.organizer.image === undefined
+        );
+        console.log(
+          "- Image is empty string:",
+          currentEvent.organizer.image === ""
+        );
+      }
+    }
+  }, [currentEvent]);
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -361,55 +392,25 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="font-medium text-gray-900 mb-4">Hosted by</h3>
 
-                {/* Debug info - remove this after fixing */}
-                {process.env.NODE_ENV === "development" && (
-                  <div className="mb-2 p-2 bg-gray-100 text-xs">
-                    <p>Debug - Organizer data:</p>
-                    <pre>{JSON.stringify(currentEvent.organizer, null, 2)}</pre>
-                  </div>
-                )}
-
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-r from-red-600 to-green-600">
-                    {currentEvent.organizer?.image ? (
-                      <>
-                        {/* Debug - show what URL we're trying to load */}
-                        {process.env.NODE_ENV === "development" && (
-                          <div className="absolute -top-20 left-0 bg-black text-white p-1 text-xs z-10">
-                            Trying:{" "}
-                            {getEventImageUrl(currentEvent.organizer.image)}
-                          </div>
-                        )}
-                        <Image
-                          src={getEventImageUrl(currentEvent.organizer.image)}
-                          alt={currentEvent.organizer?.name || "Organizer"}
-                          width={48}
-                          height={48}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            console.error(
-                              "Failed to load organizer image:",
-                              getEventImageUrl(currentEvent.organizer?.image)
-                            );
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = "none";
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `<span class="text-white font-semibold">${
-                                currentEvent.organizer?.name?.charAt(0) || "O"
-                              }</span>`;
-                            }
-                          }}
-                          onLoad={() => {
-                            console.log(
-                              "Successfully loaded organizer image:",
-                              getEventImageUrl(currentEvent.organizer?.image)
-                            );
-                          }}
-                        />
-                      </>
+                    {currentEvent.organizer?.image && !imageError ? (
+                      <Image
+                        src={currentEvent.organizer.image}
+                        alt={currentEvent.organizer?.name || "Organizer"}
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover"
+                        onError={() => {
+                          console.error(
+                            "Failed to load organizer image:",
+                            currentEvent.organizer?.image
+                          );
+                          setImageError(true);
+                        }}
+                      />
                     ) : (
-                      <span className="text-white font-semibold">
+                      <span className="text-white font-semibold text-lg">
                         {currentEvent.organizer?.name?.charAt(0) || "O"}
                       </span>
                     )}
