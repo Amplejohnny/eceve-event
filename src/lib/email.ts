@@ -421,12 +421,12 @@ export async function sendTicketConfirmation(ticketData: {
       subject,
       html,
       replyTo: "noreply@comforeve.com", // Set a no-reply address
-      attachments: [
-        {
-          filename: `ticket-${ticketData.confirmationId}.pdf`,
-          //   content: await generateTicketPDF(ticketData),
-        },
-      ],
+      // attachments: [
+      //   {
+      //     filename: `ticket-${ticketData.confirmationId}.pdf`,
+      //       content: await generateTicketPDF(ticketData),
+      //   },
+      // ],
     });
 
     console.log(`Ticket confirmation sent to ${ticketData.attendeeEmail}`);

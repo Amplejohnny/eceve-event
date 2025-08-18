@@ -8,39 +8,54 @@ import {
   MapPin,
   AlertCircle,
   CheckCircle,
+  Clock,
 } from "lucide-react";
 
-// Mock data - replace with your actual props
-const mockEvent = {
-  id: "event123",
-  title: "Sound Of Christmas 2023",
-  date: "2023-12-02T00:00:00.000Z",
-  location: "Lagos, Nigeria",
-  venue: "Eko Convention Centre",
-  eventType: "PAID",
-  ticketTypes: [
-    {
-      id: "ticket1",
-      name: "Standard Ticket",
-      price: 20000, // in kobo (₦200)
-      quantity: 100,
-    },
-    {
-      id: "ticket2",
-      name: "VIP Ticket",
-      price: 50000, // in kobo (₦500)
-      quantity: 50,
-    },
-    {
-      id: "ticket3",
-      name: "VVIP Ticket",
-      price: 100000, // in kobo (₦1000)
-      quantity: 25,
-    },
-  ],
-};
+// Types based on your schema
+interface TicketType {
+  id: string;
+  name: string;
+  price: number; // in kobo
+  quantity?: number; // null means unlimited
+}
 
-// Utility function
+interface Event {
+  id: string;
+  title: string;
+  description: string;
+  eventType: "FREE" | "PAID";
+  date: string;
+  endDate?: string;
+  startTime: string;
+  endTime?: string;
+  location: string;
+  venue?: string;
+  address?: string;
+  ticketTypes: TicketType[];
+  organizer?: {
+    name?: string;
+    email?: string;
+  };
+}
+
+interface TicketQuantity {
+  [ticketId: string]: number;
+}
+
+interface AttendeeInfo {
+  fullName: string;
+  email: string;
+  phone?: string;
+  confirmationId: string;
+}
+
+interface TicketPurchaseModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  event: Event | null;
+}
+
+// Utility functions
 export function generateConfirmationId(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
@@ -50,16 +65,12 @@ export function generateConfirmationId(): string {
   return result;
 }
 
-// Paystack fee calculation
 function calculatePaystackFee(amount: number): number {
-  // amount is in kobo
   if (amount < 250000) {
-    // Less than ₦2,500
-    return Math.round(amount * 0.015); // 1.5% only, waive ₦100 fee
+    return Math.round(amount * 0.015);
   }
-
-  const fee = Math.round(amount * 0.015) + 10000; // 1.5% + ₦100
-  return Math.min(fee, 200000); // Cap at ₦2,000
+  const fee = Math.round(amount * 0.015) + 10000;
+  return Math.min(fee, 200000);
 }
 
 function formatPrice(priceInKobo: number): string {
@@ -76,27 +87,50 @@ function formatDate(dateString: string): string {
   });
 }
 
-interface TicketQuantity {
-  [ticketId: string]: number;
+function formatTime(timeString: string): string {
+  const [hours, minutes] = timeString.split(":");
+  const date = new Date();
+  date.setHours(parseInt(hours), parseInt(minutes));
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
-interface AttendeeInfo {
-  fullName: string;
-  email: string;
-  confirmationId: string;
-}
-
-const TicketPurchaseModal = () => {
-  const [isOpen, setIsOpen] = useState(true);
-  const [currentStep, setCurrentStep] = useState(1); // 1: Select, 2: Details, 3: Summary
+const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
+  isOpen,
+  onClose,
+  event,
+}) => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [ticketQuantities, setTicketQuantities] = useState<TicketQuantity>({});
   const [attendeeInfo, setAttendeeInfo] = useState<AttendeeInfo>({
     fullName: "",
     email: "",
+    phone: "",
     confirmationId: "",
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isProcessing, setIsProcessing] = useState(false);
+  const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  // Reset state when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      setCurrentStep(1);
+      setTicketQuantities({});
+      setAttendeeInfo({
+        fullName: "",
+        email: "",
+        phone: "",
+        confirmationId: "",
+      });
+      setErrors({});
+      setIsProcessing(false);
+      setBookingSuccess(false);
+    }
+  }, [isOpen]);
 
   // Generate confirmation ID when moving to step 2
   useEffect(() => {
@@ -108,9 +142,21 @@ const TicketPurchaseModal = () => {
     }
   }, [currentStep, attendeeInfo.confirmationId]);
 
+  if (!isOpen || !event) return null;
+
   const updateQuantity = (ticketId: string, change: number) => {
+    const ticketType = event.ticketTypes.find((t) => t.id === ticketId);
+    if (!ticketType) return;
+
     setTicketQuantities((prev) => {
-      const newQuantity = Math.max(0, (prev[ticketId] || 0) + change);
+      const currentQty = prev[ticketId] || 0;
+      const newQuantity = Math.max(0, currentQty + change);
+
+      // Check if we exceed available quantity
+      if (ticketType.quantity && newQuantity > ticketType.quantity) {
+        return prev;
+      }
+
       if (newQuantity === 0) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [ticketId]: _, ...rest } = prev;
@@ -126,7 +172,7 @@ const TicketPurchaseModal = () => {
 
   const getSubTotal = (): number => {
     return Object.entries(ticketQuantities).reduce((sum, [ticketId, qty]) => {
-      const ticket = mockEvent.ticketTypes.find((t) => t.id === ticketId);
+      const ticket = event.ticketTypes.find((t) => t.id === ticketId);
       return sum + (ticket ? ticket.price * qty : 0);
     }, 0);
   };
@@ -159,21 +205,89 @@ const TicketPurchaseModal = () => {
     }
   };
 
+  const handleBookFreeEvent = async () => {
+    setIsProcessing(true);
+
+    try {
+      // Create ticket booking for free event
+      const ticketData = {
+        eventId: event.id,
+        tickets: Object.entries(ticketQuantities).map(
+          ([ticketTypeId, quantity]) => ({
+            ticketTypeId,
+            quantity,
+            attendeeName: attendeeInfo.fullName,
+            attendeeEmail: attendeeInfo.email,
+            // attendeePhone: attendeeInfo.phone,
+          })
+        ),
+      };
+
+      const response = await fetch("/api/tickets/book-free", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ticketData),
+      });
+
+      if (response.ok) {
+        setBookingSuccess(true);
+        setCurrentStep(4); // Success step
+      } else {
+        throw new Error("Failed to book tickets");
+      }
+    } catch (error) {
+      console.error("Error booking free tickets:", error);
+      alert("Failed to book tickets. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handlePayNow = async () => {
     setIsProcessing(true);
-    // Simulate processing
-    setTimeout(() => {
+
+    try {
+      // Initialize Paystack payment
+      const paymentData = {
+        eventId: event.id,
+        tickets: Object.entries(ticketQuantities).map(
+          ([ticketTypeId, quantity]) => ({
+            ticketTypeId,
+            quantity,
+            attendeeName: attendeeInfo.fullName,
+            attendeeEmail: attendeeInfo.email,
+            // attendeePhone: attendeeInfo.phone,
+          })
+        ),
+        amount: getSubTotal() + calculatePaystackFee(getSubTotal()),
+        customerEmail: attendeeInfo.email,
+      };
+
+      const response = await fetch("/api/payments/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(paymentData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Redirect to Paystack payment page
+        window.location.href = result.authorization_url;
+      } else {
+        throw new Error(result.message || "Failed to initialize payment");
+      }
+    } catch (error) {
+      console.error("Error initializing payment:", error);
+      alert("Failed to initialize payment. Please try again.");
+    } finally {
       setIsProcessing(false);
-      // Here you would integrate with Paystack
-      alert("Payment processing would be handled here with Paystack!");
-    }, 2000);
+    }
   };
 
   const subTotal = getSubTotal();
-  const tax = calculatePaystackFee(subTotal);
+  const tax = event.eventType === "PAID" ? calculatePaystackFee(subTotal) : 0;
   const orderTotal = subTotal + tax;
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -181,9 +295,9 @@ const TicketPurchaseModal = () => {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center">
-            {currentStep > 1 && (
+            {currentStep > 1 && currentStep !== 4 && (
               <button
-                title="go back"
+                title="Go back"
                 onClick={() => setCurrentStep(currentStep - 1)}
                 className="mr-3 p-1 hover:bg-gray-100 rounded-full"
               >
@@ -194,11 +308,12 @@ const TicketPurchaseModal = () => {
               {currentStep === 1 && "Select Tickets"}
               {currentStep === 2 && "Attendee Details"}
               {currentStep === 3 && "Order Summary"}
+              {currentStep === 4 && "Booking Confirmed"}
             </h2>
           </div>
           <button
-            title="cancel modal"
-            onClick={() => setIsOpen(false)}
+            title="Close modal"
+            onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-full"
           >
             <X className="w-5 h-5 text-gray-600" />
@@ -213,15 +328,21 @@ const TicketPurchaseModal = () => {
               {/* Event Info */}
               <div className="mb-6 pb-4 border-b border-gray-100">
                 <h3 className="font-semibold text-gray-900 mb-2">
-                  {mockEvent.title}
+                  {event.title}
                 </h3>
                 <div className="flex items-center text-sm text-gray-600 mb-1">
                   <Calendar className="w-4 h-4 mr-2" />
-                  {formatDate(mockEvent.date)}
+                  {formatDate(event.date)}
+                  {event.endDate && ` - ${formatDate(event.endDate)}`}
+                </div>
+                <div className="flex items-center text-sm text-gray-600 mb-1">
+                  <Clock className="w-4 h-4 mr-2" />
+                  {formatTime(event.startTime)}
+                  {event.endTime && ` - ${formatTime(event.endTime)}`}
                 </div>
                 <div className="flex items-center text-sm text-gray-600">
                   <MapPin className="w-4 h-4 mr-2" />
-                  {mockEvent.venue}, {mockEvent.location}
+                  {event.venue || event.location}
                 </div>
               </div>
 
@@ -232,7 +353,7 @@ const TicketPurchaseModal = () => {
                   <span>Quantity</span>
                 </div>
 
-                {mockEvent.ticketTypes.map((ticket) => (
+                {event.ticketTypes.map((ticket) => (
                   <div key={ticket.id} className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -240,32 +361,70 @@ const TicketPurchaseModal = () => {
                           {ticket.name}
                         </h4>
                         <p className="text-lg font-bold text-gray-900">
-                          {formatPrice(ticket.price)}
+                          {ticket.price === 0
+                            ? "Free"
+                            : formatPrice(ticket.price)}
                         </p>
+                        {ticket.quantity && (
+                          <p className="text-sm text-gray-500">
+                            {ticket.quantity} available
+                          </p>
+                        )}
                       </div>
 
-                      <div className="flex items-center space-x-3">
-                        <button
-                          title="minus quantity"
-                          onClick={() => updateQuantity(ticket.id, -1)}
-                          disabled={!ticketQuantities[ticket.id]}
-                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
+                      {/* For free events, users get 1 ticket max per type */}
+                      {event.eventType === "FREE" ? (
+                        <div className="flex items-center space-x-3">
+                          <button
+                            title="Remove ticket"
+                            onClick={() => updateQuantity(ticket.id, -1)}
+                            disabled={!ticketQuantities[ticket.id]}
+                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
 
-                        <span className="text-2xl font-bold text-gray-900 min-w-[2rem] text-center">
-                          {ticketQuantities[ticket.id] || 0}
-                        </span>
+                          <span className="text-2xl font-bold text-gray-900 min-w-[2rem] text-center">
+                            {Math.min(ticketQuantities[ticket.id] || 0, 1)}
+                          </span>
 
-                        <button
-                          title="plus quantity"
-                          onClick={() => updateQuantity(ticket.id, 1)}
-                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
-                      </div>
+                          <button
+                            title="Add ticket"
+                            onClick={() => updateQuantity(ticket.id, 1)}
+                            disabled={(ticketQuantities[ticket.id] || 0) >= 1}
+                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-3">
+                          <button
+                            title="Decrease quantity"
+                            onClick={() => updateQuantity(ticket.id, -1)}
+                            disabled={!ticketQuantities[ticket.id]}
+                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+
+                          <span className="text-2xl font-bold text-gray-900 min-w-[2rem] text-center">
+                            {ticketQuantities[ticket.id] || 0}
+                          </span>
+
+                          <button
+                            title="Increase quantity"
+                            onClick={() => updateQuantity(ticket.id, 1)}
+                            disabled={
+                              !!ticket.quantity &&
+                              (ticketQuantities[ticket.id] || 0) >= ticket.quantity
+                            }
+                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -279,11 +438,11 @@ const TicketPurchaseModal = () => {
               {/* Event Info */}
               <div className="mb-6 pb-4 border-b border-gray-100">
                 <h3 className="font-semibold text-gray-900 mb-2">
-                  {mockEvent.title}
+                  {event.title}
                 </h3>
                 <div className="flex items-center text-sm text-gray-600 mb-4">
                   <Calendar className="w-4 h-4 mr-2" />
-                  {formatDate(mockEvent.date)}
+                  {formatDate(event.date)}
                 </div>
 
                 {/* Selected Tickets */}
@@ -292,7 +451,7 @@ const TicketPurchaseModal = () => {
                     Selected Tickets:
                   </h4>
                   {Object.entries(ticketQuantities).map(([ticketId, qty]) => {
-                    const ticket = mockEvent.ticketTypes.find(
+                    const ticket = event.ticketTypes.find(
                       (t) => t.id === ticketId
                     );
                     if (!ticket) return null;
@@ -304,7 +463,11 @@ const TicketPurchaseModal = () => {
                         <span>
                           {ticket.name} × {qty}
                         </span>
-                        <span>{formatPrice(ticket.price * qty)}</span>
+                        <span>
+                          {ticket.price === 0
+                            ? "Free"
+                            : formatPrice(ticket.price * qty)}
+                        </span>
                       </div>
                     );
                   })}
@@ -341,7 +504,7 @@ const TicketPurchaseModal = () => {
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors.fullName ? "border-red-500" : "border-gray-300"
                     }`}
-                    placeholder="Enter Attendee's full name"
+                    placeholder="Enter attendee's full name"
                   />
                   {errors.fullName && (
                     <div className="flex items-center mt-1 text-red-600 text-sm">
@@ -353,7 +516,7 @@ const TicketPurchaseModal = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    E-mail <span className="text-red-500">*</span>
+                    Email <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="email"
@@ -369,7 +532,7 @@ const TicketPurchaseModal = () => {
                     className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                       errors.email ? "border-red-500" : "border-gray-300"
                     }`}
-                    placeholder="Enter your e-mail"
+                    placeholder="Enter your email"
                   />
                   {errors.email && (
                     <div className="flex items-center mt-1 text-red-600 text-sm">
@@ -377,6 +540,24 @@ const TicketPurchaseModal = () => {
                       {errors.email}
                     </div>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    value={attendeeInfo.phone}
+                    onChange={(e) => {
+                      setAttendeeInfo((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }));
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter your phone number"
+                  />
                 </div>
 
                 <div className="pt-4">
@@ -398,121 +579,193 @@ const TicketPurchaseModal = () => {
           {/* Step 3: Order Summary */}
           {currentStep === 3 && (
             <div className="p-4">
-              {/* Ticket Card */}
-              <div className="bg-white border-2 border-dashed border-blue-300 rounded-lg p-4 mb-6 relative">
+              {/* Ticket Summary */}
+              <div className="bg-white border-2 border-dashed border-blue-300 rounded-lg p-4 mb-6">
                 <div className="text-center">
                   <h3 className="text-lg font-semibold text-blue-600 mb-3">
-                    Standard Ticket
+                    {event.title}
                   </h3>
-                  <div className="text-left space-y-1">
+                  <div className="text-left space-y-2">
                     <p className="font-medium text-gray-900">
                       {attendeeInfo.fullName}
                     </p>
                     <p className="text-sm text-gray-600">
                       {attendeeInfo.email}
                     </p>
+                    <p className="text-sm text-gray-600">
+                      {formatDate(event.date)} at {formatTime(event.startTime)}
+                    </p>
                   </div>
-                  <div className="absolute top-4 right-4">
-                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                      {formatPrice(mockEvent.ticketTypes[0].price)}
+                </div>
+              </div>
+
+              {/* Selected Tickets */}
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-900 mb-3">
+                  Selected Tickets
+                </h4>
+                {Object.entries(ticketQuantities).map(([ticketId, qty]) => {
+                  const ticket = event.ticketTypes.find(
+                    (t) => t.id === ticketId
+                  );
+                  if (!ticket) return null;
+                  return (
+                    <div
+                      key={ticketId}
+                      className="flex justify-between items-center py-2 border-b border-gray-100"
+                    >
+                      <div>
+                        <p className="font-medium">{ticket.name}</p>
+                        <p className="text-sm text-gray-600">Quantity: {qty}</p>
+                      </div>
+                      <p className="font-semibold">
+                        {ticket.price === 0
+                          ? "Free"
+                          : formatPrice(ticket.price * qty)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pricing Breakdown for Paid Events */}
+              {event.eventType === "PAID" && (
+                <div className="space-y-4 mb-6">
+                  <div className="flex justify-between items-center text-lg">
+                    <span className="font-medium">Subtotal:</span>
+                    <span className="font-bold">{formatPrice(subTotal)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-lg">
+                    <span className="font-medium">Processing Fee:</span>
+                    <span className="font-bold">{formatPrice(tax)}</span>
+                  </div>
+
+                  <hr className="border-gray-300" />
+
+                  <div className="flex justify-between items-center text-xl">
+                    <span className="font-bold">Total:</span>
+                    <span className="font-bold text-green-600">
+                      {formatPrice(orderTotal)}
                     </span>
                   </div>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 4: Success for Free Events */}
+          {currentStep === 4 && bookingSuccess && (
+            <div className="p-4 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
-
-              {/* Pricing Breakdown */}
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between items-center text-lg">
-                  <span className="font-medium">Sub Total:</span>
-                  <span className="font-bold">{formatPrice(subTotal)}</span>
-                </div>
-
-                <div className="flex justify-between items-center text-lg">
-                  <span className="font-medium">Tax:</span>
-                  <span className="font-bold">{formatPrice(tax)}</span>
-                </div>
-
-                <hr className="border-gray-300" />
-
-                <div className="flex justify-between items-center text-xl">
-                  <span className="font-bold">Order Total:</span>
-                  <span className="font-bold text-green-600">
-                    {formatPrice(orderTotal)}
-                  </span>
-                </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Event Booked Successfully!
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Your tickets have been confirmed. Check your email for booking
+                details and confirmation.
+              </p>
+              <div className="bg-green-50 rounded-lg p-4 mb-6">
+                <p className="text-sm text-green-800">
+                  <strong>Confirmation ID:</strong>{" "}
+                  {attendeeInfo.confirmationId}
+                </p>
+                <p className="text-sm text-green-700 mt-1">
+                  Present this ID at the event entrance
+                </p>
               </div>
+              <button
+                onClick={onClose}
+                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+              >
+                Close
+              </button>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 bg-gray-50">
-          {currentStep === 1 && (
-            <>
-              <div className="flex justify-between items-center mb-4 text-lg font-semibold">
-                <span>
-                  Qty:{" "}
-                  <span className="text-green-600">{getTotalQuantity()}</span>
-                </span>
-                <span>
-                  Total:{" "}
-                  <span className="text-green-600">
-                    {formatPrice(subTotal)}
+        {currentStep < 4 && (
+          <div className="p-4 border-t border-gray-200 bg-gray-50">
+            {currentStep === 1 && (
+              <>
+                <div className="flex justify-between items-center mb-4 text-lg font-semibold">
+                  <span>
+                    Qty:{" "}
+                    <span className="text-green-600">{getTotalQuantity()}</span>
                   </span>
-                </span>
-              </div>
-              <button
-                onClick={handleContinueToCheckout}
-                disabled={getTotalQuantity() === 0}
-                className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-gray-900 transition-colors flex items-center justify-center"
-              >
-                Proceed
-                <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
-              </button>
-            </>
-          )}
-
-          {currentStep === 2 && (
-            <>
-              <div className="flex justify-between items-center mb-4 text-lg font-semibold">
-                <span>
-                  Qty:{" "}
-                  <span className="text-green-600">{getTotalQuantity()}</span>
-                </span>
-                <span>
-                  Total:{" "}
-                  <span className="text-green-600">
-                    {formatPrice(subTotal)}
+                  <span>
+                    Total:{" "}
+                    <span className="text-green-600">
+                      {subTotal === 0 ? "Free" : formatPrice(subTotal)}
+                    </span>
                   </span>
-                </span>
-              </div>
-              <button
-                onClick={handleContinueToSummary}
-                className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center"
-              >
-                Continue to Checkout
-                <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
-              </button>
-            </>
-          )}
+                </div>
+                <button
+                  onClick={handleContinueToCheckout}
+                  disabled={getTotalQuantity() === 0}
+                  className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-gray-900 transition-colors flex items-center justify-center"
+                >
+                  Continue
+                  <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                </button>
+              </>
+            )}
 
-          {currentStep === 3 && (
-            <button
-              onClick={handlePayNow}
-              disabled={isProcessing}
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-            >
-              {isProcessing ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Processing...
-                </>
-              ) : (
-                <>🔒 Pay Now</>
-              )}
-            </button>
-          )}
-        </div>
+            {currentStep === 2 && (
+              <>
+                <div className="flex justify-between items-center mb-4 text-lg font-semibold">
+                  <span>
+                    Qty:{" "}
+                    <span className="text-green-600">{getTotalQuantity()}</span>
+                  </span>
+                  <span>
+                    Total:{" "}
+                    <span className="text-green-600">
+                      {subTotal === 0 ? "Free" : formatPrice(subTotal)}
+                    </span>
+                  </span>
+                </div>
+                <button
+                  onClick={handleContinueToSummary}
+                  className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center"
+                >
+                  Continue to Summary
+                  <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                </button>
+              </>
+            )}
+
+            {currentStep === 3 && (
+              <button
+                onClick={
+                  event.eventType === "FREE"
+                    ? handleBookFreeEvent
+                    : handlePayNow
+                }
+                disabled={isProcessing}
+                className={`w-full text-white py-3 rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center ${
+                  event.eventType === "FREE"
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {isProcessing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processing...
+                  </>
+                ) : event.eventType === "FREE" ? (
+                  "Book Free Tickets"
+                ) : (
+                  <>🔒 Pay Now</>
+                )}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
