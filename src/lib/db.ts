@@ -23,13 +23,13 @@ export const db =
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 
-db.$connect()
-  .then(() => {
-    console.log("✅ Prisma successfully connected to the database.");
-  })
-  .catch((error: unknown) => {
-    console.error("❌ Prisma failed to connect to the database:", error);
-  });
+// db.$connect()
+//   .then(() => {
+//     console.log("✅ Prisma successfully connected to the database.");
+//   })
+//   .catch((error: unknown) => {
+//     console.error("❌ Prisma failed to connect to the database:", error);
+//   });
 
 // Database utility functions
 export async function getUserByEmail(email: string) {

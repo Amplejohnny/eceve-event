@@ -13,6 +13,7 @@ import {
   FaWhatsapp,
 } from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
+import type { TicketType, EventData } from "@/store/eventStore";
 import { getEventImageUrl } from "@/lib/utils";
 interface ShareModalProps {
   isOpen: boolean;
@@ -22,8 +23,7 @@ interface ShareModalProps {
 }
 
 interface EventSlugPageProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialEvent?: any; // Use your Event type here
+  initialEvent?: EventData;
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({
@@ -154,40 +154,44 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [localLoading, setLocalLoading] = useState(false);
 
   useEffect(() => {
-  if (!slug) {
-    router.push("/");
-    return;
-  }
-
-  // If we have initial event data from server, use it
-  if (initialEvent) {
-    setCurrentEvent(initialEvent);
-    return;
-  }
-
-  // Clear current event before loading new one
-  setCurrentEvent(null);
-
-  const fetchEvent = async (): Promise<void> => {
-    try {
-      await loadEvent(slug);
-    } catch (err) {
-      if (err instanceof Error) {
-        console.error("Error fetching event:", err);
-      } else {
-        console.error("Unexpected error:", err);
-      }
-      // On error, redirect to home after a delay to show the error
-      setTimeout(() => {
-        router.push("/");
-      }, 3000);
+    if (!slug) {
+      router.push("/");
+      return;
     }
-  };
 
-  fetchEvent();
-}, [slug, router, loadEvent, initialEvent, setCurrentEvent]);
+    // If we have initial event data from server, use it
+    if (initialEvent) {
+      setCurrentEvent(initialEvent);
+      setLocalLoading(false);
+      return;
+    }
+
+    // Set local loading and clear current event
+    setLocalLoading(true);
+    setCurrentEvent(null);
+
+    const fetchEvent = async (): Promise<void> => {
+      try {
+        await loadEvent(slug);
+      } catch (err) {
+        if (err instanceof Error) {
+          console.error("Error fetching event:", err);
+        } else {
+          console.error("Unexpected error:", err);
+        }
+        setTimeout(() => {
+          router.push("/");
+        }, 3000);
+      } finally {
+        setLocalLoading(false);
+      }
+    };
+
+    fetchEvent();
+  }, [slug, router, loadEvent, initialEvent, setCurrentEvent]);
 
   const handleFavoriteToggle = (): void => {
     if (!session?.user) {
@@ -232,8 +236,11 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   };
 
   const eventUrl = typeof window !== "undefined" ? window.location.href : "";
+  const isActuallyLoading = localLoading || isLoading;
 
-  if (isLoading) {
+  const eventToShow = currentEvent || initialEvent;
+
+  if (isActuallyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -244,7 +251,8 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
     );
   }
 
-  if (!currentEvent) {
+  // Now check if we have EITHER currentEvent OR initialEvent
+  if (!eventToShow) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -273,10 +281,11 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
       <div className="min-h-screen bg-gray-50">
         {/* Header Banner */}
         <div className="relative h-64 md:h-80 bg-gradient-to-r from-red-600 to-green-600">
-          {currentEvent.imageUrl && (
+          {eventToShow.imageUrl && (
             <Image
-              src={getEventImageUrl(currentEvent.imageUrl)}
-              alt={currentEvent.title}
+              src={getEventImageUrl(eventToShow.imageUrl)}
+              alt={eventToShow.title}
+              title={eventToShow.title}
               fill
               className="object-cover"
               priority
@@ -291,7 +300,7 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
               {/* Event Title */}
               <div className="mb-6">
                 <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                  {currentEvent.title}
+                  {eventToShow.title}
                 </h1>
               </div>
 
@@ -307,17 +316,17 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                   <div className="flex items-center space-x-2 text-gray-600">
                     <Calendar className="w-4 h-4" />
                     <span>
-                      {currentEvent.date && formatDate(currentEvent.date)}
-                      {currentEvent.endDate &&
-                        ` - ${formatDate(currentEvent.endDate)}`}
+                      {eventToShow.date && formatDate(eventToShow.date)}
+                      {eventToShow.endDate &&
+                        ` - ${formatDate(eventToShow.endDate)}`}
                     </span>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600 mt-1">
                     <Clock className="w-4 h-4" />
                     <span>
-                      {formatTime(currentEvent.startTime)}
-                      {currentEvent.endTime &&
-                        ` - ${formatTime(currentEvent.endTime)}`}
+                      {formatTime(eventToShow.startTime)}
+                      {eventToShow.endTime &&
+                        ` - ${formatTime(eventToShow.endTime)}`}
                     </span>
                   </div>
                 </div>
@@ -327,10 +336,10 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                   <h3 className="font-medium text-gray-900 mb-2">Location</h3>
                   <div className="text-gray-600">
                     <p className="font-medium">
-                      {currentEvent.venue || currentEvent.location}
+                      {eventToShow.venue || eventToShow.location}
                     </p>
-                    {currentEvent.address && (
-                      <p className="text-sm">{currentEvent.address}</p>
+                    {eventToShow.address && (
+                      <p className="text-sm">{eventToShow.address}</p>
                     )}
                   </div>
                 </div>
@@ -341,16 +350,16 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                     About this event
                   </h3>
                   <div className="text-gray-600 whitespace-pre-wrap">
-                    {currentEvent.description}
+                    {eventToShow.description}
                   </div>
                 </div>
 
                 {/* Tags */}
-                {currentEvent.tags.length > 0 && (
+                {eventToShow.tags && eventToShow.tags.length > 0 && (
                   <div className="mt-6 pt-6 border-t">
                     <h3 className="font-medium text-gray-900 mb-2">Tags</h3>
                     <div className="flex flex-wrap gap-2">
-                      {currentEvent.tags.map((tag) => (
+                      {eventToShow.tags.map((tag: string) => (
                         <span
                           key={tag}
                           className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
@@ -369,34 +378,30 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
 
                 <div className="flex items-center space-x-3">
                   <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-r from-red-600 to-green-600">
-                    {currentEvent.organizer?.image && !imageError ? (
+                    {eventToShow.organizer?.image && !imageError ? (
                       <Image
-                        src={currentEvent.organizer.image}
-                        alt={currentEvent.organizer?.name || "Organizer"}
+                        src={eventToShow.organizer.image}
+                        alt={eventToShow.organizer?.name || "Organizer"}
                         width={48}
                         height={48}
                         className="w-full h-full object-cover"
                         onError={() => {
-                          console.error(
-                            "Failed to load organizer image:",
-                            currentEvent.organizer?.image
-                          );
                           setImageError(true);
                         }}
                       />
                     ) : (
                       <span className="text-white font-semibold text-lg">
-                        {currentEvent.organizer?.name?.charAt(0) || "O"}
+                        {eventToShow.organizer?.name?.charAt(0) || "O"}
                       </span>
                     )}
                   </div>
                   <div>
                     <p className="font-medium text-gray-900">
-                      {currentEvent.organizer?.name || "Event Organizer"}
+                      {eventToShow.organizer?.name || "Event Organizer"}
                     </p>
-                    {currentEvent.organizer?.email && (
+                    {eventToShow.organizer?.email && (
                       <p className="text-sm text-gray-500">
-                        {currentEvent.organizer.email}
+                        {eventToShow.organizer.email}
                       </p>
                     )}
                   </div>
@@ -446,31 +451,33 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
 
                   {/* Event Tickets */}
                   <div className="space-y-3 mb-6">
-                    {(currentEvent.ticketTypes || []).map((ticket) => (
-                      <div key={ticket.id} className="border rounded-lg p-3">
-                        <div className="flex justify-between items-start mb-1">
-                          <span className="font-medium text-gray-900">
-                            {ticket.name}
-                          </span>
-                          <span className="font-semibold text-gray-900">
-                            {ticket.price === 0
-                              ? "Free"
-                              : formatPrice(ticket.price)}
-                          </span>
+                    {(eventToShow.ticketTypes || []).map(
+                      (ticket: TicketType) => (
+                        <div key={ticket.id} className="border rounded-lg p-3">
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="font-medium text-gray-900">
+                              {ticket.name}
+                            </span>
+                            <span className="font-semibold text-gray-900">
+                              {ticket.price === 0
+                                ? "Free"
+                                : formatPrice(ticket.price)}
+                            </span>
+                          </div>
+                          {ticket.quantity && (
+                            <span className="text-sm text-gray-500">
+                              {ticket.quantity} available
+                            </span>
+                          )}
                         </div>
-                        {ticket.quantity && (
-                          <span className="text-sm text-gray-500">
-                            {ticket.quantity} available
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                   <button
                     onClick={handleBuyTickets}
                     className="w-full cursor-pointer bg-yellow-400 text-white py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors"
                   >
-                    {currentEvent.eventType === "FREE"
+                    {eventToShow.eventType === "FREE"
                       ? "Get Tickets"
                       : "Buy Tickets"}
                   </button>
@@ -485,20 +492,20 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Category</span>
                       <span className="font-medium">
-                        {currentEvent.category}
+                        {eventToShow.category}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Type</span>
                       <span className="font-medium capitalize">
-                        {currentEvent.eventType.toLowerCase()}
+                        {eventToShow.eventType.toLowerCase()}
                       </span>
                     </div>
-                    {currentEvent.status && (
+                    {eventToShow.status && (
                       <div className="flex justify-between">
                         <span className="text-gray-600">Status</span>
                         <span className="font-medium capitalize">
-                          {currentEvent.status.toLowerCase()}
+                          {eventToShow.status.toLowerCase()}
                         </span>
                       </div>
                     )}
@@ -515,7 +522,7 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         eventUrl={eventUrl}
-        eventTitle={currentEvent.title || ""}
+        eventTitle={(currentEvent || initialEvent)?.title || ""}
       />
     </>
   );
