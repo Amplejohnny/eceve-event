@@ -11,7 +11,6 @@ import {
   Clock,
 } from "lucide-react";
 
-// Types based on your schema
 interface TicketType {
   id: string;
   name: string;
@@ -218,7 +217,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
             quantity,
             attendeeName: attendeeInfo.fullName,
             attendeeEmail: attendeeInfo.email,
-            // attendeePhone: attendeeInfo.phone,
+            attendeePhone: attendeeInfo.phone,
           })
         ),
       };
@@ -256,7 +255,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
             quantity,
             attendeeName: attendeeInfo.fullName,
             attendeeEmail: attendeeInfo.email,
-            // attendeePhone: attendeeInfo.phone,
+            attendeePhone: attendeeInfo.phone,
           })
         ),
         amount: getSubTotal() + calculatePaystackFee(getSubTotal()),
