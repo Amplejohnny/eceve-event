@@ -13,7 +13,7 @@ import {
   FaWhatsapp,
 } from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
-import type { TicketType, EventData } from "@/store/eventStore";
+import type { TicketType } from "@/store/eventStore";
 import { getEventImageUrl } from "@/lib/utils";
 interface ShareModalProps {
   isOpen: boolean;
@@ -23,7 +23,8 @@ interface ShareModalProps {
 }
 
 interface EventSlugPageProps {
-  initialEvent?: EventData;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  initialEvent?: any; // Use your Event type here
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({
