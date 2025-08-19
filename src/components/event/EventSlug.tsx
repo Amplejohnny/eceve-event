@@ -24,7 +24,7 @@ interface ShareModalProps {
 
 interface EventSlugPageProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialEvent?: any; // Use your Event type here
+  initialEvent?: any;
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({
@@ -163,7 +163,6 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
       return;
     }
 
-    // If we have initial event data from server, use it
     if (initialEvent) {
       setCurrentEvent(initialEvent);
       setLocalLoading(false);

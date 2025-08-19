@@ -14,8 +14,8 @@ import {
 interface TicketType {
   id: string;
   name: string;
-  price: number; // in kobo
-  quantity?: number; // null means unlimited
+  price: number;
+  quantity?: number;
 }
 
 interface Event {
