@@ -15,6 +15,7 @@ import {
 import { useEventStore } from "@/store/eventStore";
 import type { TicketType } from "@/store/eventStore";
 import { getEventImageUrl } from "@/lib/utils";
+import TicketPurchaseModal from "@/components/ticket/TicketModal";
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -156,6 +157,7 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
   useEffect(() => {
     if (!slug) {
@@ -203,7 +205,7 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   };
 
   const handleBuyTickets = (): void => {
-    router.push("/ticket");
+    setIsTicketModalOpen(true);
   };
 
   useEffect(() => {
@@ -516,6 +518,30 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
           </div>
         </div>
       </div>
+
+      <TicketPurchaseModal
+        isOpen={isTicketModalOpen}
+        onClose={() => setIsTicketModalOpen(false)}
+        event={
+          eventToShow
+            ? {
+                id: eventToShow.id,
+                title: eventToShow.title,
+                description: eventToShow.description,
+                eventType: eventToShow.eventType,
+                date: eventToShow.date,
+                endDate: eventToShow.endDate,
+                startTime: eventToShow.startTime,
+                endTime: eventToShow.endTime,
+                location: eventToShow.location,
+                venue: eventToShow.venue,
+                address: eventToShow.address,
+                ticketTypes: eventToShow.ticketTypes || [],
+                organizer: eventToShow.organizer,
+              }
+            : null
+        }
+      />
 
       {/* Share Modal */}
       <ShareModal
