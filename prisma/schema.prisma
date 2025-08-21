@@ -101,6 +101,8 @@ model Ticket {
   notes          String?
   status         TicketStatus @default(ACTIVE)
   usedAt         DateTime?
+  cancelledAt    DateTime?
+  refundedAt     DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
