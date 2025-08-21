@@ -536,3 +536,25 @@ export async function getTicketsSoldCount(ticketTypeId: string) {
     },
   });
 }
+
+// When cancelling a ticket
+export async function cancelTicket(ticketId: string) {
+  return await db.ticket.update({
+    where: { id: ticketId },
+    data: {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+    },
+  });
+}
+
+// When processing refunds
+export async function refundTicket(ticketId: string) {
+  return await db.ticket.update({
+    where: { id: ticketId },
+    data: {
+      status: "REFUNDED",
+      refundedAt: new Date(),
+    },
+  });
+}
