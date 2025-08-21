@@ -1,6 +1,6 @@
 import { Calendar, MapPin, Users, Eye, Share2, Edit } from "lucide-react";
 import {
-  formatDate,
+  formatDateBook,
   formatCurrency,
   getEventImageUrl,
   getErrorMessage,
@@ -175,7 +175,7 @@ export default function EventCard({
                           : ""
                       }
                     >
-                      {formatDate(event.date, "MMM dd, yyyy")}
+                      {formatDateBook(event.date, "MMM dd, yyyy")}
                     </span>
                   </div>
                   <span className="hidden sm:inline">•</span>

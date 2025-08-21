@@ -1,6 +1,6 @@
 import { Calendar, Download, MapPin, QrCode, Share2 } from "lucide-react";
 import {
-  formatDate,
+  formatDateBook,
   formatCurrency,
   getEventImageUrl,
   getErrorMessage,
@@ -153,7 +153,7 @@ export default function BookingCard({
                 <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
-                    {formatDate(ticket.event.date, "MMM dd, yyyy")}
+                    {formatDateBook(ticket.event.date, "MMM dd, yyyy")}
                   </div>
                   <div className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />

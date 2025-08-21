@@ -16,7 +16,8 @@
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
     "check": "next lint && tsc --noEmit && next build",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "git-commit:not-pushed": "git log origin/main..HEAD"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.1",

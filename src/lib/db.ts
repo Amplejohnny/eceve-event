@@ -1,4 +1,3 @@
-import type { Prisma } from "@/generated/prisma";
 import { PrismaClient } from "@/generated/prisma";
 
 const globalForPrisma = globalThis as unknown as {
@@ -59,39 +58,6 @@ export async function deleteUser(id: string) {
 }
 
 // Payment database functions
-export async function createPayment(data: {
-  paystackRef: string;
-  amount: number;
-  platformFee: number;
-  organizerAmount: number;
-  customerEmail: string;
-  eventId: string;
-  metadata?: Prisma.InputJsonValue;
-}) {
-  return await db.payment.create({
-    data,
-  });
-}
-
-export async function updatePayment(
-  paystackRef: string,
-  data: Prisma.PaymentUpdateInput | Prisma.PaymentUncheckedUpdateInput
-) {
-  return await db.payment.update({
-    where: { paystackRef },
-    data,
-  });
-}
-
-export async function getPaymentByReference(paystackRef: string) {
-  return await db.payment.findUnique({
-    where: { paystackRef },
-    include: {
-      event: true,
-      tickets: true,
-    },
-  });
-}
 
 export async function getUserTickets(userId: string) {
   return await db.ticket.findMany({

@@ -39,7 +39,17 @@ export function fromKobo(koboAmount: number): number {
 }
 
 // Date formatting utilities
-export function formatDate(
+export function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+export function formatDateBook(
   date: Date | string,
   formatStr: string = "PPP"
 ): string {
@@ -119,14 +129,6 @@ export function getEventImage(
   fallbackUrl: string = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&h=400&fit=crop"
 ): string {
   return imageUrl && imageUrl.trim() !== "" ? imageUrl : fallbackUrl;
-}
-
-export function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "") // Remove special characters
-    .replace(/[\s_-]+/g, "-") // Replace spaces and underscores with hyphens
-    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
 }
 
 export function generateConfirmationId(): string {
