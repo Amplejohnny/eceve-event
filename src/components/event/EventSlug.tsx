@@ -16,6 +16,7 @@ import { useEventStore } from "@/store/eventStore";
 import type { TicketType } from "@/store/eventStore";
 import { getEventImageUrl } from "@/lib/utils";
 import TicketPurchaseModal from "@/components/ticket/TicketModal";
+import { formatPrice } from "@/lib/payment-utils";
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -233,9 +234,6 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
     });
   };
 
-  const formatPrice = (price: number): string => {
-    return `₦${(price / 100).toLocaleString()}`;
-  };
 
   const eventUrl = typeof window !== "undefined" ? window.location.href : "";
   const isActuallyLoading = localLoading || isLoading;
