@@ -10,6 +10,7 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
+import { formatPrice } from "@/lib/payment-utils";
 
 interface TicketType {
   id: string;
@@ -70,10 +71,6 @@ function calculatePaystackFee(amount: number): number {
   }
   const fee = Math.round(amount * 0.015) + 10000;
   return Math.min(fee, 200000);
-}
-
-function formatPrice(priceInKobo: number): string {
-  return `₦${(priceInKobo / 100).toLocaleString()}`;
 }
 
 function formatDate(dateString: string): string {
