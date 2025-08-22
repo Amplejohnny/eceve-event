@@ -57,8 +57,6 @@ export async function deleteUser(id: string) {
   });
 }
 
-// Payment database functions
-
 export async function getUserTickets(userId: string) {
   return await db.ticket.findMany({
     where: { userId },

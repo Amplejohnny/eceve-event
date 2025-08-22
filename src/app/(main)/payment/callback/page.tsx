@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
@@ -12,7 +12,25 @@ interface PaymentStatus {
   confirmationIds?: string[];
 }
 
-export default function PaymentCallback() {
+// Loading component for Suspense fallback
+function PaymentCallbackLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-yellow-600 mx-auto mb-4"></div>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+          Loading Payment Status...
+        </h2>
+        <p className="text-gray-600">
+          Please wait while we load your payment information
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Separate component that uses useSearchParams
+function PaymentCallbackContent() {
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>({
     status: "loading",
   });
@@ -220,5 +238,13 @@ export default function PaymentCallback() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentCallback() {
+  return (
+    <Suspense fallback={<PaymentCallbackLoading />}>
+      <PaymentCallbackContent />
+    </Suspense>
   );
 }
