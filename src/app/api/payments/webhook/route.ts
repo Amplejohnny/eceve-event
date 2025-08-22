@@ -41,9 +41,20 @@ interface TicketOrderData {
   attendeePhone?: string;
 }
 
-interface PaymentMetadata {
+interface PaymentMetadataFromDB {
   tickets: TicketOrderData[];
-  eventId: string;
+  event: {
+    title: string;
+    date: string;
+    location: string;
+  };
+  paymentBreakdown: {
+    ticketSubtotal: number;
+    paystackFee: number;
+    totalAmount: number;
+    organizerAmount: number;
+    platformAmount: number;
+  };
 }
 
 interface PaymentWithRelations extends Payment {
@@ -146,17 +157,45 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
       webhookData: data as any,
     });
 
-    // Type-safe metadata parsing
-    const ticketData = payment.metadata as unknown as PaymentMetadata;
+    // The metadata from the initialize route is stored as a nested object
+    let ticketData: PaymentMetadataFromDB;
 
-    if (!ticketData?.tickets || !Array.isArray(ticketData.tickets)) {
-      throw new Error("Invalid ticket data in payment metadata");
+    try {
+      // Parse the metadata - it's stored as JSON in the database
+      const rawMetadata = payment.metadata as unknown;
+
+      if (typeof rawMetadata === "string") {
+        ticketData = JSON.parse(rawMetadata) as PaymentMetadataFromDB;
+      } else if (rawMetadata && typeof rawMetadata === "object") {
+        ticketData = rawMetadata as PaymentMetadataFromDB;
+      } else {
+        throw new Error("Invalid metadata format");
+      }
+
+      // Validate the parsed metadata structure
+      if (!ticketData?.tickets || !Array.isArray(ticketData.tickets)) {
+        throw new Error("Invalid ticket data in payment metadata");
+      }
+    } catch (parseError) {
+      console.error("Failed to parse payment metadata:", parseError);
+      console.error("Raw metadata:", payment.metadata);
+      throw new Error("Failed to parse payment metadata");
     }
 
     // Create tickets for each ticket type ordered
     const ticketsToCreate: TicketCreateData[] = [];
 
     for (const ticketOrder of ticketData.tickets) {
+      // Validate ticket order data
+      if (
+        !ticketOrder.ticketTypeId ||
+        !ticketOrder.attendeeName ||
+        !ticketOrder.attendeeEmail
+      ) {
+        console.warn("Incomplete ticket order data:", ticketOrder);
+        continue;
+      }
+
       const ticketType = payment.event.ticketTypes.find(
         (t) => t.id === ticketOrder.ticketTypeId
       );
@@ -166,6 +205,7 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
         continue;
       }
 
+      // Create individual tickets for each quantity
       for (let i = 0; i < ticketOrder.quantity; i++) {
         const confirmationId = generateConfirmationId();
 
@@ -193,7 +233,10 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
       data: ticketsToCreate,
     });
 
-    // Send confirmation emails for each unique email
+    console.log(
+      `Created ${ticketsToCreate.length} tickets for payment ${payment.id}`
+    );
+
     const emailGroups = groupTicketsByEmail(ticketsToCreate, payment.event);
 
     for (const emailGroup of emailGroups) {
@@ -208,6 +251,8 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
           confirmationId: emailGroup.confirmationIds.join(", "),
           eventId: payment.event.id,
         });
+
+        console.log(`Sent ticket confirmation to ${emailGroup.email}`);
       } catch (emailError) {
         // Log email error but don't fail the entire webhook
         console.error(
@@ -216,6 +261,8 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
         );
       }
     }
+
+    console.log(`Payment processing completed for reference: ${reference}`);
   } catch (error) {
     console.error("Error processing successful payment:", error);
     throw error;
@@ -229,8 +276,10 @@ function groupTicketsByEmail(
   const groups: Record<string, EmailGroup> = {};
 
   tickets.forEach((ticket) => {
-    if (!groups[ticket.attendeeEmail]) {
-      groups[ticket.attendeeEmail] = {
+    const email = ticket.attendeeEmail.toLowerCase(); // Normalize email for grouping
+
+    if (!groups[email]) {
+      groups[email] = {
         email: ticket.attendeeEmail,
         name: ticket.attendeeName,
         ticketTypes: [],
@@ -243,9 +292,13 @@ function groupTicketsByEmail(
     );
 
     if (ticketType) {
-      groups[ticket.attendeeEmail].ticketTypes.push(ticketType.name);
+      // Avoid duplicate ticket type names for the same person
+      if (!groups[email].ticketTypes.includes(ticketType.name)) {
+        groups[email].ticketTypes.push(ticketType.name);
+      }
     }
-    groups[ticket.attendeeEmail].confirmationIds.push(ticket.confirmationId);
+
+    groups[email].confirmationIds.push(ticket.confirmationId);
   });
 
   return Object.values(groups);
