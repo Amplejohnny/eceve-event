@@ -14,9 +14,9 @@ import {
 } from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
 import type { TicketType } from "@/store/eventStore";
-import { formatDate, getEventImageUrl } from "@/lib/utils";
+import { formatDate, formatPrice, getEventImageUrl } from "@/lib/utils";
 import TicketPurchaseModal from "@/components/ticket/TicketModal";
-import { formatPrice } from "@/lib/payment-utils";
+
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -212,7 +212,6 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   useEffect(() => {
     setImageError(false);
   }, [currentEvent?.organizer?.image]);
-
 
   const formatTime = (timeString: string): string => {
     const [hours, minutes] = timeString.split(":");

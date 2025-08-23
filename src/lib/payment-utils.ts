@@ -39,11 +39,6 @@ export function calculatePaymentBreakdown(
   };
 }
 
-//format price in kobo to Nigerian Naira string
-export function formatPrice(priceInKobo: number): string {
-  return `₦${(priceInKobo / 100).toLocaleString()}`;
-}
-
 //Validate payment amounts
 export function validatePaymentAmount(
   clientAmount: number,
@@ -90,8 +85,6 @@ export async function getPaymentByReference(paystackRef: string) {
     },
   });
 }
-
-// In your payment-utils.ts file
 
 export async function findPaymentWithRelations(paystackRef: string) {
   return await db.payment.findUnique({

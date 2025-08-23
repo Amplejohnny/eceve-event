@@ -81,6 +81,26 @@ export function formatDateRange(
   return `${format(start, "PPP 'at' p")} - ${format(end, "PPP 'at' p")}`;
 }
 
+// Format price in kobo to Nigerian Naira string
+export function formatPrice(priceInKobo: number): string {
+  return `₦${(priceInKobo / 100).toLocaleString()}`;
+}
+
+// Format phone number
+export function formatPhone(phone: string): string {
+  const cleaned = phone.replace(/\D/g, "");
+
+  if (cleaned.startsWith("234")) {
+    return `+${cleaned}`;
+  }
+
+  if (cleaned.startsWith("0") && cleaned.length === 11) {
+    return `+234${cleaned.slice(1)}`;
+  }
+
+  return phone;
+}
+
 export function getRelativeTime(date: Date | string): string {
   const dateObj = typeof date === "string" ? parseISO(date) : date;
   return formatDistanceToNow(dateObj, { addSuffix: true });
@@ -122,7 +142,6 @@ export function getEventImageUrl(imageUrl?: string): string {
   return `https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D`;
 }
 
-
 //To call different fallback images
 export function getEventImage(
   imageUrl?: string | null,
@@ -150,21 +169,6 @@ export function isValidEmail(email: string): boolean {
 export function isValidPhone(phone: string): boolean {
   const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
   return phoneRegex.test(phone.replace(/\s/g, ""));
-}
-
-// Format phone number
-export function formatPhone(phone: string): string {
-  const cleaned = phone.replace(/\D/g, "");
-
-  if (cleaned.startsWith("234")) {
-    return `+${cleaned}`;
-  }
-
-  if (cleaned.startsWith("0") && cleaned.length === 11) {
-    return `+234${cleaned.slice(1)}`;
-  }
-
-  return phone;
 }
 
 // Array utilities

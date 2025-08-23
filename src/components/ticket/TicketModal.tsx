@@ -10,7 +10,7 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
-import { formatPrice } from "@/lib/payment-utils";
+import { formatPrice } from "@/lib/utils";
 
 interface TicketType {
   id: string;
@@ -413,7 +413,8 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                             onClick={() => updateQuantity(ticket.id, 1)}
                             disabled={
                               !!ticket.quantity &&
-                              (ticketQuantities[ticket.id] || 0) >= ticket.quantity
+                              (ticketQuantities[ticket.id] || 0) >=
+                                ticket.quantity
                             }
                             className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
                           >

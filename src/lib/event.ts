@@ -486,7 +486,7 @@ export async function getEventAnalytics(eventId: string) {
     );
     return {
       id: stat.ticketTypeId,
-      name: ticketType?.name || "Unknown",
+      name: ticketType?.name || "Standard",
       price: ticketType?.price || 0,
       totalQuantity: ticketType?.quantity || null,
       soldCount: stat._count.ticketTypeId,

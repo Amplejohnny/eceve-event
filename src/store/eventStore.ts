@@ -985,21 +985,59 @@ export const useEventStore = create<EventStore>((set, get) => ({
     try {
       const searchParams = new URLSearchParams();
 
-      // Add parameters to search params if they exist
+      // Add parameters to search params if they exist and are valid
       Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
+        if (value !== undefined && value !== null && value !== "") {
           searchParams.append(key, value.toString());
         }
       });
 
-      const response = await fetch(`/api/events?${searchParams.toString()}`);
+      console.log("Loading events with params:", searchParams.toString());
+
+      const response = await fetch(`/api/events?${searchParams.toString()}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to load events");
+        let errorMessage = "Failed to load events";
+
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If JSON parsing fails, use status-based error messages
+          switch (response.status) {
+            case 400:
+              errorMessage = "Invalid search parameters";
+              break;
+            case 500:
+              errorMessage = "Server error. Please try again.";
+              break;
+            case 503:
+              errorMessage =
+                "Service temporarily unavailable. Please try again later.";
+              break;
+            default:
+              errorMessage = `Request failed with status ${response.status}`;
+          }
+        }
+
+        throw new Error(errorMessage);
       }
 
       const result = await response.json();
+
+      // Validate response structure
+      if (!result || typeof result !== "object") {
+        throw new Error("Invalid response format");
+      }
+
+      if (!Array.isArray(result.events)) {
+        throw new Error("Invalid events data");
+      }
 
       // If offset is provided, it means we're loading more events (pagination)
       if (params.offset && params.offset > 0) {
@@ -1013,14 +1051,27 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
       return {
         events: result.events,
-        totalCount: result.totalCount,
-        hasMore: result.hasMore,
+        totalCount: result.totalCount || 0,
+        hasMore: result.hasMore || false,
       };
     } catch (error) {
       console.error("Error loading events:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to load events";
+
+      let errorMessage = "Failed to load events";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
       setEventsError(errorMessage);
+
+      // Don't clear events on error if we're doing pagination
+      if (!params.offset || params.offset === 0) {
+        setAllEvents([]);
+      }
+
       throw error;
     } finally {
       setEventsLoading(false);
@@ -1032,6 +1083,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
     try {
       setEventsLoading(true);
+      setEventsError(null);
+
       const params = new URLSearchParams({
         section: "popular",
         status: filters.status || "ACTIVE",
@@ -1058,20 +1111,41 @@ export const useEventStore = create<EventStore>((set, get) => ({
         }
       }
 
-      const response = await fetch(`/api/events?${params}`);
+      console.log("Loading popular events with params:", params.toString());
+
+      const response = await fetch(`/api/events?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch popular events");
+        let errorMessage = "Failed to fetch popular events";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Request failed with status ${response.status}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+
+      if (!data || !Array.isArray(data.events)) {
+        throw new Error("Invalid response format");
+      }
+
       return data.events;
     } catch (error) {
       console.error("Error loading popular events:", error);
+
       const errorMessage =
         error instanceof Error
           ? error.message
           : "Failed to load popular events";
+
       setEventsError(errorMessage);
       throw error;
     } finally {
@@ -1084,26 +1158,49 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
     try {
       setEventsLoading(true);
+      setEventsError(null);
+
       const params = new URLSearchParams({
         section: "upcoming",
         status: filters.status || "ACTIVE",
         limit: (filters.limit || 20).toString(),
       });
 
-      const response = await fetch(`/api/events?${params}`);
+      console.log("Loading upcoming events with params:", params.toString());
+
+      const response = await fetch(`/api/events?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch upcoming events");
+        let errorMessage = "Failed to fetch upcoming events";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Request failed with status ${response.status}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+
+      if (!data || !Array.isArray(data.events)) {
+        throw new Error("Invalid response format");
+      }
+
       return data.events;
     } catch (error) {
       console.error("Error loading upcoming events:", error);
+
       const errorMessage =
         error instanceof Error
           ? error.message
           : "Failed to load upcoming events";
+
       setEventsError(errorMessage);
       throw error;
     } finally {
@@ -1116,31 +1213,54 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
     try {
       setEventsLoading(true);
+      setEventsError(null);
+
       const params = new URLSearchParams({
         section: "trendy",
         status: filters.status || "ACTIVE",
         limit: (filters.limit || 20).toString(),
       });
 
-      const response = await fetch(`/api/events?${params}`);
+      console.log("Loading trendy events with params:", params.toString());
+
+      const response = await fetch(`/api/events?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch trendy events");
+        let errorMessage = "Failed to fetch trendy events";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `Request failed with status ${response.status}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+
+      if (!data || !Array.isArray(data.events)) {
+        throw new Error("Invalid response format");
+      }
+
       return data.events;
     } catch (error) {
       console.error("Error loading trendy events:", error);
+
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load trendy events";
+
       setEventsError(errorMessage);
       throw error;
     } finally {
       setEventsLoading(false);
     }
   },
-
+  
   setAllEvents: (events: EventData[]) => set({ allEvents: events }),
 
   setEventsLoading: (loading: boolean) => set({ eventsLoading: loading }),
