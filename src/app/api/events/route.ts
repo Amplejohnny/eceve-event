@@ -79,11 +79,13 @@ export async function GET(request: NextRequest) {
         : EventStatus.ACTIVE;
     };
 
+    // Build base where clause with common filters
     const baseWhereClause: Prisma.EventWhereInput = {
       isPublic: true,
       status: getValidStatus(status),
     };
 
+    // Add basic filters
     if (category) {
       baseWhereClause.category = {
         contains: category,
@@ -102,6 +104,7 @@ export async function GET(request: NextRequest) {
       baseWhereClause.eventType = eventType as "FREE" | "PAID";
     }
 
+    // Handle search query with OR conditions
     if (q) {
       baseWhereClause.OR = [
         { title: { contains: q, mode: "insensitive" } },
@@ -112,52 +115,168 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Clone the base filters
-    const finalWhereClause: Prisma.EventWhereInput = { ...baseWhereClause };
-
+    const now = new Date();
+    let finalWhereClause: Prisma.EventWhereInput = { ...baseWhereClause };
     let orderBy: Prisma.EventOrderByWithRelationInput[] = [
       { date: "asc" },
       { createdAt: "desc" },
     ];
 
-    const now = new Date();
+    // Create date filters for different sections
+    const getActiveEventsFilter = (): Prisma.EventWhereInput => {
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
 
+      return {
+        OR: [
+          // Future events
+          { date: { gte: now } },
+          // Multi-day events that haven't ended
+          {
+            AND: [
+              { date: { lt: now } },
+              { endDate: { not: null } },
+              { endDate: { gte: now } },
+            ],
+          },
+          // Today's single-day events (will be time-filtered later)
+          {
+            AND: [
+              { date: { gte: todayStart } },
+              {
+                date: {
+                  lt: new Date(todayStart.getTime() + 24 * 60 * 60 * 1000),
+                },
+              },
+              { endDate: null },
+            ],
+          },
+        ],
+      };
+    };
+
+    const getUpcomingEventsFilter = (): Prisma.EventWhereInput => {
+      const thirtyDaysFromNow = new Date(
+        now.getTime() + 30 * 24 * 60 * 60 * 1000
+      );
+      const todayStart = new Date(now);
+      todayStart.setHours(0, 0, 0, 0);
+
+      return {
+        OR: [
+          // Future events within 30 days
+          {
+            AND: [{ date: { gte: now } }, { date: { lte: thirtyDaysFromNow } }],
+          },
+          // Multi-day ongoing events ending within 30 days
+          {
+            AND: [
+              { date: { lt: now } },
+              { endDate: { not: null } },
+              { endDate: { gte: now } },
+              { endDate: { lte: thirtyDaysFromNow } },
+            ],
+          },
+          // Today's events (single-day)
+          {
+            AND: [
+              { date: { gte: todayStart } },
+              {
+                date: {
+                  lt: new Date(todayStart.getTime() + 24 * 60 * 60 * 1000),
+                },
+              },
+              { endDate: null },
+            ],
+          },
+        ],
+      };
+    };
+
+    const getTrendyEventsFilter = (): Prisma.EventWhereInput => {
+      const activeFilter = getActiveEventsFilter();
+      const cityFilters = majorNigerianCities.map((city) => ({
+        location: {
+          contains: city,
+          mode: "insensitive" as const,
+        },
+      }));
+
+      return {
+        AND: [activeFilter, { OR: cityFilters }],
+      };
+    };
+
+    // Apply section-specific filters
     switch (section) {
       case "popular":
         orderBy = [{ createdAt: "desc" }];
-        finalWhereClause.date = { gte: now };
+        const popularFilter = getActiveEventsFilter();
+        // Merge with existing OR conditions if they exist
+        if (finalWhereClause.OR) {
+          finalWhereClause = {
+            ...finalWhereClause,
+            AND: [{ OR: finalWhereClause.OR }, popularFilter],
+          };
+          delete finalWhereClause.OR;
+        } else {
+          finalWhereClause = {
+            ...finalWhereClause,
+            ...popularFilter,
+          };
+        }
         break;
 
       case "upcoming":
         orderBy = [{ date: "asc" }];
-        const thirtyDaysFromNow = new Date(
-          now.getTime() + 30 * 24 * 60 * 60 * 1000
-        );
-        finalWhereClause.date = {
-          gte: now,
-          lte: thirtyDaysFromNow,
-        };
+        const upcomingFilter = getUpcomingEventsFilter();
+        // Merge with existing OR conditions if they exist
+        if (finalWhereClause.OR) {
+          finalWhereClause = {
+            ...finalWhereClause,
+            AND: [{ OR: finalWhereClause.OR }, upcomingFilter],
+          };
+          delete finalWhereClause.OR;
+        } else {
+          finalWhereClause = {
+            ...finalWhereClause,
+            ...upcomingFilter,
+          };
+        }
         break;
 
       case "trendy":
         orderBy = [{ createdAt: "desc" }];
-        finalWhereClause.date = { gte: now };
-
-        // Handle OR clause safely
-        const cityFilters = majorNigerianCities.map((city) => ({
-          location: {
-            contains: city,
-            mode: "insensitive" as const,
-          },
-        }));
-
+        const trendyFilter = getTrendyEventsFilter();
+        // Merge with existing OR conditions if they exist
         if (finalWhereClause.OR) {
-          finalWhereClause.OR = [...finalWhereClause.OR, ...cityFilters];
+          finalWhereClause = {
+            ...finalWhereClause,
+            AND: [{ OR: finalWhereClause.OR }, trendyFilter],
+          };
+          delete finalWhereClause.OR;
         } else {
-          finalWhereClause.AND = [
-            { OR: cityFilters },
-            ...(finalWhereClause.AND ? [finalWhereClause.AND].flat() : []),
-          ];
+          finalWhereClause = {
+            ...finalWhereClause,
+            ...trendyFilter,
+          };
+        }
+        break;
+
+      default:
+        // For regular queries, apply active filter
+        const defaultFilter = getActiveEventsFilter();
+        if (finalWhereClause.OR) {
+          finalWhereClause = {
+            ...finalWhereClause,
+            AND: [{ OR: finalWhereClause.OR }, defaultFilter],
+          };
+          delete finalWhereClause.OR;
+        } else {
+          finalWhereClause = {
+            ...finalWhereClause,
+            ...defaultFilter,
+          };
         }
         break;
     }
@@ -173,16 +292,77 @@ export async function GET(request: NextRequest) {
       : defaultLimit;
     const skip = offsetParam ? Math.max(0, parseInt(offsetParam)) || 0 : 0;
 
+    // Time-based filtering function (for single-day events)
+    const filterEventsByTime = (
+      events: EventWithRelations[]
+    ): EventWithRelations[] => {
+      return events.filter((event) => {
+        const eventDate = new Date(event.date);
+
+        // If event hasn't started yet, it's valid
+        if (eventDate >= now) {
+          return true;
+        }
+
+        // If it's a multi-day event, check endDate only
+        if (event.endDate) {
+          const eventEndDate = new Date(event.endDate);
+          return eventEndDate >= now;
+        }
+
+        // For single-day events, check if it's today and hasn't expired by time
+        const todayStart = new Date(now);
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+        if (eventDate >= todayStart && eventDate < todayEnd) {
+          if (event.endTime) {
+            try {
+              const [endHours, endMinutes] = event.endTime
+                .split(":")
+                .map(Number);
+              const eventEndDateTime = new Date(eventDate);
+              eventEndDateTime.setHours(endHours, endMinutes, 0, 0);
+              return now <= eventEndDateTime;
+            } catch {
+              // If endTime is malformed, use default 2-hour buffer
+              return false;
+            }
+          } else if (event.startTime) {
+            try {
+              // No end time, use start time + 2-hour buffer
+              const [startHours, startMinutes] = event.startTime
+                .split(":")
+                .map(Number);
+              const eventStartDateTime = new Date(eventDate);
+              eventStartDateTime.setHours(startHours, startMinutes, 0, 0);
+              const estimatedEndTime = new Date(
+                eventStartDateTime.getTime() + 2 * 60 * 60 * 1000
+              );
+              return now <= estimatedEndTime;
+            } catch {
+              // If startTime is malformed, exclude the event
+              return false;
+            }
+          }
+        }
+
+        return false;
+      });
+    };
+
     let events: EventWithRelations[];
     let totalCount: number;
 
     try {
-      // Execute the database query with the final where clause
-      const [rawEvents, count] = await db.$transaction([
+      // Execute database queries with error handling
+      const [rawEvents, count] = await Promise.all([
         db.event.findMany({
           where: finalWhereClause,
           include: {
-            ticketTypes: { orderBy: { price: "asc" } },
+            ticketTypes: {
+              orderBy: { price: "asc" },
+            },
             organizer: {
               select: {
                 id: true,
@@ -205,7 +385,7 @@ export async function GET(request: NextRequest) {
             },
           },
           orderBy,
-          take,
+          take: take * 2, // Fetch more to account for time filtering
           skip,
         }),
         db.event.count({
@@ -213,67 +393,97 @@ export async function GET(request: NextRequest) {
         }),
       ]);
 
-      events = rawEvents as EventWithRelations[];
+      // Apply time-based filtering
+      const allFilteredEvents = filterEventsByTime(
+        rawEvents as EventWithRelations[]
+      );
+      events = allFilteredEvents.slice(0, take);
       totalCount = count;
     } catch (dbError) {
       console.error("Database query error:", dbError);
 
-      if (
-        dbError instanceof Error &&
-        dbError.message.includes("prepared statement")
-      ) {
-        // Disconnect and reconnect
-        try {
-          await db.$disconnect();
-          await new Promise((resolve) => setTimeout(resolve, 100));
+      // Handle specific database errors
+      if (dbError instanceof Error) {
+        if (
+          dbError.message.includes("prepared statement") ||
+          dbError.message.includes("connection")
+        ) {
+          try {
+            // Disconnect and reconnect
+            await db.$disconnect();
+            await new Promise((resolve) => setTimeout(resolve, 100));
 
-          // Retry the query
-          const [rawEvents, count] = await db.$transaction([
-            db.event.findMany({
-              where: finalWhereClause,
-              include: {
-                ticketTypes: { orderBy: { price: "asc" } },
-                organizer: {
-                  select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    image: true,
-                  },
+            // Simplified retry query
+            const [rawEvents, count] = await Promise.all([
+              db.event.findMany({
+                where: {
+                  isPublic: true,
+                  status: getValidStatus(status),
+                  ...(category && {
+                    category: { contains: category, mode: "insensitive" },
+                  }),
+                  ...(location && {
+                    location: { contains: location, mode: "insensitive" },
+                  }),
+                  ...(eventType &&
+                    (eventType === "FREE" || eventType === "PAID") && {
+                      eventType: eventType as "FREE" | "PAID",
+                    }),
                 },
-                _count: {
-                  select: {
-                    tickets: {
-                      where: {
-                        status: {
-                          in: ["ACTIVE", "USED"],
-                        },
+                include: {
+                  ticketTypes: { orderBy: { price: "asc" } },
+                  organizer: {
+                    select: { id: true, name: true, email: true, image: true },
+                  },
+                  _count: {
+                    select: {
+                      tickets: {
+                        where: { status: { in: ["ACTIVE", "USED"] } },
                       },
+                      favorites: true,
                     },
-                    favorites: true,
                   },
                 },
-              },
-              orderBy,
-              take,
-              skip,
-            }),
-            db.event.count({
-              where: finalWhereClause,
-            }),
-          ]);
+                orderBy,
+                take: take * 2,
+                skip,
+              }),
+              db.event.count({
+                where: {
+                  isPublic: true,
+                  status: getValidStatus(status),
+                  ...(category && {
+                    category: { contains: category, mode: "insensitive" },
+                  }),
+                  ...(location && {
+                    location: { contains: location, mode: "insensitive" },
+                  }),
+                  ...(eventType &&
+                    (eventType === "FREE" || eventType === "PAID") && {
+                      eventType: eventType as "FREE" | "PAID",
+                    }),
+                },
+              }),
+            ]);
 
-          events = rawEvents as EventWithRelations[];
-          totalCount = count;
-        } catch (retryError) {
-          console.error("Retry failed:", retryError);
-          throw new Error("Database connection issue. Please try again.");
+            const allFilteredEvents = filterEventsByTime(
+              rawEvents as EventWithRelations[]
+            );
+            events = allFilteredEvents.slice(0, take);
+            totalCount = count;
+          } catch (retryError) {
+            console.error("Retry failed:", retryError);
+            throw new Error("Database connection issue. Please try again.");
+          }
+        } else {
+          throw new Error("Database query failed");
         }
       } else {
-        throw new Error("Database query failed");
+        throw new Error("Unknown database error");
       }
     }
 
+    // Transform events for response
     const transformedEvents = events.map((event) => ({
       id: event.id,
       title: event.title,
