@@ -93,6 +93,12 @@ interface EventCardProps {
   showVerificationMessage: boolean;
 }
 
+const PAGINATION_CONFIG = {
+  INITIAL_LOAD: 12,
+  LOAD_MORE: 12,
+  SEARCH_RESULTS: 12,
+} as const;
+
 const EventCard: React.FC<EventCardProps> = ({
   event,
   isFavorite,
@@ -257,7 +263,9 @@ const AllEventsPage: React.FC = () => {
   // Load events on component mount
   const loadInitialEvents = useCallback(async (): Promise<void> => {
     try {
-      const result = await loadEvents({ limit: 12 });
+      const result = await loadEvents({
+        limit: PAGINATION_CONFIG.INITIAL_LOAD,
+      });
       setTotalCount(result.totalCount);
       setHasMore(result.hasMore);
     } catch (error) {
@@ -270,6 +278,18 @@ const AllEventsPage: React.FC = () => {
     loadInitialEvents();
   }, [loadInitialEvents]);
 
+  //   const getResponsiveLimit = () => {
+  //   if (typeof window !== 'undefined') {
+  //     // Mobile: smaller batches for faster loading
+  //     if (window.innerWidth < 768) return 8;
+  //     // Tablet: medium batches
+  //     if (window.innerWidth < 1024) return 12;
+  //     // Desktop: larger batches
+  //     return 16;
+  //   }
+  //   return 12; // Default fallback
+  // };
+
   const handleSearch = async (): Promise<void> => {
     setIsLoading(true);
     clearEvents();
@@ -280,7 +300,7 @@ const AllEventsPage: React.FC = () => {
         location: location,
         category: selectedCategory,
         eventType: priceFilter !== "all" ? priceFilter : undefined,
-        limit: 12,
+        limit: PAGINATION_CONFIG.SEARCH_RESULTS,
         offset: 0,
       };
 
@@ -325,7 +345,7 @@ const AllEventsPage: React.FC = () => {
         location: location,
         category: selectedCategory,
         eventType: priceFilter !== "all" ? priceFilter : undefined,
-        limit: 12,
+        limit: PAGINATION_CONFIG.LOAD_MORE,
         offset: allEvents.length,
       };
 
