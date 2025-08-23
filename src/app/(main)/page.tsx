@@ -7,7 +7,6 @@ import {
   Star,
   Calendar,
   Clock,
-  // User,
   MapPinIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -47,18 +46,6 @@ interface EventCardProps {
   isFavorite?: boolean;
 }
 
-// Nigerian major cities for trendy events
-const majorNigerianCities = [
-  "Lagos",
-  "Abuja",
-  "Kano",
-  "Rivers",
-  "Port Harcourt",
-  "Ibadan",
-  "Oyo",
-  "Ogun",
-];
-
 const EventCard: React.FC<EventCardProps> = ({
   event,
   onFavoriteToggle,
@@ -66,6 +53,15 @@ const EventCard: React.FC<EventCardProps> = ({
 }) => {
   const router = useRouter();
   const [localFavorite, setLocalFavorite] = useState(isFavorite);
+
+  useEffect(() => {
+  console.log('📋 EventCard rendered:', { 
+    id: event.id, 
+    title: event.title, 
+    date: event.date,
+    imageUrl: event.imageUrl 
+  });
+}, [event]);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -193,8 +189,6 @@ const HomePage: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const {
-    allEvents,
-    eventsLoading,
     loadPopularEvents,
     loadUpcomingEvents,
     loadTrendyEvents,
@@ -204,9 +198,6 @@ const HomePage: React.FC = () => {
   const [popularEvents, setPopularEvents] = useState<EventData[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<EventData[]>([]);
   const [trendyEvents, setTrendyEvents] = useState<EventData[]>([]);
-  // const [locationPermission, setLocationPermission] = useState<string | null>(
-  //   null
-  // );
 
   const categories = [
     { icon: "🎵", label: "Entertainment" },
@@ -237,57 +228,6 @@ const HomePage: React.FC = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Get user location
-  // useEffect(() => {
-  //   const getUserLocation = async () => {
-  //     if (navigator.geolocation) {
-  //       try {
-  //         const position = await new Promise<GeolocationPosition>(
-  //           (resolve, reject) => {
-  //             navigator.geolocation.getCurrentPosition(resolve, reject);
-  //           }
-  //         );
-
-  //         // Use reverse geocoding to get city name (you might want to implement this)
-  //         // For now, we'll use a default based on coordinates
-  //         const { latitude, longitude } = position.coords;
-
-  //         // You can integrate with a geocoding service here
-  //         // For now, we'll keep Lagos as default
-  //         setUserLocation("Lagos");
-  //         setLocationPermission("granted");
-  //       } catch (error) {
-  //         console.error("Error getting location:", error);
-  //         setLocationPermission("denied");
-  //         setUserLocation("Lagos");
-  //       }
-  //     } else {
-  //       setLocationPermission("unsupported");
-  //       setUserLocation("Lagos");
-  //     }
-  //   };
-
-  //   getUserLocation();
-  // }, []);
-
-  // First useEffect: Load events from the store
-  // useEffect(() => {
-  //   const fetchEvents = async () => {
-  //     try {
-  //       await loadEvents({
-  //         status: "ACTIVE",
-  //         limit: 50,
-  //       });
-  //     } catch (error) {
-  //       console.error("Error fetching events:", error);
-  //     } finally {
-  //       setIsInitialLoading(false);
-  //     }
-  //   };
-
-  //   fetchEvents();
-  // }, [loadEvents]);
-
   // Load Popular Events
   useEffect(() => {
     const fetchPopularEvents = async () => {
@@ -297,9 +237,10 @@ const HomePage: React.FC = () => {
           limit: 18,
           activeFilter: activeFilter,
         });
-        setPopularEvents(events);
+
+        setPopularEvents(events || []);
       } catch (error) {
-        console.error("Error fetching popular events:", error);
+        console.error("❌ Error fetching popular events:", error);
       }
     };
 
@@ -314,9 +255,10 @@ const HomePage: React.FC = () => {
           status: "ACTIVE",
           limit: 18,
         });
-        setUpcomingEvents(events);
+
+        setUpcomingEvents(events || []);
       } catch (error) {
-        console.error("Error fetching upcoming events:", error);
+        console.error("❌ Error fetching upcoming events:", error);
       }
     };
 
@@ -331,9 +273,10 @@ const HomePage: React.FC = () => {
           status: "ACTIVE",
           limit: 18,
         });
-        setTrendyEvents(events);
+
+        setTrendyEvents(events || []);
       } catch (error) {
-        console.error("Error fetching trendy events:", error);
+        console.error("❌ Error fetching trendy events:", error)
       } finally {
         setIsInitialLoading(false);
       }
@@ -341,86 +284,6 @@ const HomePage: React.FC = () => {
 
     fetchTrendyEvents();
   }, [loadTrendyEvents]);
-
-  // Process and filter events when allEvents or activeFilter changes
-  useEffect(() => {
-    if (allEvents.length > 0) {
-      try {
-        // Filter and sort events
-        const now = new Date();
-        const today = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate()
-        );
-        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-        const weekEnd = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-        // Popular events (active events ordered by creation time)
-        let popular = allEvents
-          .filter((event) => {
-            const eventDate = new Date(event.date);
-            return eventDate >= today; // Only future events
-          })
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-
-        // Apply filters
-        if (activeFilter !== "all") {
-          popular = popular.filter((event) => {
-            const eventDate = new Date(event.date);
-
-            switch (activeFilter) {
-              case "today":
-                return eventDate.toDateString() === today.toDateString();
-              case "tomorrow":
-                return eventDate.toDateString() === tomorrow.toDateString();
-              case "weekend":
-                return eventDate >= today && eventDate <= weekEnd;
-              case "free":
-                return event.eventType === "FREE";
-              case "paid":
-                return event.eventType === "PAID";
-              default:
-                return true;
-            }
-          });
-        }
-
-        // Upcoming events (events near current date/time)
-        const upcoming = allEvents
-          .filter((event) => {
-            const eventDate = new Date(event.date);
-            const timeDiff = eventDate.getTime() - now.getTime();
-            const daysDiff = timeDiff / (1000 * 3600 * 24);
-            return daysDiff >= 0 && daysDiff <= 30; // Events within next 30 days
-          })
-          .sort(
-            (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-          );
-
-        // Trendy events (events in major Nigerian cities)
-        const trendy = allEvents
-          .filter((event) => {
-            return majorNigerianCities.some((city) =>
-              event.location.toLowerCase().includes(city.toLowerCase())
-            );
-          })
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          );
-
-        setPopularEvents(popular);
-        setUpcomingEvents(upcoming);
-        setTrendyEvents(trendy);
-      } catch (error) {
-        console.error("Error processing events:", error);
-      }
-    }
-  }, [allEvents, activeFilter]);
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -482,7 +345,7 @@ const HomePage: React.FC = () => {
   );
 
   // Handle loading state from the store
-  if (isInitialLoading || eventsLoading) {
+  if (isInitialLoading ) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
