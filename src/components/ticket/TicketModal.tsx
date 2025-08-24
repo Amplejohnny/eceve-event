@@ -10,7 +10,7 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
+import { formatDate, formatPrice, formatTime, isValidEmail } from "@/lib/utils";
 
 interface TicketType {
   id: string;
@@ -46,7 +46,6 @@ interface AttendeeInfo {
   fullName: string;
   email: string;
   phone?: string;
-  confirmationId: string;
 }
 
 interface TicketPurchaseModalProps {
@@ -55,43 +54,33 @@ interface TicketPurchaseModalProps {
   event: Event | null;
 }
 
-// Utility functions
-export function generateConfirmationId(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "";
-  for (let i = 0; i < 8; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
+// Updated fee calculation to match backend payment-utils.ts
 function calculatePaystackFee(amount: number): number {
   if (amount < 250000) {
     return Math.round(amount * 0.015);
   }
-  const fee = Math.round(amount * 0.015) + 10000;
-  return Math.min(fee, 200000);
+  const fee = Math.round(amount * 0.015) + 10000; // 1.5% + ₦100
+  return Math.min(fee, 200000); // Cap at ₦2,000
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
+// Platform breakdown calculation (matches backend)
+function calculatePaymentBreakdown(ticketSubtotal: number) {
+  const paystackFee = calculatePaystackFee(ticketSubtotal);
 
-function formatTime(timeString: string): string {
-  const [hours, minutes] = timeString.split(":");
-  const date = new Date();
-  date.setHours(parseInt(hours), parseInt(minutes));
-  return date.toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
+  // Platform takes 7% of ticket subtotal, organizer gets 93%
+  const platformAmount = Math.round(ticketSubtotal * 0.07);
+  const organizerAmount = ticketSubtotal - platformAmount;
+
+  // Total amount customer pays = tickets + paystack fee
+  const totalAmount = ticketSubtotal + paystackFee;
+
+  return {
+    ticketSubtotal,
+    paystackFee,
+    totalAmount,
+    organizerAmount,
+    platformAmount,
+  };
 }
 
 const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
@@ -105,11 +94,12 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
     fullName: "",
     email: "",
     phone: "",
-    confirmationId: "",
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+  const [confirmationIds, setConfirmationIds] = useState<string[]>([]);
+  const [apiError, setApiError] = useState<string>("");
 
   // Reset state when modal opens/closes
   useEffect(() => {
@@ -120,23 +110,14 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
         fullName: "",
         email: "",
         phone: "",
-        confirmationId: "",
       });
       setErrors({});
+      setApiError("");
       setIsProcessing(false);
       setBookingSuccess(false);
+      setConfirmationIds([]);
     }
   }, [isOpen]);
-
-  // Generate confirmation ID when moving to step 2
-  useEffect(() => {
-    if (currentStep === 2 && !attendeeInfo.confirmationId) {
-      setAttendeeInfo((prev) => ({
-        ...prev,
-        confirmationId: generateConfirmationId(),
-      }));
-    }
-  }, [currentStep, attendeeInfo.confirmationId]);
 
   if (!isOpen || !event) return null;
 
@@ -146,7 +127,12 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
 
     setTicketQuantities((prev) => {
       const currentQty = prev[ticketId] || 0;
-      const newQuantity = Math.max(0, currentQty + change);
+      let newQuantity = Math.max(0, currentQty + change);
+
+      // For free events, limit to 1 ticket per type
+      if (event.eventType === "FREE" && newQuantity > 1) {
+        newQuantity = 1;
+      }
 
       // Check if we exceed available quantity
       if (ticketType.quantity && newQuantity > ticketType.quantity) {
@@ -182,7 +168,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
 
     if (!attendeeInfo.email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(attendeeInfo.email)) {
+    } else if (!isValidEmail(attendeeInfo.email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
@@ -203,9 +189,9 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
 
   const handleBookFreeEvent = async () => {
     setIsProcessing(true);
+    setApiError("");
 
     try {
-      // Create ticket booking for free event
       const ticketData = {
         eventId: event.id,
         tickets: Object.entries(ticketQuantities).map(
@@ -214,7 +200,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
             quantity,
             attendeeName: attendeeInfo.fullName,
             attendeeEmail: attendeeInfo.email,
-            attendeePhone: attendeeInfo.phone,
+            attendeePhone: attendeeInfo.phone || undefined,
           })
         ),
       };
@@ -225,15 +211,18 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
         body: JSON.stringify(ticketData),
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        setConfirmationIds(result.confirmationIds || []);
         setBookingSuccess(true);
-        setCurrentStep(4); // Success step
+        setCurrentStep(4);
       } else {
-        throw new Error("Failed to book tickets");
+        setApiError(result.message || "Failed to book tickets");
       }
     } catch (error) {
       console.error("Error booking free tickets:", error);
-      alert("Failed to book tickets. Please try again.");
+      setApiError("Failed to book tickets. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -241,9 +230,11 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
 
   const handlePayNow = async () => {
     setIsProcessing(true);
+    setApiError("");
 
     try {
-      // Initialize Paystack payment
+      const paymentBreakdown = calculatePaymentBreakdown(getSubTotal());
+
       const paymentData = {
         eventId: event.id,
         tickets: Object.entries(ticketQuantities).map(
@@ -252,10 +243,10 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
             quantity,
             attendeeName: attendeeInfo.fullName,
             attendeeEmail: attendeeInfo.email,
-            attendeePhone: attendeeInfo.phone,
+            attendeePhone: attendeeInfo.phone || undefined,
           })
         ),
-        amount: getSubTotal() + calculatePaystackFee(getSubTotal()),
+        amount: paymentBreakdown.totalAmount,
         customerEmail: attendeeInfo.email,
       };
 
@@ -271,19 +262,18 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
         // Redirect to Paystack payment page
         window.location.href = result.authorization_url;
       } else {
-        throw new Error(result.message || "Failed to initialize payment");
+        setApiError(result.message || "Failed to initialize payment");
       }
     } catch (error) {
       console.error("Error initializing payment:", error);
-      alert("Failed to initialize payment. Please try again.");
+      setApiError("Failed to initialize payment. Please try again.");
     } finally {
       setIsProcessing(false);
     }
   };
 
   const subTotal = getSubTotal();
-  const tax = event.eventType === "PAID" ? calculatePaystackFee(subTotal) : 0;
-  const orderTotal = subTotal + tax;
+  const paymentBreakdown = calculatePaymentBreakdown(subTotal);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -295,7 +285,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
               <button
                 title="Go back"
                 onClick={() => setCurrentStep(currentStep - 1)}
-                className="mr-3 p-1 hover:bg-gray-100 rounded-full"
+                className="mr-3 p-1 hover:bg-gray-100 rounded-full cursor-pointer"
               >
                 <ArrowLeft className="w-5 h-5 text-gray-600" />
               </button>
@@ -310,7 +300,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
           <button
             title="Close modal"
             onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full"
+            className="p-1 hover:bg-gray-100 rounded-full cursor-pointer"
           >
             <X className="w-5 h-5 text-gray-600" />
           </button>
@@ -368,60 +358,35 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                         )}
                       </div>
 
-                      {/* For free events, users get 1 ticket max per type */}
-                      {event.eventType === "FREE" ? (
-                        <div className="flex items-center space-x-3">
-                          <button
-                            title="Remove ticket"
-                            onClick={() => updateQuantity(ticket.id, -1)}
-                            disabled={!ticketQuantities[ticket.id]}
-                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
+                      <div className="flex items-center space-x-3">
+                        <button
+                          title="Decrease quantity"
+                          onClick={() => updateQuantity(ticket.id, -1)}
+                          disabled={!ticketQuantities[ticket.id]}
+                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
 
-                          <span className="text-2xl font-bold text-gray-900 min-w-[2rem] text-center">
-                            {Math.min(ticketQuantities[ticket.id] || 0, 1)}
-                          </span>
+                        <span className="text-2xl font-bold text-gray-900 min-w-[2rem] text-center">
+                          {ticketQuantities[ticket.id] || 0}
+                        </span>
 
-                          <button
-                            title="Add ticket"
-                            onClick={() => updateQuantity(ticket.id, 1)}
-                            disabled={(ticketQuantities[ticket.id] || 0) >= 1}
-                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex items-center space-x-3">
-                          <button
-                            title="Decrease quantity"
-                            onClick={() => updateQuantity(ticket.id, -1)}
-                            disabled={!ticketQuantities[ticket.id]}
-                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-
-                          <span className="text-2xl font-bold text-gray-900 min-w-[2rem] text-center">
-                            {ticketQuantities[ticket.id] || 0}
-                          </span>
-
-                          <button
-                            title="Increase quantity"
-                            onClick={() => updateQuantity(ticket.id, 1)}
-                            disabled={
-                              !!ticket.quantity &&
+                        <button
+                          title="Increase quantity"
+                          onClick={() => updateQuantity(ticket.id, 1)}
+                          disabled={
+                            (!!ticket.quantity &&
                               (ticketQuantities[ticket.id] || 0) >=
-                                ticket.quantity
-                            }
-                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
+                                ticket.quantity) ||
+                            (event.eventType === "FREE" &&
+                              (ticketQuantities[ticket.id] || 0) >= 1)
+                          }
+                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -468,16 +433,6 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                       </div>
                     );
                   })}
-                </div>
-
-                {/* Confirmation ID */}
-                <div className="bg-green-50 rounded-lg p-3">
-                  <div className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-green-600 mr-2" />
-                    <span className="text-sm font-medium text-green-800">
-                      Confirmation ID: {attendeeInfo.confirmationId}
-                    </span>
-                  </div>
                 </div>
               </div>
 
@@ -625,25 +580,51 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                 })}
               </div>
 
+              {/* API Error Display */}
+              {apiError && (
+                <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <AlertCircle className="w-5 h-5 text-red-600 mr-2 flex-shrink-0" />
+                    <p className="text-red-800 text-sm">{apiError}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Pricing Breakdown for Paid Events */}
-              {event.eventType === "PAID" && (
+              {event.eventType === "PAID" && subTotal > 0 && (
                 <div className="space-y-4 mb-6">
                   <div className="flex justify-between items-center text-lg">
                     <span className="font-medium">Subtotal:</span>
-                    <span className="font-bold">{formatPrice(subTotal)}</span>
+                    <span className="font-bold">
+                      {formatPrice(paymentBreakdown.ticketSubtotal)}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm text-gray-600">
+                    <span>Platform Fee (7%):</span>
+                    <span>{formatPrice(paymentBreakdown.platformAmount)}</span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm text-gray-600">
+                    <span>Organizer Amount:</span>
+                    <span>{formatPrice(paymentBreakdown.organizerAmount)}</span>
                   </div>
 
                   <div className="flex justify-between items-center text-lg">
-                    <span className="font-medium">Processing Fee:</span>
-                    <span className="font-bold">{formatPrice(tax)}</span>
+                    <span className="font-medium">
+                      Processing Fee (Paystack):
+                    </span>
+                    <span className="font-bold">
+                      {formatPrice(paymentBreakdown.paystackFee)}
+                    </span>
                   </div>
 
                   <hr className="border-gray-300" />
 
                   <div className="flex justify-between items-center text-xl">
-                    <span className="font-bold">Total:</span>
+                    <span className="font-bold">Total Amount:</span>
                     <span className="font-bold text-green-600">
-                      {formatPrice(orderTotal)}
+                      {formatPrice(paymentBreakdown.totalAmount)}
                     </span>
                   </div>
                 </div>
@@ -651,28 +632,38 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
             </div>
           )}
 
-          {/* Step 4: Success for Free Events */}
+          {/* Step 4: Success */}
           {currentStep === 4 && bookingSuccess && (
             <div className="p-4 text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Event Booked Successfully!
+                {event.eventType === "FREE"
+                  ? "Event Booked Successfully!"
+                  : "Payment Successful!"}
               </h3>
               <p className="text-gray-600 mb-4">
-                Your tickets have been confirmed. Check your email for booking
-                details and confirmation.
+                {event.eventType === "FREE"
+                  ? "Your free tickets have been confirmed. Check your email for booking details and confirmation."
+                  : "Your payment was successful. Check your email for tickets and confirmation details."}
               </p>
-              <div className="bg-green-50 rounded-lg p-4 mb-6">
-                <p className="text-sm text-green-800">
-                  <strong>Confirmation ID:</strong>{" "}
-                  {attendeeInfo.confirmationId}
-                </p>
-                <p className="text-sm text-green-700 mt-1">
-                  Present this ID at the event entrance
-                </p>
-              </div>
+              {confirmationIds.length > 0 && (
+                <div className="bg-green-50 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-green-800">
+                    <strong>
+                      Confirmation ID{confirmationIds.length > 1 ? "s" : ""}:
+                    </strong>
+                    <br />
+                    {confirmationIds.join(", ")}
+                  </p>
+                  <p className="text-sm text-green-700 mt-1">
+                    Present{" "}
+                    {confirmationIds.length > 1 ? "these IDs" : "this ID"} at
+                    the event entrance
+                  </p>
+                </div>
+              )}
               <button
                 onClick={onClose}
                 className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
@@ -703,7 +694,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                 <button
                   onClick={handleContinueToCheckout}
                   disabled={getTotalQuantity() === 0}
-                  className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-gray-900 transition-colors flex items-center justify-center"
+                  className="w-full cursor-pointer bg-gray-800 text-white py-3 rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed hover:bg-gray-900 transition-colors flex items-center justify-center"
                 >
                   Continue
                   <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
@@ -727,7 +718,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                 </div>
                 <button
                   onClick={handleContinueToSummary}
-                  className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center"
+                  className="w-full cursor-pointer bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center"
                 >
                   Continue to Summary
                   <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
@@ -743,7 +734,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                     : handlePayNow
                 }
                 disabled={isProcessing}
-                className={`w-full text-white py-3 rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center ${
+                className={`w-full cursor-pointer text-white py-3 rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center ${
                   event.eventType === "FREE"
                     ? "bg-green-600 hover:bg-green-700"
                     : "bg-blue-600 hover:bg-blue-700"
@@ -757,7 +748,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                 ) : event.eventType === "FREE" ? (
                   "Book Free Tickets"
                 ) : (
-                  <>🔒 Pay Now</>
+                  <>🔒 Pay {formatPrice(paymentBreakdown.totalAmount)}</>
                 )}
               </button>
             )}

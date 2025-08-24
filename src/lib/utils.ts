@@ -86,6 +86,17 @@ export function formatPrice(priceInKobo: number): string {
   return `₦${(priceInKobo / 100).toLocaleString()}`;
 }
 
+export function formatTime(timeString: string): string {
+  const [hours, minutes] = timeString.split(":");
+  const date = new Date();
+  date.setHours(parseInt(hours), parseInt(minutes));
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 // Format phone number
 export function formatPhone(phone: string): string {
   const cleaned = phone.replace(/\D/g, "");
@@ -99,6 +110,18 @@ export function formatPhone(phone: string): string {
   }
 
   return phone;
+}
+
+// Phone validation (Nigerian format)
+export function isValidPhone(phone: string): boolean {
+  const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
+  return phoneRegex.test(phone.replace(/\s/g, ""));
+}
+
+// Email validation
+export function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
 }
 
 export function getRelativeTime(date: Date | string): string {
@@ -157,18 +180,6 @@ export function generateConfirmationId(): string {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return result;
-}
-
-// Email validation
-export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
-}
-
-// Phone validation (Nigerian format)
-export function isValidPhone(phone: string): boolean {
-  const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
-  return phoneRegex.test(phone.replace(/\s/g, ""));
 }
 
 // Array utilities
