@@ -97,6 +97,9 @@ const PAGINATION_CONFIG = {
   INITIAL_LOAD: 12,
   LOAD_MORE: 12,
   SEARCH_RESULTS: 12,
+  MOBILE: 8,
+  TABLET: 12,
+  DESKTOP: 16,
 } as const;
 
 const EventCard: React.FC<EventCardProps> = ({
@@ -259,36 +262,51 @@ const AllEventsPage: React.FC = () => {
   const [showVerificationMessage, setShowVerificationMessage] = useState<
     string | null
   >(null);
+  const [responsiveLimit, setResponsiveLimit] = useState<number>(
+    PAGINATION_CONFIG.INITIAL_LOAD
+  );
+
+  const getResponsiveLimit = useCallback((): number => {
+    if (typeof window !== "undefined") {
+      if (window.innerWidth < 768) return PAGINATION_CONFIG.MOBILE;
+
+      if (window.innerWidth < 1024) return PAGINATION_CONFIG.TABLET;
+
+      return PAGINATION_CONFIG.DESKTOP;
+    }
+    return PAGINATION_CONFIG.INITIAL_LOAD; // Default fallback
+  }, []);
+
+  // Update responsive limit on window resize
+  useEffect(() => {
+    const updateResponsiveLimit = () => {
+      setResponsiveLimit(getResponsiveLimit());
+    };
+
+    updateResponsiveLimit();
+
+    window.addEventListener("resize", updateResponsiveLimit);
+
+    return () => window.removeEventListener("resize", updateResponsiveLimit);
+  }, [getResponsiveLimit]);
 
   // Load events on component mount
   const loadInitialEvents = useCallback(async (): Promise<void> => {
     try {
       const result = await loadEvents({
-        limit: PAGINATION_CONFIG.INITIAL_LOAD,
+        limit: responsiveLimit,
       });
       setTotalCount(result.totalCount);
       setHasMore(result.hasMore);
     } catch (error) {
       console.error("Error loading events:", error);
     }
-  }, [loadEvents]);
+  }, [loadEvents, responsiveLimit]);
 
   // Load events on component mount
   useEffect(() => {
     loadInitialEvents();
   }, [loadInitialEvents]);
-
-  //   const getResponsiveLimit = () => {
-  //   if (typeof window !== 'undefined') {
-  //     // Mobile: smaller batches for faster loading
-  //     if (window.innerWidth < 768) return 8;
-  //     // Tablet: medium batches
-  //     if (window.innerWidth < 1024) return 12;
-  //     // Desktop: larger batches
-  //     return 16;
-  //   }
-  //   return 12; // Default fallback
-  // };
 
   const handleSearch = async (): Promise<void> => {
     setIsLoading(true);
@@ -300,7 +318,7 @@ const AllEventsPage: React.FC = () => {
         location: location,
         category: selectedCategory,
         eventType: priceFilter !== "all" ? priceFilter : undefined,
-        limit: PAGINATION_CONFIG.SEARCH_RESULTS,
+        limit: responsiveLimit,
         offset: 0,
       };
 
@@ -309,6 +327,30 @@ const AllEventsPage: React.FC = () => {
       setHasMore(result.hasMore);
     } catch (error) {
       console.error("Error searching events:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load more events
+  const loadMoreEvents = async (): Promise<void> => {
+    if (!hasMore || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      const params: Parameters<typeof loadEvents>[0] = {
+        q: searchQuery,
+        location: location,
+        category: selectedCategory,
+        eventType: priceFilter !== "all" ? priceFilter : undefined,
+        limit: responsiveLimit,
+        offset: allEvents.length,
+      };
+
+      const result = await loadEvents(params);
+      setHasMore(result.hasMore);
+    } catch (error) {
+      console.error("Error loading more events:", error);
     } finally {
       setIsLoading(false);
     }
@@ -332,30 +374,6 @@ const AllEventsPage: React.FC = () => {
       }
       return newFavorites;
     });
-  };
-
-  // Load more events
-  const loadMoreEvents = async (): Promise<void> => {
-    if (!hasMore || isLoading) return;
-
-    setIsLoading(true);
-    try {
-      const params: Parameters<typeof loadEvents>[0] = {
-        q: searchQuery,
-        location: location,
-        category: selectedCategory,
-        eventType: priceFilter !== "all" ? priceFilter : undefined,
-        limit: PAGINATION_CONFIG.LOAD_MORE,
-        offset: allEvents.length,
-      };
-
-      const result = await loadEvents(params);
-      setHasMore(result.hasMore);
-    } catch (error) {
-      console.error("Error loading more events:", error);
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   // Tag management
