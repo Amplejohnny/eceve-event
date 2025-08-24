@@ -4,20 +4,8 @@ import type { TicketStatus, Event, TicketType, User } from "@/generated/prisma";
 import { sendTicketConfirmation } from "@/lib/email";
 import { db } from "@/lib/db";
 import { generateConfirmationId, formatDate } from "@/lib/utils";
-
-// Define proper interfaces
-interface FreeTicketBookingRequest {
-  eventId: string;
-  tickets: TicketOrderData[];
-}
-
-interface TicketOrderData {
-  ticketTypeId: string;
-  quantity: number;
-  attendeeName: string;
-  attendeeEmail: string;
-  attendeePhone?: string;
-}
+import { freeTicketBookingSchema } from "@/lib/validation";
+import { ZodError } from "zod";
 
 interface EventWithRelations extends Event {
   ticketTypes: TicketType[];
@@ -45,21 +33,29 @@ interface EmailGroup {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: FreeTicketBookingRequest = await request.json();
-    const { eventId, tickets } = body;
+    const body = await request.json();
 
-    // Input validation
-    if (
-      !eventId ||
-      !tickets ||
-      !Array.isArray(tickets) ||
-      tickets.length === 0
-    ) {
-      return NextResponse.json(
-        { success: false, message: "Invalid request data" },
-        { status: 400 }
-      );
+    // Validate input with Zod
+    let validatedData;
+    try {
+      validatedData = freeTicketBookingSchema.parse(body);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Invalid input data",
+            errors: error.errors.map(
+              (e) => `${e.path.join(".")}: ${e.message}`
+            ),
+          },
+          { status: 400 }
+        );
+      }
+      throw error;
     }
+
+    const { eventId, tickets } = validatedData;
 
     // Validate event exists and is free
     const event = (await db.event.findUnique({

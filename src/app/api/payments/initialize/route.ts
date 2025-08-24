@@ -7,19 +7,8 @@ import {
   createPayment,
 } from "@/lib/payment-utils";
 import type { PaymentBreakdown } from "@/lib/payment-utils";
-
-interface PaymentInitRequest {
-  eventId: string;
-  tickets: {
-    ticketTypeId: string;
-    quantity: number;
-    attendeeName: string;
-    attendeeEmail: string;
-    attendeePhone?: string;
-  }[];
-  amount: number;
-  customerEmail: string;
-}
+import { paymentInitSchema } from "@/lib/validation";
+import { ZodError } from "zod";
 
 interface PaymentMetadata {
   tickets: {
@@ -41,8 +30,29 @@ interface PaymentMetadata {
 
 export async function POST(request: NextRequest) {
   try {
-    const body: PaymentInitRequest = await request.json();
-    const { eventId, tickets, amount, customerEmail } = body;
+    const body = await request.json();
+
+    // Validate input with Zod
+    let validatedData;
+    try {
+      validatedData = paymentInitSchema.parse(body);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Invalid input data",
+            errors: error.errors.map(
+              (e) => `${e.path.join(".")}: ${e.message}`
+            ),
+          },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
+
+    const { eventId, tickets, amount, customerEmail } = validatedData;
 
     // Validate event exists
     const event = await db.event.findUnique({
