@@ -418,46 +418,61 @@ const AllEventsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">
-              Explore a world of events. Find what excites you!
-            </h1>
-            <p className="text-xl opacity-90 mb-8">
-              Discover amazing events happening around you
-            </p>
+      <div className="relative bg-gray-900 text-white py-16 lg:py-24 overflow-hidden min-h-[60vh]">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/hero-events-bg3.jpg"
+            alt="Events background"
+            fill
+            className="object-cover opacity-60"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-black/20 to-blue-900/30"></div>
+        </div>
 
-            {/* Search Bar */}
-            <div className="max-w-4xl mx-auto">
-              <div className="bg-white rounded-lg shadow-lg p-2 flex flex-col md:flex-row gap-2">
-                <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="text"
-                    placeholder="Search events..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 text-gray-900 rounded-md border-0 focus:ring-2 focus:ring-purple-500"
-                  />
+        {/* Content */}
+        <div className="relative z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h1 className="text-4xl font-bold mb-4">
+                Explore a world of events. Find what excites you!
+              </h1>
+              <p className="text-xl opacity-90 mb-8">
+                Discover amazing events happening around you
+              </p>
+
+              {/* Search Bar */}
+              <div className="max-w-4xl mx-auto">
+                <div className="bg-white rounded-lg shadow-lg p-2 flex flex-col md:flex-row gap-2">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <input
+                      type="text"
+                      placeholder="Search events..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-3 text-gray-900 rounded-md border-0 focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <input
+                      type="text"
+                      placeholder="Location"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="w-full md:w-48 pl-10 pr-4 py-3 text-gray-900 rounded-md border-0 focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSearch}
+                    disabled={isLoading}
+                    className="px-8 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
+                  >
+                    {isLoading ? "Searching..." : "Search"}
+                  </button>
                 </div>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="text"
-                    placeholder="Location"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full md:w-48 pl-10 pr-4 py-3 text-gray-900 rounded-md border-0 focus:ring-2 focus:ring-purple-500"
-                  />
-                </div>
-                <button
-                  onClick={handleSearch}
-                  disabled={isLoading}
-                  className="px-8 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
-                >
-                  {isLoading ? "Searching..." : "Search"}
-                </button>
               </div>
             </div>
           </div>
