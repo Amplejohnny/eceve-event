@@ -10,7 +10,13 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
-import { formatDate, formatPrice, formatTime, isValidEmail } from "@/lib/utils";
+import {
+  formatDate,
+  formatPrice,
+  formatTime,
+  isValidEmail,
+  isValidPhone,
+} from "@/lib/utils";
 
 interface TicketType {
   id: string;
@@ -162,14 +168,32 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
   const validateAttendeeInfo = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
+    // Name validation
     if (!attendeeInfo.fullName.trim()) {
       newErrors.fullName = "Full name is required";
+    } else if (attendeeInfo.fullName.trim().length < 2) {
+      newErrors.fullName = "Name must be at least 2 characters";
+    } else if (attendeeInfo.fullName.trim().length > 100) {
+      newErrors.fullName = "Name must be less than 100 characters";
+    } else if (!/^[a-zA-Z\s'-]+$/.test(attendeeInfo.fullName.trim())) {
+      newErrors.fullName =
+        "Name can only contain letters, spaces, hyphens and apostrophes";
     }
 
+    // Email validation
     if (!attendeeInfo.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!isValidEmail(attendeeInfo.email)) {
       newErrors.email = "Please enter a valid email address";
+    } else if (attendeeInfo.email.length > 255) {
+      newErrors.email = "Email must be less than 255 characters";
+    }
+
+    // Phone validation (optional)
+    if (attendeeInfo.phone && attendeeInfo.phone.trim() !== "") {
+      if (!isValidPhone(attendeeInfo.phone)) {
+        newErrors.phone = "Please enter a valid Nigerian phone number";
+      }
     }
 
     setErrors(newErrors);
@@ -506,10 +530,20 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                         ...prev,
                         phone: e.target.value,
                       }));
+                      if (errors.phone)
+                        setErrors((prev) => ({ ...prev, phone: "" }));
                     }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.phone ? "border-red-500" : "border-gray-300"
+                    }`}
                     placeholder="Enter your phone number"
                   />
+                  {errors.phone && (
+                    <div className="flex items-center mt-1 text-red-600 text-sm">
+                      <AlertCircle className="w-4 h-4 mr-1" />
+                      {errors.phone}
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-4">
