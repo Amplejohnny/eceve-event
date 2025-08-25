@@ -3,6 +3,17 @@ import { z } from "zod";
 // Nigerian phone number validation
 const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
 
+// Custom ID validation that accepts both UUIDs and your custom format
+const customIdSchema = z
+  .string()
+  .min(1, "ID is required")
+  .refine((val) => {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const customIdRegex = /^[a-z0-9]{20,30}$/i;
+    return uuidRegex.test(val) || customIdRegex.test(val);
+  }, "Invalid ID format");
+
 // Attendee info schema
 export const attendeeInfoSchema = z.object({
   fullName: z
@@ -33,7 +44,7 @@ export const attendeeInfoSchema = z.object({
 
 // Ticket order schema
 export const ticketOrderSchema = z.object({
-  ticketTypeId: z.string().uuid("Invalid ticket type ID"),
+  ticketTypeId: customIdSchema,
   quantity: z
     .number()
     .int()
@@ -41,12 +52,20 @@ export const ticketOrderSchema = z.object({
     .max(10, "Maximum 10 tickets per type"),
   attendeeName: attendeeInfoSchema.shape.fullName,
   attendeeEmail: attendeeInfoSchema.shape.email,
-  attendeePhone: attendeeInfoSchema.shape.phone,
+  attendeePhone: z
+    .string()
+    .optional()
+    .refine(
+      (val) =>
+        !val || val.trim() === "" || phoneRegex.test(val.replace(/\s/g, "")),
+      "Please enter a valid Nigerian phone number"
+    )
+    .transform((val) => val?.trim() || undefined),
 });
 
 // Payment initialization schema
 export const paymentInitSchema = z.object({
-  eventId: z.string().uuid("Invalid event ID"),
+  eventId: customIdSchema,
   tickets: z.array(ticketOrderSchema).min(1, "At least one ticket is required"),
   amount: z.number().int().min(0, "Amount must be non-negative"),
   customerEmail: attendeeInfoSchema.shape.email,
@@ -54,7 +73,7 @@ export const paymentInitSchema = z.object({
 
 // Free ticket booking schema
 export const freeTicketBookingSchema = z.object({
-  eventId: z.string().uuid("Invalid event ID"),
+  eventId: customIdSchema,
   tickets: z.array(ticketOrderSchema).min(1, "At least one ticket is required"),
 });
 

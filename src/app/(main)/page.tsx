@@ -54,14 +54,14 @@ const EventCard: React.FC<EventCardProps> = ({
   const router = useRouter();
   const [localFavorite, setLocalFavorite] = useState(isFavorite);
 
-  useEffect(() => {
-  console.log('📋 EventCard rendered:', { 
-    id: event.id, 
-    title: event.title, 
-    date: event.date,
-    imageUrl: event.imageUrl 
-  });
-}, [event]);
+  // useEffect(() => {
+  //   console.log("📋 EventCard rendered:", {
+  //     id: event.id,
+  //     title: event.title,
+  //     date: event.date,
+  //     imageUrl: event.imageUrl,
+  //   });
+  // }, [event]);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -188,11 +188,8 @@ const HomePage: React.FC = () => {
   const [showMoreTrendy, setShowMoreTrendy] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const {
-    loadPopularEvents,
-    loadUpcomingEvents,
-    loadTrendyEvents,
-  } = useEventStore();
+  const { loadPopularEvents, loadUpcomingEvents, loadTrendyEvents } =
+    useEventStore();
 
   // Event state
   const [popularEvents, setPopularEvents] = useState<EventData[]>([]);
@@ -276,7 +273,7 @@ const HomePage: React.FC = () => {
 
         setTrendyEvents(events || []);
       } catch (error) {
-        console.error("❌ Error fetching trendy events:", error)
+        console.error("❌ Error fetching trendy events:", error);
       } finally {
         setIsInitialLoading(false);
       }
@@ -345,7 +342,7 @@ const HomePage: React.FC = () => {
   );
 
   // Handle loading state from the store
-  if (isInitialLoading ) {
+  if (isInitialLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

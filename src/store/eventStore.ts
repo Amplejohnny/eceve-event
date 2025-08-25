@@ -992,8 +992,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         }
       });
 
-      console.log("Loading events with params:", searchParams.toString());
-
       const response = await fetch(`/api/events?${searchParams.toString()}`, {
         method: "GET",
         headers: {
@@ -1111,8 +1109,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         }
       }
 
-      console.log("Loading popular events with params:", params.toString());
-
       const response = await fetch(`/api/events?${params}`, {
         method: "GET",
         headers: {
@@ -1166,8 +1162,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         limit: (filters.limit || 20).toString(),
       });
 
-      console.log("Loading upcoming events with params:", params.toString());
-
       const response = await fetch(`/api/events?${params}`, {
         method: "GET",
         headers: {
@@ -1220,8 +1214,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         status: filters.status || "ACTIVE",
         limit: (filters.limit || 20).toString(),
       });
-
-      console.log("Loading trendy events with params:", params.toString());
 
       const response = await fetch(`/api/events?${params}`, {
         method: "GET",

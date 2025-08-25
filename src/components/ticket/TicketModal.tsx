@@ -60,6 +60,14 @@ interface TicketPurchaseModalProps {
   event: Event | null;
 }
 
+interface ticketDataItem {
+  ticketTypeId: string;
+  quantity: number;
+  attendeeName: string;
+  attendeeEmail: string;
+  attendeePhone?: string;
+}
+
 // Updated fee calculation to match backend payment-utils.ts
 function calculatePaystackFee(amount: number): number {
   if (amount < 250000) {
@@ -224,7 +232,9 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
             quantity,
             attendeeName: attendeeInfo.fullName,
             attendeeEmail: attendeeInfo.email,
-            attendeePhone: attendeeInfo.phone || undefined,
+            ...(attendeeInfo.phone && attendeeInfo.phone.trim() !== ""
+              ? { attendeePhone: attendeeInfo.phone }
+              : {}),
           })
         ),
       };
@@ -262,13 +272,19 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
       const paymentData = {
         eventId: event.id,
         tickets: Object.entries(ticketQuantities).map(
-          ([ticketTypeId, quantity]) => ({
-            ticketTypeId,
-            quantity,
-            attendeeName: attendeeInfo.fullName,
-            attendeeEmail: attendeeInfo.email,
-            attendeePhone: attendeeInfo.phone || undefined,
-          })
+          ([ticketTypeId, quantity]) => {
+            const ticketDataItem: ticketDataItem = {
+              ticketTypeId,
+              quantity,
+              attendeeName: attendeeInfo.fullName.trim(),
+              attendeeEmail: attendeeInfo.email.trim().toLowerCase(),
+            };
+            if (attendeeInfo.phone && attendeeInfo.phone.trim() !== "") {
+              ticketDataItem.attendeePhone = attendeeInfo.phone.trim();
+            }
+
+            return ticketDataItem;
+          }
         ),
         amount: paymentBreakdown.totalAmount,
         customerEmail: attendeeInfo.email,
