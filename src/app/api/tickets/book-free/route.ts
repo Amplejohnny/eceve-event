@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { TicketStatus, Event, TicketType, User } from "@/generated/prisma";
 import { sendTicketConfirmation } from "@/lib/email";
 import { db } from "@/lib/db";
-import { generateConfirmationId, formatDate } from "@/lib/utils";
+import { generateConfirmationId, formatDate, formatTime } from "@/lib/utils";
 import { freeTicketBookingSchema } from "@/lib/validation";
 import { ZodError } from "zod";
 
@@ -220,7 +220,11 @@ export async function POST(request: NextRequest) {
           attendeeName: emailGroup.name,
           eventTitle: event.title,
           eventDate: formatDate(event.date.toISOString()),
+          eventEndDate: event.endDate
+            ? formatDate(event.endDate.toISOString())
+            : "TBA",
           eventLocation: event.venue || event.location,
+          eventTime: formatTime(event.startTime) || "TBA",
           ticketType: emailGroup.ticketTypes.join(", "),
           confirmationId: emailGroup.confirmationIds.join(", "),
           eventId: event.id,

@@ -13,7 +13,7 @@ import type {
 } from "@/generated/prisma";
 import { db } from "@/lib/db";
 import { updatePayment } from "@/lib/payment-utils";
-import { generateConfirmationId, formatDate } from "@/lib/utils";
+import { generateConfirmationId, formatDate, formatTime } from "@/lib/utils";
 
 // Define proper interfaces
 interface PaystackWebhookData {
@@ -246,7 +246,11 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
           attendeeName: emailGroup.name,
           eventTitle: payment.event.title,
           eventDate: formatDate(payment.event.date.toISOString()),
+          eventEndDate: payment.event.endDate
+            ? formatDate(payment.event.endDate.toISOString())
+            : "TBA",
           eventLocation: payment.event.venue || payment.event.location,
+          eventTime: formatTime(payment.event.startTime) || "TBA",
           ticketType: emailGroup.ticketTypes.join(", "),
           confirmationId: emailGroup.confirmationIds.join(", "),
           eventId: payment.event.id,
