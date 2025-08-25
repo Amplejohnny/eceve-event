@@ -93,6 +93,7 @@ const CreateEvent: React.FC = () => {
   const [tagInput, setTagInput] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState("");
+  const [isNavigatingToSuccess, setIsNavigatingToSuccess] = useState(false);
 
   if (status === "loading") {
     return (
@@ -375,17 +376,18 @@ const CreateEvent: React.FC = () => {
         updateFormData({ imageUrl: finalImageUrl });
       }
 
-      // Log the final form data for debugging
-      console.log("Creating event with data:", {
-        title: formData.title,
-        category: formData.category,
-        hasImage: !!formData.imageUrl,
-        imageUrl: formData.imageUrl || "NOT_SET",
-        ticketTypes: formData.ticketTypes.length,
-      });
+      // console.log("Creating event with data:", {
+      //   title: formData.title,
+      //   category: formData.category,
+      //   hasImage: !!formData.imageUrl,
+      //   imageUrl: formData.imageUrl || "NOT_SET",
+      //   ticketTypes: formData.ticketTypes.length,
+      // });
 
       const result = (await createEvent()) as CreateEventResult;
       console.log("Event created successfully:", result);
+
+      setIsNavigatingToSuccess(true);
 
       // Navigate to success page
       router.push(`/event-success?eventId=${result.id}`);
@@ -397,6 +399,7 @@ const CreateEvent: React.FC = () => {
           ? error.message
           : "Failed to create event. Please try again."
       );
+      setIsNavigatingToSuccess(false);
     }
   };
 
@@ -431,6 +434,37 @@ const CreateEvent: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-50 to-yellow-50 py-6 px-4 sm:px-6 lg:px-8 pb-12 sm:pb-16 lg:pb-24">
       <div className="max-w-4xl mx-auto">
+        {/* LOADING OVERLAY */}
+        {isNavigatingToSuccess && (
+          <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="text-center space-y-4">
+              {/* Spinner */}
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-yellow-200"></div>
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-t-yellow-500 absolute top-0 left-0"></div>
+              </div>
+
+              {/* Simple loading message */}
+              <div className="space-y-2">
+                <p className="text-gray-600">Loading...</p>
+              </div>
+
+              {/* Optional: Progress dots */}
+              <div className="flex justify-center space-x-1">
+                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                <div
+                  className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"
+                  style={{ animationDelay: "0.4s" }}
+                ></div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center mb-4">

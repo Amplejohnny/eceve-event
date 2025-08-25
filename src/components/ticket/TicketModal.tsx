@@ -227,15 +227,19 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
       const ticketData = {
         eventId: event.id,
         tickets: Object.entries(ticketQuantities).map(
-          ([ticketTypeId, quantity]) => ({
-            ticketTypeId,
-            quantity,
-            attendeeName: attendeeInfo.fullName,
-            attendeeEmail: attendeeInfo.email,
-            ...(attendeeInfo.phone && attendeeInfo.phone.trim() !== ""
-              ? { attendeePhone: attendeeInfo.phone }
-              : {}),
-          })
+          ([ticketTypeId, quantity]) => {
+            const ticketDataItem: ticketDataItem = {
+              ticketTypeId,
+              quantity,
+              attendeeName: attendeeInfo.fullName.trim(),
+              attendeeEmail: attendeeInfo.email.trim().toLowerCase(),
+            };
+            if (attendeeInfo.phone && attendeeInfo.phone.trim() !== "") {
+              ticketDataItem.attendeePhone = attendeeInfo.phone.trim();
+            }
+
+            return ticketDataItem;
+          }
         ),
       };
 
