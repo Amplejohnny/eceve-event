@@ -247,7 +247,7 @@ const emailTemplates = {
     attendeeName: string;
     eventTitle: string;
     eventDate: string;
-    eventEndDate: string;
+    eventEndDate?: string;
     eventTime: string;
     eventLocation: string;
     ticketType: string;
@@ -283,13 +283,15 @@ const emailTemplates = {
           <div class="content">
             <h2>Event Details</h2>
             <div class="event-details">
-              <p><strong>Event:</strong> ${ticketData.eventTitle}</p>
-              <p><strong>Date:</strong> ${ticketData.eventDate} to ${ticketData.eventEndDate}</p>
-              <p><strong>Location:</strong> ${ticketData.eventLocation}</p>
-              <p><strong>Time:</strong> ${ticketData.eventTime}</p>
-              <p><strong>Ticket Type:</strong> ${ticketData.ticketType}</p>
-              <p><strong>Attendee:</strong> ${ticketData.attendeeName}</p>
-            </div>
+            <p><strong>Event:</strong> ${ticketData.eventTitle}</p>
+            <p><strong>Date:</strong> ${ticketData.eventDate}${
+      ticketData.eventEndDate ? ` to ${ticketData.eventEndDate}` : ""
+    }</p>
+            <p><strong>Location:</strong> ${ticketData.eventLocation}</p>
+            <p><strong>Time:</strong> ${ticketData.eventTime}</p>
+            <p><strong>Ticket Type:</strong> ${ticketData.ticketType}</p>
+            <p><strong>Attendee:</strong> ${ticketData.attendeeName}</p>
+          </div>
             
             <div class="ticket">
               <h3>Your Ticket</h3>
@@ -408,7 +410,7 @@ export async function sendTicketConfirmation(ticketData: {
   attendeeName: string;
   eventTitle: string;
   eventDate: string;
-  eventEndDate: string;
+  eventEndDate?: string;
   eventTime: string;
   eventLocation: string;
   ticketType: string;
