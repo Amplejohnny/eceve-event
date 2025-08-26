@@ -21,6 +21,7 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import { Listbox, ListboxButton, ListboxOptions } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/20/solid";
+import { toKobo, fromKobo } from "@/lib/utils";
 
 const CATEGORIES = [
   "Entertainment",
@@ -260,11 +261,11 @@ const CreateEvent: React.FC = () => {
       const formData = new FormData();
       formData.append("image", file);
 
-      console.log("Uploading image...", {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
+      // console.log("Uploading image...", {
+      //   name: file.name,
+      //   size: file.size,
+      //   type: file.type,
+      // });
 
       // Upload to server
       const response = await fetch("/api/upload/image", {
@@ -278,7 +279,7 @@ const CreateEvent: React.FC = () => {
       }
 
       const result = await response.json();
-      console.log("Image upload successful:", result);
+      // console.log("Image upload successful:", result);
 
       if (!result.imageUrl) {
         throw new Error("No image URL returned from server");
@@ -385,7 +386,7 @@ const CreateEvent: React.FC = () => {
       // });
 
       const result = (await createEvent()) as CreateEventResult;
-      console.log("Event created successfully:", result);
+      // console.log("Event created successfully:", result);
 
       setIsNavigatingToSuccess(true);
 
@@ -1199,14 +1200,20 @@ const CreateEvent: React.FC = () => {
                                 </span>
                                 <input
                                   type="number"
-                                  value={ticket.price === 0 ? "" : ticket.price}
+                                  value={
+                                    ticket.price === 0
+                                      ? ""
+                                      : fromKobo(ticket.price)
+                                  } // Display in Naira
                                   onChange={(e) => {
-                                    const value =
+                                    const nairaValue =
                                       e.target.value === ""
                                         ? 0
                                         : Number(e.target.value);
+                                    const koboValue =
+                                      nairaValue === 0 ? 0 : toKobo(nairaValue); // Convert to kobo for storage
                                     updateTicketType(ticket.id, {
-                                      price: value,
+                                      price: koboValue, // Store in kobo
                                     });
                                     clearError(`ticket_${ticket.id}_price`);
                                   }}
@@ -1419,7 +1426,7 @@ const CreateEvent: React.FC = () => {
                             <span className="font-medium">
                               {formData.eventType === EventType.FREE
                                 ? "Free"
-                                : `₦${ticket.price.toLocaleString()}`}
+                                : `₦${fromKobo(ticket.price).toLocaleString()}`}
                             </span>
                           </div>
                         ))}
