@@ -161,7 +161,24 @@ export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
 
 // Image utilities
 export function getEventImageUrl(imageUrl?: string): string {
-  if (imageUrl && imageUrl.trim() !== "") return imageUrl;
+  if (imageUrl && imageUrl.trim() !== "") {
+    // If it's already a full URL, return as is
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      return imageUrl;
+    }
+
+    // If it's a relative path, convert to full URL
+    if (imageUrl.startsWith("/")) {
+      const baseUrl =
+        typeof window !== "undefined"
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      return `${baseUrl}${imageUrl}`;
+    }
+
+    return imageUrl;
+  }
+
   return `https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D`;
 }
 
