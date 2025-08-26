@@ -120,6 +120,12 @@ export default function EventSuccessPageClient() {
     );
   }
 
+//   console.log("Event image data:", {
+//   originalImageUrl: currentEvent.imageUrl,
+//   hasImage: !!currentEvent.imageUrl,
+//   eventId: currentEvent.id
+// });
+
   // Transform the currentEvent to match EventSuccessPage props
   const eventForDisplay = {
     id: currentEvent.id,

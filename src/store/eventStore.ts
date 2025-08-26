@@ -733,7 +733,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
     const isValid = get().validateStepWithErrors(currentStep);
 
     // Log validation result for debugging
-    console.log(`Validating step ${currentStep}:`, isValid);
+    // console.log(`Validating step ${currentStep}:`, isValid);
     if (!isValid) {
       console.log("Validation errors:", get().errors);
     }
@@ -793,7 +793,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
     setLoading(true);
 
     try {
-      console.log("Creating event with imageUrl:", formData.imageUrl);
+      // console.log("Creating event with imageUrl:", formData.imageUrl);
 
       const eventData = {
         title: formData.title,
@@ -816,7 +816,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
         })),
       };
 
-      console.log("Sending event data:", eventData);
+      // console.log("Sending event data:", eventData);
 
       const response = await fetch("/api/events/create", {
         method: "POST",

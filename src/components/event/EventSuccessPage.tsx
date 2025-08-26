@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -19,7 +19,7 @@ import {
   Edit,
 } from "lucide-react";
 import { FaXTwitter, FaFacebookF } from "react-icons/fa6";
-import { getEventImageUrl, getEventUrl } from "@/lib/utils";
+import { getEventUrl, fromKobo, getEventImageUrl } from "@/lib/utils";
 import Image from "next/image";
 
 interface EventSuccessPageProps {
@@ -54,8 +54,12 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
   const [copied, setCopied] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
   const [isWebShareSupported, setIsWebShareSupported] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const eventUrl = getEventUrl(event.slug);
+
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isPausedRef = useRef(false);
 
   // Check Web Share API support on client side
   useEffect(() => {
@@ -66,13 +70,11 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
   // Countdown timer with pause on user interaction
   useEffect(() => {
-    let isPaused = false;
-
     const handleUserActivity = (): void => {
-      isPaused = true;
+      isPausedRef.current = true;
       // Resume countdown after 10 seconds of inactivity
       setTimeout(() => {
-        isPaused = false;
+        isPausedRef.current = false;
       }, 10000);
     };
 
@@ -88,11 +90,14 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
       document.addEventListener(event, handleUserActivity, true);
     });
 
-    const timer = setInterval(() => {
-      if (!isPaused) {
+    timerRef.current = setInterval(() => {
+      if (!isPausedRef.current) {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            router.push("/");
+            // Use setTimeout to avoid state update during render
+            setTimeout(() => {
+              router.push("/");
+            }, 0);
             return 0;
           }
           return prev - 1;
@@ -101,7 +106,9 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
     }, 1000);
 
     return (): void => {
-      clearInterval(timer);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
       events.forEach((event) => {
         document.removeEventListener(event, handleUserActivity, true);
       });
@@ -198,7 +205,9 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
   };
 
   const formatPrice = (price: number): string => {
-    return event.eventType === "FREE" ? "Free" : `₦${price.toLocaleString()}`;
+    return event.eventType === "FREE"
+      ? "Free"
+      : `₦${fromKobo(price).toLocaleString()}`;
   };
 
   return (
@@ -226,7 +235,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
         {/* Event Preview Card */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8 transform hover:scale-[1.01] transition-all duration-300 hover:shadow-2xl">
-          {event.imageUrl && (
+          {event.imageUrl && !imageError ? (
             <div className="relative h-64 bg-gradient-to-r from-blue-500 to-purple-600">
               <Image
                 src={getEventImageUrl(event.imageUrl)}
@@ -234,9 +243,31 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
                 className="w-full h-full object-cover"
                 loading="lazy"
                 width={800}
-                height={240}
+                height={256}
+                onError={(_e) => {
+                  console.error("Failed to load image:", event.imageUrl);
+                  setImageError(true);
+                }}
               />
               <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+              <div className="absolute top-4 left-4">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white bg-opacity-90 text-gray-800 backdrop-blur-sm">
+                  {event.category}
+                </span>
+              </div>
+              <div className="absolute top-4 right-4">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-500 text-white">
+                  {event.eventType}
+                </span>
+              </div>
+            </div>
+          ) : (
+            // Keep the existing fallback
+            <div className="relative h-64 bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="text-white text-center">
+                <div className="text-4xl mb-2">🎉</div>
+                <p className="text-lg font-medium">Event Created!</p>
+              </div>
               <div className="absolute top-4 left-4">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white bg-opacity-90 text-gray-800 backdrop-blur-sm">
                   {event.category}
@@ -346,7 +377,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <button
             onClick={handleViewEvent}
-            className="flex items-center justify-center px-6 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            className="flex items-center cursor-pointer justify-center px-6 py-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
             <ExternalLink className="w-5 h-5 mr-2" />
             View Event
@@ -355,7 +386,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
           <button
             onClick={handleEditEvent}
-            className="flex items-center justify-center px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            className="flex items-center cursor-pointer justify-center px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
             <Edit className="w-5 h-5 mr-2" />
             Edit Event
@@ -363,7 +394,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
           <button
             onClick={handleCopyLink}
-            className="flex items-center justify-center px-6 py-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            className="flex items-center cursor-pointer justify-center px-6 py-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
             <Copy className="w-5 h-5 mr-2" />
             {copied ? "Copied!" : "Copy Link"}
@@ -371,7 +402,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
           <button
             onClick={handleNativeShare}
-            className="flex items-center justify-center px-6 py-4 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            className="flex items-center cursor-pointer justify-center px-6 py-4 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
             <Share2 className="w-5 h-5 mr-2" />
             Share
@@ -394,7 +425,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
               <button
                 title="Close Share Options"
                 onClick={() => setShowShareOptions(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
               >
                 <ChevronUp className="w-5 h-5" />
               </button>
@@ -403,7 +434,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <button
                 onClick={shareToTwitter}
-                className="flex flex-col items-center justify-center p-4 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors"
+                className="flex cursor-pointer flex-col items-center justify-center p-4 bg-blue-400 text-white rounded-lg hover:bg-blue-500 transition-colors"
               >
                 <FaXTwitter className="w-6 h-6 mb-2" />
                 <span className="text-sm">X</span>
@@ -411,7 +442,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
               <button
                 onClick={shareToFacebook}
-                className="flex flex-col items-center justify-center p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex cursor-pointer flex-col items-center justify-center p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <FaFacebookF className="w-6 h-6 mb-2" />
                 <span className="text-sm">Facebook</span>
@@ -419,7 +450,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
               <button
                 onClick={shareToWhatsApp}
-                className="flex flex-col items-center justify-center p-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                className="flex cursor-pointer flex-col items-center justify-center p-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
               >
                 <MessageCircle className="w-6 h-6 mb-2" />
                 <span className="text-sm">WhatsApp</span>
@@ -427,7 +458,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
               <button
                 onClick={shareToLinkedIn}
-                className="flex flex-col items-center justify-center p-4 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors"
+                className="flex cursor-pointer flex-col items-center justify-center p-4 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition-colors"
               >
                 <svg
                   className="w-6 h-6 mb-2"
@@ -453,7 +484,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
                 />
                 <button
                   onClick={handleCopyLink}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  className="px-4 cursor-pointer py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500"
                 >
                   {copied ? "Copied!" : "Copy"}
                 </button>
@@ -466,7 +497,7 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
         <div className="flex justify-center">
           <button
             onClick={handleGoHome}
-            className="flex items-center px-8 py-4 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+            className="flex cursor-pointer items-center px-8 py-4 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
             <Home className="w-5 h-5 mr-2" />
             Go to Homepage
