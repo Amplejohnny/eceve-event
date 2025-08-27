@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react";
 
@@ -37,6 +37,155 @@ function PaymentCallbackContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  const verifyPayment = useCallback(
+    async (reference: string, retryCount: number = 0) => {
+      const maxRetries = 5;
+
+      try {
+        // console.log(
+        //   `Verifying payment for reference: ${reference} (attempt ${
+        //     retryCount + 1
+        //   }/${maxRetries + 1})`
+        // );
+
+        const response = await fetch(
+          `/api/payments/verify?reference=${reference}`,
+          {
+            // Add timeout to prevent hanging requests
+            signal: AbortSignal.timeout(30000), // 30 second timeout
+          }
+        );
+        const result = await response.json();
+
+        // console.log("Verification result:", result);
+
+        if (result.success) {
+          setPaymentStatus({
+            status: "success",
+            reference,
+            eventTitle: result.eventTitle,
+            confirmationIds: result.confirmationIds,
+            message: "Payment successful! Check your email for ticket details.",
+          });
+          return;
+        }
+
+        // Handle different failure scenarios
+        if (result.message?.includes("being processed")) {
+          if (retryCount < maxRetries) {
+            setPaymentStatus({
+              status: "loading",
+              reference,
+              message: `Creating your tickets... (${retryCount + 1}/${
+                maxRetries + 1
+              })`,
+            });
+
+            // Exponential backoff with jitter
+            const baseDelay = 2000; // 2 seconds base
+            const exponentialDelay = baseDelay * Math.pow(1.5, retryCount);
+            const jitter = Math.random() * 1000; // Add up to 1 second random delay
+            const delay = Math.min(exponentialDelay + jitter, 15000); // Cap at 15 seconds
+
+            setTimeout(() => {
+              verifyPayment(reference, retryCount + 1);
+            }, delay);
+            return;
+          }
+        }
+
+        // Handle specific error cases
+        if (result.message?.includes("not found")) {
+          setPaymentStatus({
+            status: "failed",
+            reference,
+            message:
+              "Payment record not found. Please contact support with your reference number.",
+          });
+          return;
+        }
+
+        if (result.message?.includes("not successful")) {
+          setPaymentStatus({
+            status: "failed",
+            reference,
+            message:
+              "Payment was not completed successfully. Please try again.",
+          });
+          return;
+        }
+
+        // Final failure after all retries
+        if (retryCount >= maxRetries) {
+          setPaymentStatus({
+            status: "failed",
+            reference,
+            message:
+              "We're still processing your payment. Please check back in a few minutes or contact support if the issue persists.",
+          });
+          return;
+        }
+
+        // Generic failure
+        setPaymentStatus({
+          status: "failed",
+          reference,
+          message:
+            result.message ||
+            "Payment verification failed. Please contact support.",
+        });
+      } catch (error) {
+        console.error("Payment verification error:", error);
+
+        // Type guard for error checking
+        const isError = error instanceof Error;
+        const errorMessage = isError ? error.message : String(error);
+        const errorName = isError ? error.name : "";
+
+        // Handle network errors with retry
+        if (
+          retryCount < 2 &&
+          (errorName === "AbortError" ||
+            errorMessage.includes("fetch") ||
+            errorMessage.includes("network"))
+        ) {
+          // console.log(
+          //   `Network error, retrying... (${retryCount + 1}/${maxRetries + 1})`
+          // );
+
+          setPaymentStatus({
+            status: "loading",
+            reference,
+            message: "Connection issue, retrying...",
+          });
+
+          setTimeout(() => {
+            verifyPayment(reference, retryCount + 1);
+          }, 3000);
+          return;
+        }
+
+        setPaymentStatus({
+          status: "failed",
+          reference,
+          message:
+            "Failed to verify payment due to connection issues. Please refresh the page.",
+        });
+      }
+    },
+    []
+  );
+
+  const handleRefresh = useCallback(() => {
+    if (paymentStatus.reference) {
+      setPaymentStatus({
+        status: "loading",
+        reference: paymentStatus.reference,
+      });
+      verifyPayment(paymentStatus.reference, 0);
+    }
+  }, [paymentStatus.reference, verifyPayment]);
+
   useEffect(() => {
     const reference = searchParams.get("reference");
     const status = searchParams.get("status");
@@ -60,39 +209,7 @@ function PaymentCallbackContent() {
 
     // Verify payment status
     verifyPayment(reference);
-  }, [searchParams]);
-
-  const verifyPayment = async (reference: string) => {
-    try {
-      const response = await fetch(
-        `/api/payments/verify?reference=${reference}`
-      );
-      const result = await response.json();
-
-      if (result.success) {
-        setPaymentStatus({
-          status: "success",
-          reference,
-          eventTitle: result.eventTitle,
-          confirmationIds: result.confirmationIds,
-          message: "Payment successful! Check your email for ticket details.",
-        });
-      } else {
-        setPaymentStatus({
-          status: "failed",
-          reference,
-          message: result.message || "Payment verification failed",
-        });
-      }
-    } catch (error) {
-      console.error("Payment verification error:", error);
-      setPaymentStatus({
-        status: "failed",
-        reference,
-        message: "Failed to verify payment",
-      });
-    }
-  };
+  }, [searchParams, verifyPayment]);
 
   const handleGoHome = () => {
     router.push("/");
@@ -105,14 +222,34 @@ function PaymentCallbackContent() {
   if (paymentStatus.status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-4">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Verifying Payment...
+            {paymentStatus.message || "Verifying Payment..."}
           </h2>
-          <p className="text-gray-600">
-            Please wait while we confirm your payment
+          <p className="text-gray-600 mb-4">
+            {paymentStatus.message?.includes("Creating")
+              ? "Your tickets are being generated. This process may take up to 30 seconds."
+              : paymentStatus.message?.includes("Connection")
+              ? "Reconnecting to verify your payment..."
+              : "Please wait while we confirm your payment"}
           </p>
+
+          {paymentStatus.reference && (
+            <div className="bg-blue-50 rounded-lg p-3 mb-4">
+              <p className="text-xs text-blue-600 font-mono">
+                Reference: {paymentStatus.reference}
+              </p>
+            </div>
+          )}
+
+          {/* Add a cancel button for long waits */}
+          <button
+            onClick={handleGoHome}
+            className="text-gray-500 text-sm hover:text-gray-700 underline"
+          >
+            Go Home (check email for updates)
+          </button>
         </div>
       </div>
     );
@@ -160,13 +297,13 @@ function PaymentCallbackContent() {
               <div className="space-y-3">
                 <button
                   onClick={handleGoToEvents}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                  className="w-full cursor-pointer bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
                   Browse More Events
                 </button>
                 <button
                   onClick={handleGoHome}
-                  className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+                  className="w-full cursor-pointer bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
                 >
                   Go Home
                 </button>
@@ -180,23 +317,57 @@ function PaymentCallbackContent() {
                 <XCircle className="w-8 h-8 text-red-600" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Payment Failed
+                {paymentStatus.message?.includes("still processing")
+                  ? "Processing Payment"
+                  : "Payment Issue"}
               </h2>
               <p className="text-gray-600 mb-6">{paymentStatus.message}</p>
 
               <div className="space-y-3">
+                {/* Show refresh button if it might be a processing issue */}
+                {(paymentStatus.message?.includes("still processing") ||
+                  paymentStatus.message?.includes("connection")) && (
+                  <button
+                    onClick={handleRefresh}
+                    className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                  >
+                    Check Status Again
+                  </button>
+                )}
+
                 <button
                   onClick={() => router.back()}
                   className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
                   Try Again
                 </button>
+
                 <button
                   onClick={handleGoHome}
                   className="w-full bg-gray-100 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
                 >
                   Go Home
                 </button>
+
+                {/* Contact support button for persistent issues */}
+                {paymentStatus.message?.includes("contact support") && (
+                  <button
+                    onClick={() => {
+                      const subject = encodeURIComponent(
+                        "Payment Issue - " + paymentStatus.reference
+                      );
+                      const body = encodeURIComponent(
+                        `Hi, I'm having an issue with my payment.\n\nReference: ${paymentStatus.reference}\nIssue: ${paymentStatus.message}\n\nPlease help.`
+                      );
+                      window.open(
+                        `mailto:support@yourapp.com?subject=${subject}&body=${body}`
+                      );
+                    }}
+                    className="w-full bg-gray-800 text-white py-3 rounded-lg font-semibold hover:bg-gray-900 transition-colors"
+                  >
+                    Contact Support
+                  </button>
+                )}
               </div>
             </>
           )}

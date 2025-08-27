@@ -12,7 +12,7 @@ import type {
   Payment,
 } from "@/generated/prisma";
 import { db } from "@/lib/db";
-import { updatePayment } from "@/lib/payment-utils";
+// import { updatePayment } from "@/lib/payment-utils";
 import { generateConfirmationId, formatDate, formatTime } from "@/lib/utils";
 
 // Define proper interfaces
@@ -89,6 +89,11 @@ export async function POST(request: NextRequest) {
     const body = await request.text();
     const signature = request.headers.get("x-paystack-signature");
 
+    console.log("Webhook received:", {
+      hasSignature: !!signature,
+      bodyLength: body.length,
+    });
+
     // Verify webhook signature
     if (!signature || !verifyPaystackWebhook(body, signature)) {
       return NextResponse.json(
@@ -98,9 +103,18 @@ export async function POST(request: NextRequest) {
     }
 
     const event: PaystackWebhookEvent = JSON.parse(body);
+    console.log("Webhook event:", {
+      event: event.event,
+      reference: event.data?.reference,
+      status: event.data?.status,
+    });
 
     if (event.event === "charge.success") {
+      console.log("Processing charge.success webhook...");
       await handlePaymentSuccess(event.data);
+      console.log("Charge.success webhook processed successfully");
+    } else {
+      console.log(`Ignoring webhook event: ${event.event}`);
     }
 
     return NextResponse.json({ message: "Webhook processed" });
@@ -129,6 +143,7 @@ function verifyPaystackWebhook(payload: string, signature: string): boolean {
 
 async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
   const { reference, status } = data;
+  console.log(`Processing payment success for reference: ${reference}, status: ${status}`);
 
   if (status !== "success") return;
 
@@ -146,129 +161,179 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
       },
     })) as PaymentWithRelations | null;
 
-    if (!payment || payment.status === "COMPLETED") {
-      return; // Already processed or not found
+    if (!payment) {
+      console.log(`Payment not found for reference: ${reference}`);
+      return;
     }
 
-    // Update payment status
-    await updatePayment(reference, {
-      status: "COMPLETED" as PaymentStatus,
-      paidAt: new Date(),
-      webhookData: data as any,
+    console.log(`Payment found: ${payment.id}, current status: ${payment.status}`);
+
+    if (payment.status === "COMPLETED") {
+      console.log(`Payment already processed for reference: ${reference}`);
+      return; // Already processed
+    }
+
+    console.log("Starting transaction to update payment and create tickets...");
+    
+    // Start transaction for atomic operations
+    await db.$transaction(async (tx) => {
+      // Update payment status
+      await tx.payment.update({
+        where: { paystackRef: reference },
+        data: {
+          status: "COMPLETED" as PaymentStatus,
+          paidAt: new Date(),
+          webhookData: data as any,
+        },
+      });
+
+      // Parse metadata and create tickets (same as before)
+      let ticketData: PaymentMetadataFromDB;
+      try {
+        const rawMetadata = payment.metadata as unknown;
+        if (typeof rawMetadata === "string") {
+          ticketData = JSON.parse(rawMetadata) as PaymentMetadataFromDB;
+        } else if (rawMetadata && typeof rawMetadata === "object") {
+          ticketData = rawMetadata as PaymentMetadataFromDB;
+        } else {
+          throw new Error("Invalid metadata format");
+        }
+
+        if (!ticketData?.tickets || !Array.isArray(ticketData.tickets)) {
+          throw new Error("Invalid ticket data in payment metadata");
+        }
+      } catch (parseError) {
+        console.error("Failed to parse payment metadata:", parseError);
+        throw new Error("Failed to parse payment metadata");
+      }
+
+      // Create tickets (as shown in previous fix)
+      const ticketsToCreate: TicketCreateData[] = [];
+
+      for (const ticketOrder of ticketData.tickets) {
+        if (
+          !ticketOrder.ticketTypeId ||
+          !ticketOrder.attendeeName ||
+          !ticketOrder.attendeeEmail
+        ) {
+          console.warn("Incomplete ticket order data:", ticketOrder);
+          continue;
+        }
+
+        const ticketType = payment.event.ticketTypes.find(
+          (t) => t.id === ticketOrder.ticketTypeId
+        );
+
+        if (!ticketType) {
+          console.warn(`Ticket type ${ticketOrder.ticketTypeId} not found`);
+          continue;
+        }
+
+        for (let i = 0; i < ticketOrder.quantity; i++) {
+          const confirmationId = generateConfirmationId();
+          ticketsToCreate.push({
+            eventId: payment.eventId,
+            ticketTypeId: ticketOrder.ticketTypeId,
+            paymentId: payment.id,
+            price: ticketType.price,
+            quantity: 1,
+            attendeeName: ticketOrder.attendeeName,
+            attendeeEmail: ticketOrder.attendeeEmail,
+            attendeePhone: ticketOrder.attendeePhone || null,
+            confirmationId,
+            status: "ACTIVE" as TicketStatus,
+          });
+        }
+      }
+
+      if (ticketsToCreate.length === 0) {
+        throw new Error("No valid tickets to create");
+      }
+
+      // Create tickets within transaction
+      await tx.ticket.createMany({
+        data: ticketsToCreate,
+      });
+
+      console.log(
+        `Created ${ticketsToCreate.length} tickets for payment ${payment.id}`
+      );
     });
 
-    // The metadata from the initialize route is stored as a nested object
-    let ticketData: PaymentMetadataFromDB;
+    // After successful transaction, send emails
+    const finalPayment = await db.payment.findUnique({
+      where: { paystackRef: reference },
+      include: {
+        event: {
+          include: { ticketTypes: true },
+        },
+        tickets: true,
+      },
+    });
 
-    try {
-      // Parse the metadata - it's stored as JSON in the database
-      const rawMetadata = payment.metadata as unknown;
-
-      if (typeof rawMetadata === "string") {
-        ticketData = JSON.parse(rawMetadata) as PaymentMetadataFromDB;
-      } else if (rawMetadata && typeof rawMetadata === "object") {
-        ticketData = rawMetadata as PaymentMetadataFromDB;
-      } else {
-        throw new Error("Invalid metadata format");
-      }
-
-      // Validate the parsed metadata structure
-      if (!ticketData?.tickets || !Array.isArray(ticketData.tickets)) {
-        throw new Error("Invalid ticket data in payment metadata");
-      }
-    } catch (parseError) {
-      console.error("Failed to parse payment metadata:", parseError);
-      console.error("Raw metadata:", payment.metadata);
-      throw new Error("Failed to parse payment metadata");
-    }
-
-    // Create tickets for each ticket type ordered
-    const ticketsToCreate: TicketCreateData[] = [];
-
-    for (const ticketOrder of ticketData.tickets) {
-      // Validate ticket order data
-      if (
-        !ticketOrder.ticketTypeId ||
-        !ticketOrder.attendeeName ||
-        !ticketOrder.attendeeEmail
-      ) {
-        console.warn("Incomplete ticket order data:", ticketOrder);
-        continue;
-      }
-
-      const ticketType = payment.event.ticketTypes.find(
-        (t) => t.id === ticketOrder.ticketTypeId
+    if (finalPayment && finalPayment.tickets.length > 0) {
+      const emailGroups = groupTicketsByEmail(
+        finalPayment.tickets.map((t) => ({
+          eventId: t.eventId,
+          ticketTypeId: t.ticketTypeId,
+          paymentId: t.paymentId || "",
+          price: t.price,
+          quantity: t.quantity,
+          attendeeName: t.attendeeName,
+          attendeeEmail: t.attendeeEmail,
+          attendeePhone: t.attendeePhone,
+          confirmationId: t.confirmationId,
+          status: t.status,
+        })),
+        finalPayment.event
       );
 
-      if (!ticketType) {
-        console.warn(`Ticket type ${ticketOrder.ticketTypeId} not found`);
-        continue;
-      }
-
-      // Create individual tickets for each quantity
-      for (let i = 0; i < ticketOrder.quantity; i++) {
-        const confirmationId = generateConfirmationId();
-
-        ticketsToCreate.push({
-          eventId: payment.eventId,
-          ticketTypeId: ticketOrder.ticketTypeId,
-          paymentId: payment.id,
-          price: ticketType.price,
-          quantity: 1,
-          attendeeName: ticketOrder.attendeeName,
-          attendeeEmail: ticketOrder.attendeeEmail,
-          attendeePhone: ticketOrder.attendeePhone || null,
-          confirmationId,
-          status: "ACTIVE" as TicketStatus,
-        });
-      }
-    }
-
-    if (ticketsToCreate.length === 0) {
-      throw new Error("No valid tickets to create");
-    }
-
-    // Create all tickets in batch
-    await db.ticket.createMany({
-      data: ticketsToCreate,
-    });
-
-    console.log(
-      `Created ${ticketsToCreate.length} tickets for payment ${payment.id}`
-    );
-
-    const emailGroups = groupTicketsByEmail(ticketsToCreate, payment.event);
-
-    for (const emailGroup of emailGroups) {
-      try {
-        await sendTicketConfirmation({
-          attendeeEmail: emailGroup.email,
-          attendeeName: emailGroup.name,
-          eventTitle: payment.event.title,
-          eventDate: formatDate(payment.event.date.toISOString()),
-          eventEndDate: payment.event.endDate
-            ? formatDate(payment.event.endDate.toISOString())
-            : "TBA",
-          eventLocation: payment.event.venue || payment.event.location,
-          eventTime: formatTime(payment.event.startTime) || "TBA",
-          ticketType: emailGroup.ticketTypes.join(", "),
-          confirmationId: emailGroup.confirmationIds.join(", "),
-          eventId: payment.event.id,
-        });
-
-        console.log(`Sent ticket confirmation to ${emailGroup.email}`);
-      } catch (emailError) {
-        // Log email error but don't fail the entire webhook
-        console.error(
-          `Failed to send confirmation email to ${emailGroup.email}:`,
-          emailError
-        );
+      // Send emails (as shown in previous fix)
+      for (const emailGroup of emailGroups) {
+        try {
+          await sendTicketConfirmation({
+            attendeeEmail: emailGroup.email,
+            attendeeName: emailGroup.name,
+            eventTitle: finalPayment.event.title,
+            eventDate: formatDate(finalPayment.event.date.toISOString()),
+            eventEndDate: finalPayment.event.endDate
+              ? formatDate(finalPayment.event.endDate.toISOString())
+              : "TBA",
+            eventLocation:
+              finalPayment.event.venue || finalPayment.event.location,
+            eventTime: formatTime(finalPayment.event.startTime) || "TBA",
+            ticketType: emailGroup.ticketTypes.join(", "),
+            confirmationId: emailGroup.confirmationIds.join(", "),
+            eventId: finalPayment.event.id,
+          });
+          console.log(`Sent ticket confirmation to ${emailGroup.email}`);
+        } catch (emailError) {
+          console.error(
+            `Failed to send confirmation email to ${emailGroup.email}:`,
+            emailError
+          );
+        }
       }
     }
 
     console.log(`Payment processing completed for reference: ${reference}`);
   } catch (error) {
     console.error("Error processing successful payment:", error);
+    // Mark payment as failed if ticket creation fails
+    try {
+      await db.payment.update({
+        where: { paystackRef: reference },
+        data: {
+          status: "FAILED" as PaymentStatus,
+          webhookData: {
+            error: error instanceof Error ? error.message : String(error),
+            originalData: data,
+          } as any,
+        },
+      });
+    } catch (updateError) {
+      console.error("Failed to update payment status to FAILED:", updateError);
+    }
     throw error;
   }
 }
