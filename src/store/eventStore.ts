@@ -11,6 +11,7 @@ export interface TicketType {
   name: string;
   price: number;
   quantity?: number;
+  soldCount?: number;
 }
 
 export interface EventData {

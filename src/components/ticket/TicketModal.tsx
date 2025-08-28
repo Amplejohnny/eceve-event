@@ -23,6 +23,7 @@ interface TicketType {
   name: string;
   price: number;
   quantity?: number;
+  soldCount?: number;
 }
 
 interface Event {
@@ -148,9 +149,17 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
         newQuantity = 1;
       }
 
-      // Check if we exceed available quantity
-      if (ticketType.quantity && newQuantity > ticketType.quantity) {
-        return prev;
+      // Check if we exceed available quantity (considering sold tickets)
+      if (ticketType.quantity !== undefined) {
+        const soldTickets = ticketType.soldCount || 0;
+        const availableQuantity = Math.max(
+          0,
+          ticketType.quantity - soldTickets
+        );
+
+        if (newQuantity > availableQuantity) {
+          return prev; // Don't allow quantity that exceeds available
+        }
       }
 
       if (newQuantity === 0) {
@@ -383,57 +392,82 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                   <span>Quantity</span>
                 </div>
 
-                {event.ticketTypes.map((ticket) => (
-                  <div key={ticket.id} className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">
-                          {ticket.name}
-                        </h4>
-                        <p className="text-lg font-bold text-gray-900">
-                          {ticket.price === 0
-                            ? "Free"
-                            : formatPrice(ticket.price)}
-                        </p>
-                        {ticket.quantity && (
-                          <p className="text-sm text-gray-500">
-                            {ticket.quantity} available
+                {event.ticketTypes.map((ticket) => {
+                  // Calculate available tickets
+                  const soldTickets = ticket.soldCount || 0;
+                  const totalTickets = ticket.quantity; // This can be undefined
+                  const availableTickets =
+                    totalTickets !== undefined
+                      ? Math.max(0, totalTickets - soldTickets)
+                      : undefined; // undefined means unlimited
+                  const isOutOfStock = availableTickets === 0;
+
+                  return (
+                    <div key={ticket.id} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900">
+                            {ticket.name}
+                          </h4>
+                          <p className="text-lg font-bold text-gray-900">
+                            {ticket.price === 0
+                              ? "Free"
+                              : formatPrice(ticket.price)}
                           </p>
-                        )}
-                      </div>
+                          {/* Updated availability display */}
+                          {availableTickets !== undefined ? (
+                            <p
+                              className={`text-sm ${
+                                isOutOfStock
+                                  ? "text-red-500 font-medium"
+                                  : "text-gray-500"
+                              }`}
+                            >
+                              {isOutOfStock
+                                ? "Sold out"
+                                : `${availableTickets} available`}
+                            </p>
+                          ) : (
+                            <p className="text-sm text-gray-500">
+                              Unlimited available
+                            </p>
+                          )}
+                        </div>
 
-                      <div className="flex items-center space-x-3">
-                        <button
-                          title="Decrease quantity"
-                          onClick={() => updateQuantity(ticket.id, -1)}
-                          disabled={!ticketQuantities[ticket.id]}
-                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center space-x-3">
+                          <button
+                            title="Decrease quantity"
+                            onClick={() => updateQuantity(ticket.id, -1)}
+                            disabled={!ticketQuantities[ticket.id]}
+                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
 
-                        <span className="text-2xl font-bold text-gray-900 min-w-[2rem] text-center">
-                          {ticketQuantities[ticket.id] || 0}
-                        </span>
+                          <span className="text-2xl font-bold text-gray-900 min-w-[2rem] text-center">
+                            {ticketQuantities[ticket.id] || 0}
+                          </span>
 
-                        <button
-                          title="Increase quantity"
-                          onClick={() => updateQuantity(ticket.id, 1)}
-                          disabled={
-                            (!!ticket.quantity &&
-                              (ticketQuantities[ticket.id] || 0) >=
-                                ticket.quantity) ||
-                            (event.eventType === "FREE" &&
-                              (ticketQuantities[ticket.id] || 0) >= 1)
-                          }
-                          className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
+                          <button
+                            title="Increase quantity"
+                            onClick={() => updateQuantity(ticket.id, 1)}
+                            disabled={
+                              isOutOfStock ||
+                              (availableTickets !== undefined &&
+                                (ticketQuantities[ticket.id] || 0) >=
+                                  availableTickets) ||
+                              (event.eventType === "FREE" &&
+                                (ticketQuantities[ticket.id] || 0) >= 1)
+                            }
+                            className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

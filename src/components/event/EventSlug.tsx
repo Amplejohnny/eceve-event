@@ -14,9 +14,21 @@ import {
 } from "react-icons/fa6";
 import { useEventStore } from "@/store/eventStore";
 import type { TicketType } from "@/store/eventStore";
-import { formatDate, formatPrice, formatTime, getEventImageUrl } from "@/lib/utils";
+import {
+  formatDate,
+  formatPrice,
+  formatTime,
+  getEventImageUrl,
+} from "@/lib/utils";
 import TicketPurchaseModal from "@/components/ticket/TicketModal";
 
+// export interface TicketType {
+//   id: string;
+//   name: string;
+//   price: number;
+//   quantity?: number;
+//   soldCount?: number;
+// }
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -254,6 +266,20 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
     );
   }
 
+  const hasAvailableTickets = () => {
+    if (!eventToShow.ticketTypes || eventToShow.ticketTypes.length === 0) {
+      return false;
+    }
+
+    return eventToShow.ticketTypes.some((ticket: TicketType) => {
+      if (!ticket.quantity) return true; // Unlimited tickets
+      const soldTickets = ticket.soldCount || 0;
+      return ticket.quantity > soldTickets;
+    });
+  };
+
+  const isEventSoldOut = !hasAvailableTickets();
+
   return (
     <>
       <div className="min-h-screen bg-gray-50">
@@ -430,32 +456,72 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                   {/* Event Tickets */}
                   <div className="space-y-3 mb-6">
                     {(eventToShow.ticketTypes || []).map(
-                      (ticket: TicketType) => (
-                        <div key={ticket.id} className="border rounded-lg p-3">
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="font-medium text-gray-900">
-                              {ticket.name}
-                            </span>
-                            <span className="font-semibold text-gray-900">
-                              {ticket.price === 0
-                                ? "Free"
-                                : formatPrice(ticket.price)}
-                            </span>
+                      (ticket: TicketType) => {
+                        // Calculate available tickets
+                        const soldTickets = ticket.soldCount || 0;
+                        const totalTickets = ticket.quantity;
+                        const availableTickets =
+                          totalTickets !== undefined
+                            ? Math.max(0, totalTickets - soldTickets)
+                            : undefined;
+                        const isOutOfStock = availableTickets === 0;
+
+                        return (
+                          <div
+                            key={ticket.id}
+                            className="border rounded-lg p-3"
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="font-medium text-gray-900">
+                                {ticket.name}
+                              </span>
+                              <span className="font-semibold text-gray-900">
+                                {ticket.price === 0
+                                  ? "Free"
+                                  : formatPrice(ticket.price)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              {availableTickets !== null ? (
+                                <span
+                                  className={`text-sm ${
+                                    isOutOfStock
+                                      ? "text-red-500 font-medium"
+                                      : "text-gray-500"
+                                  }`}
+                                >
+                                  {isOutOfStock
+                                    ? "Sold out"
+                                    : `${availableTickets} available`}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-gray-500">
+                                  Unlimited
+                                </span>
+                              )}
+                              {isOutOfStock && (
+                                <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
+                                  Out of stock
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          {ticket.quantity && (
-                            <span className="text-sm text-gray-500">
-                              {ticket.quantity} available
-                            </span>
-                          )}
-                        </div>
-                      )
+                        );
+                      }
                     )}
                   </div>
                   <button
                     onClick={handleBuyTickets}
-                    className="w-full cursor-pointer bg-yellow-400 text-white py-3 rounded-lg font-semibold hover:bg-yellow-500 transition-colors"
+                    disabled={isEventSoldOut}
+                    className={`w-full py-3 rounded-lg font-semibold transition-colors ${
+                      isEventSoldOut
+                        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                        : "cursor-pointer bg-yellow-400 text-white hover:bg-yellow-500"
+                    }`}
                   >
-                    {eventToShow.eventType === "FREE"
+                    {isEventSoldOut
+                      ? "Sold Out"
+                      : eventToShow.eventType === "FREE"
                       ? "Get Tickets"
                       : "Buy Tickets"}
                   </button>

@@ -28,6 +28,9 @@ interface EventWithRelations {
     name: string;
     price: number;
     quantity: number | null;
+    _count: {
+      tickets: number;
+    };
   }>;
   organizer: {
     id: string;
@@ -83,6 +86,7 @@ const transformEventData = (event: EventWithRelations) => {
       name: ticket.name,
       price: ticket.price,
       quantity: ticket.quantity,
+      soldCount: ticket._count.tickets,
     })),
     organizer: event.organizer
       ? {
@@ -117,6 +121,19 @@ export async function GET(
       include: {
         ticketTypes: {
           orderBy: { price: "asc" },
+          include: {
+            _count: {
+              select: {
+                tickets: {
+                  where: {
+                    status: {
+                      in: ["ACTIVE", "USED"],
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         organizer: {
           select: {
