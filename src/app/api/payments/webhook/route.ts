@@ -80,8 +80,11 @@ interface TicketCreateData {
 interface EmailGroup {
   email: string;
   name: string;
-  ticketTypes: string[];
-  confirmationIds: string[];
+  tickets: Array<{
+    ticketType: string;
+    confirmationId: string;
+    quantity: number;
+  }>;
 }
 
 export async function POST(request: NextRequest) {
@@ -143,7 +146,9 @@ function verifyPaystackWebhook(payload: string, signature: string): boolean {
 
 async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
   const { reference, status } = data;
-  console.log(`Processing payment success for reference: ${reference}, status: ${status}`);
+  console.log(
+    `Processing payment success for reference: ${reference}, status: ${status}`
+  );
 
   if (status !== "success") return;
 
@@ -166,7 +171,9 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
       return;
     }
 
-    console.log(`Payment found: ${payment.id}, current status: ${payment.status}`);
+    console.log(
+      `Payment found: ${payment.id}, current status: ${payment.status}`
+    );
 
     if (payment.status === "COMPLETED") {
       console.log(`Payment already processed for reference: ${reference}`);
@@ -174,7 +181,7 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
     }
 
     console.log("Starting transaction to update payment and create tickets...");
-    
+
     // Start transaction for atomic operations
     await db.$transaction(async (tx) => {
       // Update payment status
@@ -302,8 +309,7 @@ async function handlePaymentSuccess(data: PaystackWebhookData): Promise<void> {
             eventLocation:
               finalPayment.event.venue || finalPayment.event.location,
             eventTime: formatTime(finalPayment.event.startTime) || "TBA",
-            ticketType: emailGroup.ticketTypes.join(", "),
-            confirmationId: emailGroup.confirmationIds.join(", "),
+            tickets: emailGroup.tickets,
             eventId: finalPayment.event.id,
           });
           console.log(`Sent ticket confirmation to ${emailGroup.email}`);
@@ -351,8 +357,7 @@ function groupTicketsByEmail(
       groups[email] = {
         email: ticket.attendeeEmail,
         name: ticket.attendeeName,
-        ticketTypes: [],
-        confirmationIds: [],
+        tickets: [],
       };
     }
 
@@ -361,13 +366,12 @@ function groupTicketsByEmail(
     );
 
     if (ticketType) {
-      // Avoid duplicate ticket type names for the same person
-      if (!groups[email].ticketTypes.includes(ticketType.name)) {
-        groups[email].ticketTypes.push(ticketType.name);
-      }
+      groups[email].tickets.push({
+        ticketType: ticketType.name,
+        confirmationId: ticket.confirmationId,
+        quantity: 1, // Each ticket is quantity 1
+      });
     }
-
-    groups[email].confirmationIds.push(ticket.confirmationId);
   });
 
   return Object.values(groups);

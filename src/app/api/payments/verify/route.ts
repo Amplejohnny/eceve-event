@@ -282,24 +282,20 @@ export async function GET(request: NextRequest) {
           emailGroups[ticket.attendeeEmail] = {
             email: ticket.attendeeEmail,
             name: ticket.attendeeName,
-            confirmationIds: [],
-            ticketTypes: [],
+            tickets: [],
           };
         }
-        emailGroups[ticket.attendeeEmail].confirmationIds.push(
-          ticket.confirmationId
-        );
 
         const ticketType = payment.event.ticketTypes.find(
           (t) => t.id === ticket.ticketTypeId
         );
-        if (
-          ticketType &&
-          !emailGroups[ticket.attendeeEmail].ticketTypes.includes(
-            ticketType.name
-          )
-        ) {
-          emailGroups[ticket.attendeeEmail].ticketTypes.push(ticketType.name);
+
+        if (ticketType) {
+          emailGroups[ticket.attendeeEmail].tickets.push({
+            ticketType: ticketType.name,
+            confirmationId: ticket.confirmationId,
+            quantity: 1,
+          });
         }
       });
 
@@ -316,8 +312,7 @@ export async function GET(request: NextRequest) {
               : "TBA",
             eventLocation: payment.event.venue || payment.event.location,
             eventTime: formatTime(payment.event.startTime) || "TBA",
-            ticketType: group.ticketTypes.join(", "),
-            confirmationId: group.confirmationIds.join(", "),
+            tickets: group.tickets, // Pass tickets array
             eventId: payment.event.id,
           });
           console.log(`Sent confirmation email to ${group.email}`);

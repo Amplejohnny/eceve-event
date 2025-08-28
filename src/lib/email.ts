@@ -250,76 +250,97 @@ const emailTemplates = {
     eventEndDate?: string;
     eventTime: string;
     eventLocation: string;
-    ticketType: string;
-    confirmationId: string;
+    tickets: Array<{
+      ticketType: string;
+      confirmationId: string;
+      quantity?: number;
+    }>;
     eventId: string;
   }) => ({
-    subject: `Your ticket for ${ticketData.eventTitle} - Confirmation`,
+    subject: `Your ticket${ticketData.tickets.length > 1 ? "s" : ""} for ${
+      ticketData.eventTitle
+    } - Confirmation`,
     html: `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Ticket Confirmation</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: #059669; color: white; padding: 20px; text-align: center; }
-          .ticket { background: #f8f9fa; border: 2px dashed #6b7280; margin: 20px 0; padding: 20px; border-radius: 8px; }
-          .confirmation-id { font-size: 24px; font-weight: bold; color: #059669; text-align: center; margin: 15px 0; }
-          .event-details { margin: 20px 0; }
-          .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
-          .no-reply { background: #fee2e2; border: 1px solid #f87171; color: #dc2626; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-size: 13px; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎟️ Ticket Confirmed!</h1>
-            <p>Your ticket has been successfully booked</p>
-          </div>
-          
-          <div class="content">
-            <h2>Event Details</h2>
-            <div class="event-details">
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Ticket Confirmation</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #059669; color: white; padding: 20px; text-align: center; }
+        .ticket { background: #f8f9fa; border: 2px dashed #6b7280; margin: 15px 0; padding: 20px; border-radius: 8px; }
+        .confirmation-id { font-size: 20px; font-weight: bold; color: #059669; text-align: center; margin: 10px 0; }
+        .ticket-type { font-size: 16px; font-weight: bold; color: #1f2937; text-align: center; margin-bottom: 10px; }
+        .event-details { margin: 20px 0; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 14px; color: #666; }
+        .no-reply { background: #fee2e2; border: 1px solid #f87171; color: #dc2626; padding: 10px; border-radius: 5px; margin: 15px 0; text-align: center; font-size: 13px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎟️ Ticket${
+            ticketData.tickets.length > 1 ? "s" : ""
+          } Confirmed!</h1>
+          <p>Your ticket${
+            ticketData.tickets.length > 1 ? "s have" : " has"
+          } been successfully booked</p>
+        </div>
+        
+        <div class="content">
+          <h2>Event Details</h2>
+          <div class="event-details">
             <p><strong>Event:</strong> ${ticketData.eventTitle}</p>
             <p><strong>Date:</strong> ${ticketData.eventDate}${
       ticketData.eventEndDate ? ` to ${ticketData.eventEndDate}` : ""
     }</p>
             <p><strong>Location:</strong> ${ticketData.eventLocation}</p>
             <p><strong>Time:</strong> ${ticketData.eventTime}</p>
-            <p><strong>Ticket Type:</strong> ${ticketData.ticketType}</p>
             <p><strong>Attendee:</strong> ${ticketData.attendeeName}</p>
           </div>
-            
+          
+          <h3>Your Ticket${ticketData.tickets.length > 1 ? "s" : ""}</h3>
+          ${ticketData.tickets
+            .map(
+              (ticket) => `
             <div class="ticket">
-              <h3>Your Ticket</h3>
-              <div class="confirmation-id">${ticketData.confirmationId}</div>
-              <p style="text-align: center;"><strong>Confirmation ID</strong></p>
-              <p style="text-align: center; font-size: 14px; color: #666;">Present this ID at the event entrance</p>
+              <div class="ticket-type">${ticket.ticketType}${
+                ticket.quantity && ticket.quantity > 1
+                  ? ` (${ticket.quantity} tickets)`
+                  : ""
+              }</div>
+              <div class="confirmation-id">${ticket.confirmationId}</div>
+              <p style="text-align: center; font-size: 14px; color: #666;">Confirmation ID</p>
             </div>
-            
-            <p><strong>Important:</strong> Please save this email and bring it with you to the event. You may be asked to show your confirmation ID at the entrance.</p>
-            
-            <p>If you have any questions, please contact the event organizer or our support team.</p>
-            
-            <div class="no-reply">
-              <strong>📧 Please do not reply to this email.</strong> This is an automated message sent from an unmonitored email address. For questions about your ticket or the event, please contact our support team through the website.
-            </div>
-            
-            <p>Enjoy the event!</p>
-            <p>The Comforeve Team</p>
+          `
+            )
+            .join("")}
+          
+          <p><strong>Important:</strong> Please save this email and bring it with you to the event. You may be asked to show your confirmation ID${
+            ticketData.tickets.length > 1 ? "s" : ""
+          } at the entrance.</p>
+          
+          <p>If you have any questions, please contact the event organizer or our support team.</p>
+          
+          <div class="no-reply">
+            <strong>📧 Please do not reply to this email.</strong> This is an automated message sent from an unmonitored email address. For questions about your ticket or the event, please contact our support team through the website.
           </div>
           
-          <div class="footer">
-            <p>© ${currentYear} Comforeve. All rights reserved.</p>
-            <p><strong>Do not reply to this email</strong> - This is an automated message</p>
-          </div>
+          <p>Enjoy the event!</p>
+          <p>The Comforeve Team</p>
         </div>
-      </body>
-      </html>
-    `,
+        
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} Comforeve. All rights reserved.</p>
+          <p><strong>Do not reply to this email</strong> - This is an automated message</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `,
   }),
 };
 
@@ -338,7 +359,7 @@ export async function sendVerificationRequest(
       subject,
       html,
       text,
-      replyTo: "noreply@comforeve.com", // Set a no-reply address
+      replyTo: "noreply@comforeve.com",
     });
 
     console.log(`Verification email sent to ${email}`);
@@ -366,13 +387,12 @@ export async function sendWelcomeEmail(userData: {
       to: userData.email,
       subject,
       html,
-      replyTo: "noreply@comforeve.com", // Set a no-reply address
+      replyTo: "noreply@comforeve.com",
     });
 
     console.log(`Welcome email sent to ${userData.email}`);
   } catch (error) {
     console.error("Error sending welcome email:", error);
-    // Don't throw error for welcome email failure
   }
 }
 
@@ -394,7 +414,7 @@ export async function sendPasswordResetEmail(userData: {
       to: userData.email,
       subject,
       html,
-      replyTo: "noreply@comforeve.com", // Set a no-reply address
+      replyTo: "noreply@comforeve.com",
     });
 
     console.log(`Password reset email sent to ${userData.email}`);
@@ -413,8 +433,11 @@ export async function sendTicketConfirmation(ticketData: {
   eventEndDate?: string;
   eventTime: string;
   eventLocation: string;
-  ticketType: string;
-  confirmationId: string;
+  tickets: Array<{
+    ticketType: string;
+    confirmationId: string;
+    quantity?: number;
+  }>;
   eventId: string;
 }) {
   const { subject, html } = emailTemplates.ticketConfirmation(ticketData);
@@ -423,11 +446,11 @@ export async function sendTicketConfirmation(ticketData: {
     const transporter = getTransporter();
 
     await transporter.sendMail({
-      from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
+      from: process.env.FROM_EMAIL_2 || process.env.SMTP_USER || "",
       to: ticketData.attendeeEmail,
       subject,
       html,
-      replyTo: "noreply@comforeve.com", // Set a no-reply address
+      replyTo: "noreply@comforeve.com",
       // attachments: [
       //   {
       //     filename: `ticket-${ticketData.confirmationId}.pdf`,

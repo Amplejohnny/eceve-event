@@ -27,8 +27,11 @@ interface TicketCreateData {
 interface EmailGroup {
   email: string;
   name: string;
-  ticketTypes: string[];
-  confirmationIds: string[];
+  tickets: Array<{
+    ticketType: string;
+    confirmationId: string;
+    quantity: number;
+  }>;
 }
 
 export async function POST(request: NextRequest) {
@@ -225,8 +228,7 @@ export async function POST(request: NextRequest) {
             : "TBA",
           eventLocation: event.venue || event.location,
           eventTime: formatTime(event.startTime) || "TBA",
-          ticketType: emailGroup.ticketTypes.join(", "),
-          confirmationId: emailGroup.confirmationIds.join(", "),
+          tickets: emailGroup.tickets,
           eventId: event.id,
         });
       } catch (emailError) {
@@ -234,7 +236,6 @@ export async function POST(request: NextRequest) {
           `Failed to send confirmation email to ${emailGroup.email}:`,
           emailError
         );
-        // Don't fail the booking if email fails, but log the error
       }
     });
 
@@ -269,8 +270,7 @@ function groupTicketsByEmail(
       groups[ticket.attendeeEmail] = {
         email: ticket.attendeeEmail,
         name: ticket.attendeeName,
-        ticketTypes: [],
-        confirmationIds: [],
+        tickets: [],
       };
     }
 
@@ -279,9 +279,12 @@ function groupTicketsByEmail(
     );
 
     if (ticketType) {
-      groups[ticket.attendeeEmail].ticketTypes.push(ticketType.name);
+      groups[ticket.attendeeEmail].tickets.push({
+        ticketType: ticketType.name,
+        confirmationId: ticket.confirmationId,
+        quantity: ticket.quantity,
+      });
     }
-    groups[ticket.attendeeEmail].confirmationIds.push(ticket.confirmationId);
   });
 
   return Object.values(groups);
