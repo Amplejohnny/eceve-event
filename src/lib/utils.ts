@@ -160,7 +160,10 @@ export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
 }
 
 // Image utilities
-export function getEventImageUrl(imageUrl?: string): string {
+export function getEventImageUrl(
+  imageUrl?: string,
+  isServerSide: boolean = false
+): string {
   if (imageUrl && imageUrl.trim() !== "") {
     // If it's already a full URL, return as is
     if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
@@ -169,17 +172,26 @@ export function getEventImageUrl(imageUrl?: string): string {
 
     // If it's a relative path, convert to full URL
     if (imageUrl.startsWith("/")) {
-      const baseUrl =
-        typeof window !== "undefined"
-          ? window.location.origin
-          : process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      let baseUrl: string;
+
+      if (isServerSide) {
+        // For server-side rendering (metadata generation)
+        baseUrl = process.env.NEXT_PUBLIC_APP_URL || "";
+      } else {
+        // For client-side
+        baseUrl =
+          typeof window !== "undefined"
+            ? window.location.origin
+            : process.env.NEXT_PUBLIC_APP_URL || "";
+      }
+
       return `${baseUrl}${imageUrl}`;
     }
 
     return imageUrl;
   }
 
-  return `https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D`;
+  return `https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=1200&h=630&auto=format&fit=crop&q=80&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D`;
 }
 
 //To call different fallback images

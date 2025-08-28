@@ -25,7 +25,7 @@ export async function generateMetadata({
   }
 
   const eventUrl = `https://www.comforeve.com/events/${slug}`;
-  const imageUrl = event.imageUrl ? getEventImageUrl(event.imageUrl) : null;
+  const imageUrl = event.imageUrl ? getEventImageUrl(event.imageUrl, true) : null;
 
   // Format date for description
   const eventDate = event.date
