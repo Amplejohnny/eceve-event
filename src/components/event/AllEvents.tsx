@@ -197,7 +197,10 @@ const EventCard: React.FC<EventCardProps> = ({
           </div>
 
           {/* Title */}
-          <h3 className="text-gray-900 text-base font-bold leading-snug line-clamp-2">
+          <h3
+            className="text-gray-900 text-base font-bold leading-snug truncate"
+            title={event.title}
+          >
             {event.title}
           </h3>
 
