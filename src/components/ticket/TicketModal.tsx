@@ -22,8 +22,8 @@ interface TicketType {
   id: string;
   name: string;
   price: number;
-  quantity?: number;
-  soldCount?: number;
+  quantity?: number | null;
+  soldCount: number;
 }
 
 interface Event {
@@ -61,7 +61,7 @@ interface TicketPurchaseModalProps {
   event: Event | null;
 }
 
-interface ticketDataItem {
+interface TicketDataItem {
   ticketTypeId: string;
   quantity: number;
   attendeeName: string;
@@ -150,7 +150,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
       }
 
       // Check if we exceed available quantity (considering sold tickets)
-      if (ticketType.quantity !== undefined) {
+      if (ticketType.quantity !== null && ticketType.quantity !== undefined) {
         const soldTickets = ticketType.soldCount || 0;
         const availableQuantity = Math.max(
           0,
@@ -158,7 +158,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
         );
 
         if (newQuantity > availableQuantity) {
-          return prev; // Don't allow quantity that exceeds available
+          return prev;
         }
       }
 
@@ -237,7 +237,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
         eventId: event.id,
         tickets: Object.entries(ticketQuantities).map(
           ([ticketTypeId, quantity]) => {
-            const ticketDataItem: ticketDataItem = {
+            const ticketDataItem: TicketDataItem = {
               ticketTypeId,
               quantity,
               attendeeName: attendeeInfo.fullName.trim(),
@@ -286,7 +286,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
         eventId: event.id,
         tickets: Object.entries(ticketQuantities).map(
           ([ticketTypeId, quantity]) => {
-            const ticketDataItem: ticketDataItem = {
+            const ticketDataItem: TicketDataItem = {
               ticketTypeId,
               quantity,
               attendeeName: attendeeInfo.fullName.trim(),
@@ -393,13 +393,13 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                 </div>
 
                 {event.ticketTypes.map((ticket) => {
-                  // Calculate available tickets
+                  // Calculate available tickets properly
                   const soldTickets = ticket.soldCount || 0;
-                  const totalTickets = ticket.quantity; // This can be undefined
+                  const totalTickets = ticket.quantity;
                   const availableTickets =
-                    totalTickets !== undefined
+                    totalTickets !== null && totalTickets !== undefined
                       ? Math.max(0, totalTickets - soldTickets)
-                      : undefined; // undefined means unlimited
+                      : null; // null means unlimited
                   const isOutOfStock = availableTickets === 0;
 
                   return (
@@ -415,7 +415,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                               : formatPrice(ticket.price)}
                           </p>
                           {/* Updated availability display */}
-                          {availableTickets !== undefined ? (
+                          {availableTickets !== null ? (
                             <p
                               className={`text-sm ${
                                 isOutOfStock
@@ -453,7 +453,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                             onClick={() => updateQuantity(ticket.id, 1)}
                             disabled={
                               isOutOfStock ||
-                              (availableTickets !== undefined &&
+                              (availableTickets !== null &&
                                 (ticketQuantities[ticket.id] || 0) >=
                                   availableTickets) ||
                               (event.eventType === "FREE" &&

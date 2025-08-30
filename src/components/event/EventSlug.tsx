@@ -12,8 +12,8 @@ import {
   FaLinkedinIn,
   FaWhatsapp,
 } from "react-icons/fa6";
-import { useEventStore } from "@/store/eventStore";
-import type { TicketType } from "@/store/eventStore";
+import { useEventStore, type TicketType } from "@/store/eventStore";
+// import type { TicketType } from "@/store/eventStore";
 import {
   formatDate,
   formatPrice,
@@ -22,13 +22,6 @@ import {
 } from "@/lib/utils";
 import TicketPurchaseModal from "@/components/ticket/TicketModal";
 
-// export interface TicketType {
-//   id: string;
-//   name: string;
-//   price: number;
-//   quantity?: number;
-//   soldCount?: number;
-// }
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -173,12 +166,18 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
   useEffect(() => {
+    console.log("🔄 EventSlugPage useEffect triggered with:", {
+      slug,
+      initialEvent: !!initialEvent,
+    });
+
     if (!slug) {
       router.push("/");
       return;
     }
 
     if (initialEvent) {
+      console.log("📝 Using initialEvent:", initialEvent);
       setCurrentEvent(initialEvent);
       setLocalLoading(false);
       return;
@@ -188,10 +187,15 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
     setLocalLoading(true);
     setCurrentEvent(null);
 
+    console.log("🚀 About to call loadEvent with slug:", slug);
+
     const fetchEvent = async (): Promise<void> => {
       try {
+        console.log("⏳ Calling loadEvent...");
         await loadEvent(slug);
+        console.log("✅ loadEvent completed");
       } catch (err) {
+        console.error("❌ loadEvent failed:", err);
         if (err instanceof Error) {
           console.error("Error fetching event:", err);
         } else {
@@ -229,6 +233,40 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const isActuallyLoading = localLoading || isLoading;
 
   const eventToShow = currentEvent || initialEvent;
+  console.log("🎯 EventSlugPage eventToShow:", {
+    hasCurrentEvent: !!currentEvent,
+    hasInitialEvent: !!initialEvent,
+    eventToShow: eventToShow,
+    ticketTypes: eventToShow?.ticketTypes,
+  });
+
+  useEffect(() => {
+    console.log("🎫 EventSlugPage ticketTypes effect triggered");
+
+    if (eventToShow?.ticketTypes) {
+      console.log(
+        "🎫 Frontend received eventToShow.ticketTypes:",
+        eventToShow.ticketTypes
+      );
+
+      eventToShow.ticketTypes.forEach((ticket: TicketType) => {
+        const soldTickets = ticket.soldCount || 0;
+        const totalTickets = ticket.quantity;
+        const availableTickets =
+          totalTickets !== undefined
+            ? Math.max(0, totalTickets - soldTickets)
+            : null;
+
+        console.log(`🎟️ Frontend Ticket: ${ticket.name}`);
+        console.log(`   - ID: ${ticket.id}`);
+        console.log(`   - Total Quantity: ${totalTickets}`);
+        console.log(`   - Sold Count: ${soldTickets}`);
+        console.log(`   - Available: ${availableTickets}`);
+      });
+    } else {
+      console.log("🚫 No ticketTypes found in eventToShow");
+    }
+  }, [eventToShow]);
 
   if (isActuallyLoading) {
     return (
@@ -266,13 +304,26 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
     );
   }
 
+  // const hasAvailableTickets = () => {
+  //   if (!eventToShow.ticketTypes || eventToShow.ticketTypes.length === 0) {
+  //     return false;
+  //   }
+
+  //   return eventToShow.ticketTypes.some((ticket: TicketType) => {
+  //     if (ticket.quantity === null || ticket.quantity === undefined)
+  //       return true;
+  //     const soldTickets = ticket.soldCount || 0;
+  //     return ticket.quantity > soldTickets;
+  //   });
+  // };
+
   const hasAvailableTickets = () => {
     if (!eventToShow.ticketTypes || eventToShow.ticketTypes.length === 0) {
       return false;
     }
 
     return eventToShow.ticketTypes.some((ticket: TicketType) => {
-      if (!ticket.quantity) return true; // Unlimited tickets
+      if (ticket.quantity === undefined) return true; // unlimited tickets
       const soldTickets = ticket.soldCount || 0;
       return ticket.quantity > soldTickets;
     });
@@ -457,15 +508,15 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                   <div className="space-y-3 mb-6">
                     {(eventToShow.ticketTypes || []).map(
                       (ticket: TicketType) => {
-                        // Calculate available tickets
+                        // Calculate available tickets properly
                         const soldTickets = ticket.soldCount || 0;
                         const totalTickets = ticket.quantity;
                         const availableTickets =
                           totalTickets !== undefined
                             ? Math.max(0, totalTickets - soldTickets)
-                            : undefined;
-                        const isOutOfStock = availableTickets === 0;
+                            : null; // null means unlimited
 
+                        const isOutOfStock = availableTickets === 0;
                         return (
                           <div
                             key={ticket.id}

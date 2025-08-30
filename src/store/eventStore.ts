@@ -38,6 +38,7 @@ export interface EventData {
     name: string;
     price: number;
     quantity?: number;
+    soldCount?: number;
   }>;
   _count?: {
     tickets: number;
@@ -48,6 +49,13 @@ export interface EventData {
   tags: string[];
   address?: string;
   status?: EventStatus;
+}
+
+export interface TicketTypeForm {
+  id: string;
+  name: string;
+  price: number;
+  quantity?: number;
 }
 
 export interface EventFormData {
@@ -67,7 +75,7 @@ export interface EventFormData {
   longitude?: number;
   bannerImage?: File | null;
   imageUrl: string;
-  ticketTypes: TicketType[];
+  ticketTypes: TicketTypeForm[];
   isPublic: boolean;
   status: EventStatus;
   slug: string;
@@ -940,6 +948,8 @@ export const useEventStore = create<EventStore>((set, get) => ({
         throw new Error("Event ID is required");
       }
 
+      console.log(`🔍 Store: Loading event with ID/slug: ${eventId}`);
+
       const response = await fetch(`/api/events/${eventId}`);
 
       if (!response.ok) {
@@ -963,8 +973,33 @@ export const useEventStore = create<EventStore>((set, get) => ({
         throw new Error("Invalid response from server");
       }
 
+      console.log(`🎫 Store: Received event data:`, {
+        id: event.id,
+        title: event.title,
+        ticketTypes: event.ticketTypes,
+      });
+
+      // Debug individual ticket types
+      if (event.ticketTypes && Array.isArray(event.ticketTypes)) {
+        console.log(
+          `📊 Store: Processing ${event.ticketTypes.length} ticket types:`
+        );
+        event.ticketTypes.forEach((ticket: TicketType, index: number) => {
+          console.log(`   Ticket ${index + 1}:`, {
+            id: ticket.id,
+            name: ticket.name,
+            quantity: ticket.quantity,
+            soldCount: ticket.soldCount,
+            available:
+              ticket.quantity !== undefined
+                ? Math.max(0, ticket.quantity - (ticket.soldCount || 0))
+                : "unlimited",
+          });
+        });
+      }
+
       setCurrentEvent(event);
-      setEventError(null); // Clear any previous errors
+      setEventError(null);
       return event;
     } catch (error) {
       console.error("Error loading event:", error);
@@ -1253,7 +1288,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
       setEventsLoading(false);
     }
   },
-  
+
   setAllEvents: (events: EventData[]) => set({ allEvents: events }),
 
   setEventsLoading: (loading: boolean) => set({ eventsLoading: loading }),
