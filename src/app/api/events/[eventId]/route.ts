@@ -143,29 +143,6 @@ export async function GET(
       return createErrorResponse(errorMessage, 404);
     }
 
-    console.log(`🔍 API: Found event with ID: ${event.id}`);
-    console.log(
-      `🎫 API: Event has ${event.ticketTypes.length} ticket types:`,
-      event.ticketTypes.map((t) => ({ id: t.id, name: t.name }))
-    );
-
-    // Debug: Check all tickets in the database for this event
-    const allTicketsForEvent = await db.ticket.findMany({
-      where: {
-        eventId: event.id,
-      },
-      select: {
-        id: true,
-        ticketTypeId: true,
-        status: true,
-      },
-    });
-
-    console.log(
-      `🎟️ API: Total tickets in database for event ${event.id}: ${allTicketsForEvent.length}`
-    );
-    console.log(`🎟️ API: All tickets breakdown:`, allTicketsForEvent);
-
     // Now get sold ticket counts for each ticket type for this event
     const soldTicketCounts = await db.ticket.groupBy({
       by: ["ticketTypeId"],
@@ -178,62 +155,13 @@ export async function GET(
       },
     });
 
-    console.log(
-      `📊 API: Sold ticket counts (ACTIVE status only):`,
-      soldTicketCounts
-    );
-
-    // Also check with different statuses to debug
-    const soldTicketCountsAll = await db.ticket.groupBy({
-      by: ["ticketTypeId"],
-      where: {
-        eventId: event.id,
-        // Remove status filter to see all tickets
-      },
-      _count: {
-        id: true,
-      },
-    });
-
-    console.log(
-      `📊 API: All ticket counts (regardless of status):`,
-      soldTicketCountsAll
-    );
-
-    // Check what statuses exist
-    const ticketStatuses = await db.ticket.findMany({
-      where: {
-        eventId: event.id,
-      },
-      select: {
-        status: true,
-      },
-      distinct: ["status"],
-    });
-
-    console.log(
-      `🔍 API: Available ticket statuses for this event:`,
-      ticketStatuses
-    );
-
     // Create a map for quick lookup
     const soldCountMap = soldTicketCounts.reduce((acc, item) => {
       acc[item.ticketTypeId] = item._count.id;
       return acc;
     }, {} as Record<string, number>);
 
-    console.log(`🗺️ API: Final soldCountMap:`, soldCountMap);
-
     const transformedEvent = transformEventDataWithCounts(event, soldCountMap);
-
-    console.log(
-      `✅ API: Sending transformed event with ticket soldCounts:`,
-      transformedEvent.ticketTypes.map((t) => ({
-        id: t.id,
-        name: t.name,
-        soldCount: t.soldCount,
-      }))
-    );
 
     return NextResponse.json(transformedEvent);
   } catch (error) {

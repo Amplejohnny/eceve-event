@@ -741,8 +741,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
     const { currentStep } = get();
     const isValid = get().validateStepWithErrors(currentStep);
 
-    // Log validation result for debugging
-    // console.log(`Validating step ${currentStep}:`, isValid);
     if (!isValid) {
       console.log("Validation errors:", get().errors);
     }
@@ -802,8 +800,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
     setLoading(true);
 
     try {
-      // console.log("Creating event with imageUrl:", formData.imageUrl);
-
       const eventData = {
         title: formData.title,
         description: formData.description,
@@ -824,8 +820,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
           ...(ticket.quantity !== undefined && { quantity: ticket.quantity }),
         })),
       };
-
-      // console.log("Sending event data:", eventData);
 
       const response = await fetch("/api/events/create", {
         method: "POST",
@@ -948,8 +942,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
         throw new Error("Event ID is required");
       }
 
-      console.log(`🔍 Store: Loading event with ID/slug: ${eventId}`);
-
       const response = await fetch(`/api/events/${eventId}`);
 
       if (!response.ok) {
@@ -973,41 +965,11 @@ export const useEventStore = create<EventStore>((set, get) => ({
         throw new Error("Invalid response from server");
       }
 
-      console.log(
-        `🎫 Store: Raw API response:`,
-        JSON.stringify(event, null, 2)
-      );
-
-      // Debug individual ticket types with soldCount
-      if (event.ticketTypes && Array.isArray(event.ticketTypes)) {
-        console.log(
-          `📊 Store: Processing ${event.ticketTypes.length} ticket types:`
-        );
-        event.ticketTypes.forEach((ticket: TicketTypeTicket, index: number) => {
-          console.log(`   Ticket ${index + 1} (${ticket.name}):`, {
-            id: ticket.id,
-            name: ticket.name,
-            quantity: ticket.quantity,
-            soldCount: ticket.soldCount, // This should now be present
-            price: ticket.price,
-            available:
-              ticket.quantity !== undefined
-                ? Math.max(0, ticket.quantity - (ticket.soldCount || 0))
-                : "unlimited",
-          });
-        });
-      } else {
-        console.warn("⚠️ Store: No ticketTypes found in API response");
-      }
-
-      // Set the event EXACTLY as received from API
       setCurrentEvent(event);
       setEventError(null);
 
-      console.log("✅ Store: Event successfully set to currentEvent");
       return event;
     } catch (error) {
-      console.error("❌ Store: Error loading event:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load event";
       setEventError(errorMessage);

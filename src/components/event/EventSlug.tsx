@@ -166,30 +166,19 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
   useEffect(() => {
-    console.log("🔄 EventSlugPage useEffect triggered with:", {
-      slug,
-      initialEvent: !!initialEvent,
-    });
 
     if (!slug) {
       router.push("/");
       return;
     }
 
-    // ALWAYS fetch from API to get the most up-to-date data including soldCount
-    // Even if we have initialEvent, we need fresh data for ticket counts
     setLocalLoading(true);
     setCurrentEvent(null);
 
-    console.log("🚀 About to call loadEvent with slug:", slug);
-
     const fetchEvent = async (): Promise<void> => {
       try {
-        console.log("⏳ Calling loadEvent...");
         await loadEvent(slug);
-        console.log("✅ loadEvent completed");
       } catch (err) {
-        console.error("❌ loadEvent failed:", err);
         if (err instanceof Error) {
           console.error("Error fetching event:", err);
         } else {
@@ -198,7 +187,6 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
 
         // If API fails and we have initialEvent as fallback, use it
         if (initialEvent) {
-          console.log("📝 Falling back to initialEvent due to API failure");
           setCurrentEvent(initialEvent);
         } else {
           setTimeout(() => {
@@ -235,62 +223,6 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const isActuallyLoading = localLoading || isLoading;
 
   const eventToShow = currentEvent || initialEvent;
-  console.log("🎯 EventSlugPage eventToShow:", {
-    hasCurrentEvent: !!currentEvent,
-    hasInitialEvent: !!initialEvent,
-    eventToShow: eventToShow,
-    ticketTypes: eventToShow?.ticketTypes,
-  });
-
-  useEffect(() => {
-    console.log("🎫 EventSlugPage ticketTypes effect triggered");
-
-    if (eventToShow?.ticketTypes) {
-      console.log(
-        "🎫 Frontend received eventToShow.ticketTypes:",
-        eventToShow.ticketTypes
-      );
-
-      // Log the raw data structure first
-      console.log(
-        "🔍 Raw ticketTypes data:",
-        JSON.stringify(eventToShow.ticketTypes, null, 2)
-      );
-
-      eventToShow.ticketTypes.forEach(
-        (ticket: TicketTypeTicket, index: number) => {
-          const soldTickets = ticket.soldCount || 0;
-          const totalTickets = ticket.quantity;
-          const availableTickets =
-            totalTickets !== undefined
-              ? Math.max(0, totalTickets - soldTickets)
-              : null;
-
-          console.log(`🎟️ Frontend Ticket ${index + 1}: ${ticket.name}`);
-          console.log(
-            `   - Raw ticket object:`,
-            JSON.stringify(ticket, null, 2)
-          );
-          console.log(`   - ID: ${ticket.id}`);
-          console.log(`   - Total Quantity: ${totalTickets}`);
-          console.log(`   - Sold Count (raw): ${ticket.soldCount}`);
-          console.log(`   - Sold Count (calculated): ${soldTickets}`);
-          console.log(`   - Available: ${availableTickets}`);
-          console.log(
-            `   - Has soldCount property:`,
-            ticket.hasOwnProperty("soldCount")
-          );
-          console.log(`   - soldCount type:`, typeof ticket.soldCount);
-        }
-      );
-    } else {
-      console.log("🚫 No ticketTypes found in eventToShow");
-      console.log(
-        "🔍 eventToShow object:",
-        JSON.stringify(eventToShow, null, 2)
-      );
-    }
-  }, [eventToShow]);
 
   if (isActuallyLoading) {
     return (
