@@ -12,7 +12,7 @@ import {
   FaLinkedinIn,
   FaWhatsapp,
 } from "react-icons/fa6";
-import { useEventStore, type TicketType } from "@/store/eventStore";
+import { useEventStore, type TicketTypeTicket } from "@/store/eventStore";
 // import type { TicketType } from "@/store/eventStore";
 import {
   formatDate,
@@ -176,14 +176,8 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
       return;
     }
 
-    if (initialEvent) {
-      console.log("📝 Using initialEvent:", initialEvent);
-      setCurrentEvent(initialEvent);
-      setLocalLoading(false);
-      return;
-    }
-
-    // Set local loading and clear current event
+    // ALWAYS fetch from API to get the most up-to-date data including soldCount
+    // Even if we have initialEvent, we need fresh data for ticket counts
     setLocalLoading(true);
     setCurrentEvent(null);
 
@@ -201,16 +195,24 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
         } else {
           console.error("Unexpected error:", err);
         }
-        setTimeout(() => {
-          router.push("/");
-        }, 3000);
+
+        // If API fails and we have initialEvent as fallback, use it
+        if (initialEvent) {
+          console.log("📝 Falling back to initialEvent due to API failure");
+          setCurrentEvent(initialEvent);
+        } else {
+          setTimeout(() => {
+            router.push("/");
+          }, 3000);
+        }
       } finally {
         setLocalLoading(false);
       }
     };
 
     fetchEvent();
-  }, [slug, router, loadEvent, initialEvent, setCurrentEvent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, router, loadEvent, setCurrentEvent]);
 
   const handleFavoriteToggle = (): void => {
     if (!session?.user) {
@@ -249,22 +251,44 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
         eventToShow.ticketTypes
       );
 
-      eventToShow.ticketTypes.forEach((ticket: TicketType) => {
-        const soldTickets = ticket.soldCount || 0;
-        const totalTickets = ticket.quantity;
-        const availableTickets =
-          totalTickets !== undefined
-            ? Math.max(0, totalTickets - soldTickets)
-            : null;
+      // Log the raw data structure first
+      console.log(
+        "🔍 Raw ticketTypes data:",
+        JSON.stringify(eventToShow.ticketTypes, null, 2)
+      );
 
-        console.log(`🎟️ Frontend Ticket: ${ticket.name}`);
-        console.log(`   - ID: ${ticket.id}`);
-        console.log(`   - Total Quantity: ${totalTickets}`);
-        console.log(`   - Sold Count: ${soldTickets}`);
-        console.log(`   - Available: ${availableTickets}`);
-      });
+      eventToShow.ticketTypes.forEach(
+        (ticket: TicketTypeTicket, index: number) => {
+          const soldTickets = ticket.soldCount || 0;
+          const totalTickets = ticket.quantity;
+          const availableTickets =
+            totalTickets !== undefined
+              ? Math.max(0, totalTickets - soldTickets)
+              : null;
+
+          console.log(`🎟️ Frontend Ticket ${index + 1}: ${ticket.name}`);
+          console.log(
+            `   - Raw ticket object:`,
+            JSON.stringify(ticket, null, 2)
+          );
+          console.log(`   - ID: ${ticket.id}`);
+          console.log(`   - Total Quantity: ${totalTickets}`);
+          console.log(`   - Sold Count (raw): ${ticket.soldCount}`);
+          console.log(`   - Sold Count (calculated): ${soldTickets}`);
+          console.log(`   - Available: ${availableTickets}`);
+          console.log(
+            `   - Has soldCount property:`,
+            ticket.hasOwnProperty("soldCount")
+          );
+          console.log(`   - soldCount type:`, typeof ticket.soldCount);
+        }
+      );
     } else {
       console.log("🚫 No ticketTypes found in eventToShow");
+      console.log(
+        "🔍 eventToShow object:",
+        JSON.stringify(eventToShow, null, 2)
+      );
     }
   }, [eventToShow]);
 
@@ -304,26 +328,14 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
     );
   }
 
-  // const hasAvailableTickets = () => {
-  //   if (!eventToShow.ticketTypes || eventToShow.ticketTypes.length === 0) {
-  //     return false;
-  //   }
-
-  //   return eventToShow.ticketTypes.some((ticket: TicketType) => {
-  //     if (ticket.quantity === null || ticket.quantity === undefined)
-  //       return true;
-  //     const soldTickets = ticket.soldCount || 0;
-  //     return ticket.quantity > soldTickets;
-  //   });
-  // };
-
   const hasAvailableTickets = () => {
     if (!eventToShow.ticketTypes || eventToShow.ticketTypes.length === 0) {
       return false;
     }
 
-    return eventToShow.ticketTypes.some((ticket: TicketType) => {
-      if (ticket.quantity === undefined) return true; // unlimited tickets
+    return eventToShow.ticketTypes.some((ticket: TicketTypeTicket) => {
+      if (ticket.quantity === null || ticket.quantity === undefined)
+        return true;
       const soldTickets = ticket.soldCount || 0;
       return ticket.quantity > soldTickets;
     });
@@ -507,16 +519,22 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                   {/* Event Tickets */}
                   <div className="space-y-3 mb-6">
                     {(eventToShow.ticketTypes || []).map(
-                      (ticket: TicketType) => {
+                      (ticket: TicketTypeTicket) => {
                         // Calculate available tickets properly
                         const soldTickets = ticket.soldCount || 0;
                         const totalTickets = ticket.quantity;
-                        const availableTickets =
-                          totalTickets !== undefined
-                            ? Math.max(0, totalTickets - soldTickets)
-                            : null; // null means unlimited
 
-                        const isOutOfStock = availableTickets === 0;
+                        // Handle unlimited tickets properly
+                        const isUnlimitedTickets =
+                          totalTickets === undefined || totalTickets === null;
+                        const availableTickets = isUnlimitedTickets
+                          ? null
+                          : Math.max(0, totalTickets - soldTickets);
+
+                        // Only out of stock if we have limited tickets AND available is 0
+                        const isOutOfStock =
+                          !isUnlimitedTickets && availableTickets === 0;
+
                         return (
                           <div
                             key={ticket.id}
@@ -533,7 +551,11 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                               </span>
                             </div>
                             <div className="flex justify-between items-center">
-                              {availableTickets !== null ? (
+                              {isUnlimitedTickets ? (
+                                <span className="hidden text-sm text-gray-500">
+                                  Unlimited
+                                </span>
+                              ) : (
                                 <span
                                   className={`text-sm ${
                                     isOutOfStock
@@ -544,10 +566,6 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                                   {isOutOfStock
                                     ? "Sold out"
                                     : `${availableTickets} available`}
-                                </span>
-                              ) : (
-                                <span className="text-sm text-gray-500">
-                                  Unlimited
                                 </span>
                               )}
                               {isOutOfStock && (

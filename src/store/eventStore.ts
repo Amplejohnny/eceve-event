@@ -6,12 +6,12 @@ const timeStringToMinutes = (timeString: string): number => {
   return hours * 60 + minutes;
 };
 
-export interface TicketType {
+export interface TicketTypeTicket {
   id: string;
   name: string;
   price: number;
   quantity?: number;
-  soldCount?: number;
+  soldCount: number;
 }
 
 export interface EventData {
@@ -38,7 +38,7 @@ export interface EventData {
     name: string;
     price: number;
     quantity?: number;
-    soldCount?: number;
+    soldCount: number;
   }>;
   _count?: {
     tickets: number;
@@ -51,7 +51,7 @@ export interface EventData {
   status?: EventStatus;
 }
 
-export interface TicketTypeForm {
+export interface TicketType {
   id: string;
   name: string;
   price: number;
@@ -75,7 +75,7 @@ export interface EventFormData {
   longitude?: number;
   bannerImage?: File | null;
   imageUrl: string;
-  ticketTypes: TicketTypeForm[];
+  ticketTypes: TicketType[];
   isPublic: boolean;
   status: EventStatus;
   slug: string;
@@ -973,36 +973,41 @@ export const useEventStore = create<EventStore>((set, get) => ({
         throw new Error("Invalid response from server");
       }
 
-      console.log(`🎫 Store: Received event data:`, {
-        id: event.id,
-        title: event.title,
-        ticketTypes: event.ticketTypes,
-      });
+      console.log(
+        `🎫 Store: Raw API response:`,
+        JSON.stringify(event, null, 2)
+      );
 
-      // Debug individual ticket types
+      // Debug individual ticket types with soldCount
       if (event.ticketTypes && Array.isArray(event.ticketTypes)) {
         console.log(
           `📊 Store: Processing ${event.ticketTypes.length} ticket types:`
         );
-        event.ticketTypes.forEach((ticket: TicketType, index: number) => {
-          console.log(`   Ticket ${index + 1}:`, {
+        event.ticketTypes.forEach((ticket: TicketTypeTicket, index: number) => {
+          console.log(`   Ticket ${index + 1} (${ticket.name}):`, {
             id: ticket.id,
             name: ticket.name,
             quantity: ticket.quantity,
-            soldCount: ticket.soldCount,
+            soldCount: ticket.soldCount, // This should now be present
+            price: ticket.price,
             available:
               ticket.quantity !== undefined
                 ? Math.max(0, ticket.quantity - (ticket.soldCount || 0))
                 : "unlimited",
           });
         });
+      } else {
+        console.warn("⚠️ Store: No ticketTypes found in API response");
       }
 
+      // Set the event EXACTLY as received from API
       setCurrentEvent(event);
       setEventError(null);
+
+      console.log("✅ Store: Event successfully set to currentEvent");
       return event;
     } catch (error) {
-      console.error("Error loading event:", error);
+      console.error("❌ Store: Error loading event:", error);
       const errorMessage =
         error instanceof Error ? error.message : "Failed to load event";
       setEventError(errorMessage);

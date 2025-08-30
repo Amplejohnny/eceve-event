@@ -428,8 +428,8 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                                 : `${availableTickets} available`}
                             </p>
                           ) : (
-                            <p className="text-sm text-gray-500">
-                              Unlimited available
+                            <p className="hidden text-sm text-gray-500">
+                              Unlimited
                             </p>
                           )}
                         </div>
@@ -775,7 +775,7 @@ const TicketPurchaseModal: React.FC<TicketPurchaseModalProps> = ({
                   <span>
                     Total:{" "}
                     <span className="text-green-600">
-                      {subTotal === 0 ? "Free" : formatPrice(subTotal)}
+                      {subTotal === 0 ? "₦0" : formatPrice(subTotal)}
                     </span>
                   </span>
                 </div>
