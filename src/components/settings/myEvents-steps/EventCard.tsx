@@ -69,10 +69,20 @@ const getStatusColor = (
   }
 };
 
-const calculateRevenue = (event: Event): number => {
-  return event.ticketTypes.reduce((total, ticketType) => {
-    return total + ticketType.sold * ticketType.price;
+const calculateRevenueBreakdown = (event: Event) => {
+  const ticketSubtotal = event.ticketTypes.reduce((total, ticketType) => {
+    const currentPrice = ticketType.currentPrice || ticketType.price;
+    return total + ticketType.sold * currentPrice;
   }, 0);
+
+  const platformFee = Math.round(ticketSubtotal * 0.07);
+  const organizerRevenue = ticketSubtotal - platformFee;
+
+  return {
+    grossRevenue: ticketSubtotal,
+    platformFee,
+    netRevenue: organizerRevenue,
+  };
 };
 
 const getQuantityDisplay = (quantity: number | null, sold: number): string => {
@@ -124,6 +134,7 @@ const handleShare = async (event: Event): Promise<void> => {
 export default function EventCard({
   event,
 }: EventCardProps): React.JSX.Element {
+  const revenue = calculateRevenueBreakdown(event);
   return (
     <div className="bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       <div className="p-3">
@@ -199,9 +210,21 @@ export default function EventCard({
                     </p>
                   </div>
                   <div>
-                    <span className="font-medium text-gray-900">
-                      {formatCurrency(calculateRevenue(event))}
-                    </span>
+                    <div className="group relative">
+                      <span className="font-medium text-gray-900 cursor-help">
+                        {formatCurrency(revenue.netRevenue)}
+                      </span>
+                      {/* Tooltip showing breakdown on hover */}
+                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 whitespace-nowrap z-10 shadow-lg">
+                        <div>Gross: {formatCurrency(revenue.grossRevenue)}</div>
+                        <div>
+                          Platform Fee: -{" "}{formatCurrency(revenue.platformFee)}
+                        </div>
+                        <div className="border-t border-gray-600 pt-1 mt-1">
+                          Net: {formatCurrency(revenue.netRevenue)}
+                        </div>
+                      </div>
+                    </div>
                     <p className="text-gray-600">
                       Created {getRelativeTime(event.createdAt)}
                     </p>
