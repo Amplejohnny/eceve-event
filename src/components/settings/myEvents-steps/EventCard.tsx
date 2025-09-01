@@ -214,8 +214,8 @@ export default function EventCard({
                       <span className="font-medium text-gray-900 cursor-help">
                         {formatCurrency(revenue.netRevenue)}
                       </span>
-                      {/* Tooltip showing breakdown on hover */}
-                      <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 whitespace-nowrap z-10 shadow-lg">
+                      {/* Fixed tooltip positioning */}
+                      <div className="absolute top-full right-0 mt-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 whitespace-nowrap z-50 shadow-lg min-w-max">
                         <div>Gross: {formatCurrency(revenue.grossRevenue)}</div>
                         <div>
                           Platform Fee: -{" "}{formatCurrency(revenue.platformFee)}
