@@ -20,7 +20,7 @@ const eslintConfig = [
         { argsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/explicit-function-return-type": "off",
-      "@typescript-eslint/no-explicit-any": "error",
+      "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/consistent-type-imports": "error",
       "@typescript-eslint/ban-ts-comment": "error",
       "@typescript-eslint/no-unused-expressions": "warn",

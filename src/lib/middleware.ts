@@ -28,20 +28,21 @@ const AUTH_ROUTES = [
 ];
 
 const PROTECTED_ROUTES = [
-  "/dashboard",
   "/profile-settings",
   "/my-events",
   "/favorites",
+  "/my-bookings",
 ];
 
 const ORGANIZER_ROUTES = [
-  "/organizer",
+  "/dashboard/organizer",
   "/events/create",
+  "/my-events",
   "/events/[slug]/edit",
   "/events/[slug]/analytics",
 ];
 
-const ADMIN_ROUTES = ["/admin"];
+const ADMIN_ROUTES = ["/admin/dashboard"];
 
 // API routes that need protection
 const PROTECTED_API_ROUTES = [
@@ -56,13 +57,21 @@ const PROTECTED_API_ROUTES = [
 ];
 
 const ORGANIZER_API_ROUTES = [
+  "/api/dashboard/organizer",
+  "/api/organizer/earnings",
+  "/api/organizer/attendees",
+  "/api/organizer/withdraw",
+  "/api/organizer/withdrawals",
+  "/api/organizer/banks",
+  "/api/organizer/verify-bank",
+  "/api/organizer/attendees/export",
   "/api/events/create",
   "/api/events/[id]/edit",
   "/api/events/[id]/delete",
   "/api/events/[id]/analytics",
 ];
 
-const ADMIN_API_ROUTES = ["/api/admin", "/api/users"];
+const ADMIN_API_ROUTES = ["/api/admin/dashboard", "/api/users"];
 
 function matchesPattern(pathname: string, patterns: string[]): boolean {
   return patterns.some((pattern) => {

@@ -52,9 +52,9 @@ const Navbar: React.FC = () => {
     label: string;
   } | null => {
     if (userRole === "ADMIN") {
-      return { path: "/admin", label: "Admin Panel" };
+      return { path: "/admin/dashboard", label: "Admin Panel" };
     } else if (userRole === "ORGANIZER") {
-      return { path: "/organizer", label: "Dashboard" };
+      return { path: "/dashboard/organizer", label: "Dashboard" };
     }
     return null;
   };

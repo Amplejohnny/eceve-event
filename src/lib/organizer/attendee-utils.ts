@@ -39,6 +39,8 @@ interface AttendeeExportSummary {
 
 // Export options
 interface ExportOptions {
+  includeName: boolean;           
+  includeEmail: boolean; 
   includePhone?: boolean;
   includePaymentRef?: boolean;
   statusFilter?: TicketStatus[];
@@ -75,7 +77,10 @@ type TicketOrderBy =
 export async function getEventAttendees(
   eventId: string,
   organizerId: string,
-  options: ExportOptions = {}
+  options: ExportOptions = {
+    includeName: false,
+    includeEmail: false
+  }
 ): Promise<{
   attendees: EventAttendee[];
   summary: AttendeeExportSummary;
@@ -194,7 +199,10 @@ export async function getEventAttendees(
 export async function exportAttendeesToCSV(
   eventId: string,
   organizerId: string,
-  options: ExportOptions = {}
+  options: ExportOptions = {
+    includeName: false,
+    includeEmail: false
+  }
 ): Promise<string> {
   const { attendees } = await getEventAttendees(eventId, organizerId, options);
 
