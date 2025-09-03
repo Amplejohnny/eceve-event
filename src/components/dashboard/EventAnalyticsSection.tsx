@@ -8,6 +8,7 @@ import {
   ArrowDownTrayIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { formatCurrency } from "@/lib/utils";
 
 interface EventAnalyticsSectionProps {
   attendeesData: any;
@@ -23,15 +24,6 @@ export default function EventAnalyticsSection({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {

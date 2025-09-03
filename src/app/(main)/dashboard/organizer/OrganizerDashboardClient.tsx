@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { toast } from "react-hot-toast";
 import FinancialManagementPanel from "@/components/dashboard/FinancialManagementPanel";
 import EventAnalyticsSection from "@/components/dashboard/EventAnalyticsSection";
 import WithdrawalRequestModal from "@/components/dashboard/WithdrawalRequestModal";
-import { toast } from "react-hot-toast";
+
 
 interface EarningsData {
   totalRevenue: number;

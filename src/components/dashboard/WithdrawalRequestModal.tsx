@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { XMarkIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { toast } from "react-hot-toast";
+import { formatCurrency } from "@/lib/utils";
 
 interface Bank {
   id: number;
@@ -157,15 +158,6 @@ export default function WithdrawalRequestModal({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-NG", {
-      style: "currency",
-      currency: "NGN",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
   };
 
   const getStepStatus = (stepNumber: number) => {

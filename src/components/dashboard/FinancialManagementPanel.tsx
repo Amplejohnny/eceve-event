@@ -8,7 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { TrendingUp, RefreshCw } from "lucide-react";
 import EarningsChart from "./EarningsChart";
-import { formatPrice } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 interface FinancialManagementPanelProps {
   earningsData: any;
@@ -93,7 +93,7 @@ export default function FinancialManagementPanel({
                 Total Earnings
               </p>
               <p className="text-2xl font-bold text-gray-900">
-                {earningsData ? formatPrice(earningsData.totalEarnings) : "₦0"}
+                {earningsData ? formatCurrency(earningsData.totalEarnings) : "₦0"}
               </p>
             </div>
           </div>
@@ -111,7 +111,7 @@ export default function FinancialManagementPanel({
               </p>
               <p className="text-2xl font-bold text-gray-900">
                 {earningsData
-                  ? formatPrice(earningsData.availableBalance)
+                  ? formatCurrency(earningsData.availableBalance)
                   : "₦0"}
               </p>
             </div>
@@ -130,7 +130,7 @@ export default function FinancialManagementPanel({
               </p>
               <p className="text-2xl font-bold text-gray-900">
                 {earningsData
-                  ? formatPrice(earningsData.pendingWithdrawals)
+                  ? formatCurrency(earningsData.pendingWithdrawals)
                   : "₦0"}
               </p>
             </div>
@@ -148,7 +148,7 @@ export default function FinancialManagementPanel({
                 Recent Earnings
               </p>
               <p className="text-2xl font-bold text-gray-900">
-                {earningsData ? formatPrice(earningsData.recentEarnings) : "₦0"}
+                {earningsData ? formatCurrency(earningsData.recentEarnings) : "₦0"}
               </p>
               <p className="text-xs text-gray-500">Last 30 days</p>
             </div>
@@ -223,7 +223,7 @@ export default function FinancialManagementPanel({
                       {new Date(withdrawal.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatPrice(withdrawal.amount)}
+                      {formatCurrency(withdrawal.amount)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div>
