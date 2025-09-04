@@ -8,6 +8,7 @@ import {
   ArrowDownTrayIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { RefreshCw } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface EventAnalyticsSectionProps {
@@ -24,6 +25,7 @@ export default function EventAnalyticsSection({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -44,6 +46,12 @@ export default function EventAnalyticsSection({
     e.preventDefault();
     // Implement search functionality
     console.log("Searching for:", searchTerm);
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    onRefresh();
+    setTimeout(() => setIsRefreshing(false), 1000);
   };
 
   const handleExport = () => {
@@ -131,15 +139,23 @@ export default function EventAnalyticsSection({
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <form onSubmit={handleSearch} className="flex-1">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by name, email, or confirmation ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+            <div className="flex">
+              <div className="relative flex-1">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by name, email, or confirmation ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white font-medium rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Search
+              </button>
             </div>
           </form>
 
@@ -158,10 +174,14 @@ export default function EventAnalyticsSection({
             </select>
 
             <button
-              onClick={onRefresh}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              title="Refresh"
             >
-              Refresh
+              <RefreshCw
+                className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
+              />
             </button>
           </div>
         </div>

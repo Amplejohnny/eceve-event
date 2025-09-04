@@ -71,18 +71,18 @@ export default function FinancialManagementPanel({
         <button
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          className="flex items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          title="Refresh"
         >
           <RefreshCw
-            className={`w-4 h-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`}
+            className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
           />
-          Refresh
         </button>
       </div>
 
       {/* Earnings Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {/* Total Earnings */}
+        {/* Total Ticket Revenue */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
@@ -90,11 +90,33 @@ export default function FinancialManagementPanel({
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">
-                Total Earnings
+                Total Ticket Revenue
               </p>
               <p className="text-2xl font-bold text-gray-900">
-                {earningsData ? formatCurrency(earningsData.totalEarnings) : "₦0"}
+                {earningsData
+                  ? formatCurrency(earningsData.totalTicketRevenue)
+                  : "₦0"}
               </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Total Withdrawable Revenue */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <WalletIcon className="h-8 w-8 text-blue-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">
+                Total Withdrawable Revenue
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {earningsData
+                  ? formatCurrency(earningsData.totalWithdrawableRevenue)
+                  : "₦0"}
+              </p>
+              <p className="text-xs text-gray-500">After 7% platform fee</p>
             </div>
           </div>
         </div>
@@ -103,7 +125,7 @@ export default function FinancialManagementPanel({
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <WalletIcon className="h-8 w-8 text-blue-600" />
+              <ClockIcon className="h-8 w-8 text-yellow-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">
@@ -112,25 +134,6 @@ export default function FinancialManagementPanel({
               <p className="text-2xl font-bold text-gray-900">
                 {earningsData
                   ? formatCurrency(earningsData.availableBalance)
-                  : "₦0"}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Pending Withdrawals */}
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <ClockIcon className="h-8 w-8 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">
-                Pending Withdrawals
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {earningsData
-                  ? formatCurrency(earningsData.pendingWithdrawals)
                   : "₦0"}
               </p>
             </div>
@@ -148,7 +151,9 @@ export default function FinancialManagementPanel({
                 Recent Earnings
               </p>
               <p className="text-2xl font-bold text-gray-900">
-                {earningsData ? formatCurrency(earningsData.recentEarnings) : "₦0"}
+                {earningsData
+                  ? formatCurrency(earningsData.recentEarnings)
+                  : "₦0"}
               </p>
               <p className="text-xs text-gray-500">Last 30 days</p>
             </div>

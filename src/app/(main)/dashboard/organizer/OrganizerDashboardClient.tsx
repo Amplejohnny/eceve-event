@@ -7,10 +7,9 @@ import FinancialManagementPanel from "@/components/dashboard/FinancialManagement
 import EventAnalyticsSection from "@/components/dashboard/EventAnalyticsSection";
 import WithdrawalRequestModal from "@/components/dashboard/WithdrawalRequestModal";
 
-
 interface EarningsData {
-  totalRevenue: number;
-  totalEarnings: number;
+  totalTicketRevenue: number;
+  totalWithdrawableRevenue: number;
   totalPlatformFees: number;
   availableBalance: number;
   pendingWithdrawals: number;

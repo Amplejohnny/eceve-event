@@ -342,6 +342,404 @@ const emailTemplates = {
     </html>
   `,
   }),
+
+  // Withdrawal emails (production-ready)
+  withdrawalApproved: (organizerData: {
+    organizerEmail: string;
+    organizerName: string;
+    amount: number;
+    accountName: string;
+    bankAccount: string;
+    bankName: string;
+    withdrawalId: string;
+  }) => ({
+    subject: "Your withdrawal request was approved",
+    html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Withdrawal Approved</title>
+        <style>
+          body { margin:0; padding:0; background:#f6f7f9; color:#111827; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+            Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+          .wrapper { width:100%; background:#f6f7f9; padding:24px 0; }
+          .container { max-width:640px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.1); }
+          .header { background:#111827; color:#ffffff; padding:20px 24px; }
+          .brand { font-size:18px; font-weight:700; letter-spacing:.2px; }
+          .subbrand { font-size:12px; opacity:.9; margin-top:2px; }
+          .content { padding:24px; }
+          h1 { font-size:20px; margin:0 0 12px; }
+          p { margin:0 0 16px; line-height:1.55; }
+          .success-badge { display:inline-block; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; font-weight:600; font-size:12px; padding:4px 8px; border-radius:999px; }
+          .card { border:1px solid #e5e7eb; border-radius:10px; padding:16px; background:#ffffff; }
+          .details { width:100%; border-collapse:collapse; margin-top:8px; }
+          .details th { text-align:left; font-size:12px; color:#6b7280; padding:6px 0; font-weight:600; }
+          .details td { text-align:right; font-size:14px; color:#111827; padding:6px 0; font-weight:600; }
+          .muted { color:#6b7280; font-weight:500; }
+          .divider { height:1px; background:#e5e7eb; margin:16px 0; }
+          .btn { display:inline-block; background:#2563eb; color:#ffffff !important; text-decoration:none; padding:12px 18px; border-radius:8px; font-weight:600; font-size:14px; }
+          .btn-secondary { background:#111827; }
+          .footnote { font-size:12px; color:#6b7280; margin-top:16px; }
+          .footer { padding:16px 24px 24px; color:#6b7280; font-size:12px; text-align:center; }
+          .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="container" role="article" aria-label="Withdrawal approved notification">
+            <div class="header">
+              <div class="brand">Comforeve</div>
+              <div class="subbrand">Event Ticketing Platform</div>
+            </div>
+            <div class="content">
+              <span class="success-badge" aria-label="Approved status">Approved & Processing</span>
+              <h1>Withdrawal request approved</h1>
+              <p>Hi ${
+                organizerData.organizerName || "there"
+              }, your withdrawal request has been approved and is now being processed. You'll receive another email once the transfer completes.</p>
+
+              <div class="card" aria-label="Withdrawal summary">
+                <table class="details" role="table" aria-label="Details">
+                  <tr>
+                    <th scope="row">Amount</th>
+                    <td>₦${organizerData.amount.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Reference</th>
+                    <td class="mono">${organizerData.withdrawalId}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Account name</th>
+                    <td>${organizerData.accountName}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Bank</th>
+                    <td>${organizerData.bankName}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Account number</th>
+                    <td>****${organizerData.bankAccount.slice(-4)}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <div class="divider" role="separator" aria-hidden="true"></div>
+
+              <p class="muted">What happens next?</p>
+              <ul class="muted" style="margin:8px 0 16px 18px; padding:0;">
+                <li>We have initiated processing with our payment partner.</li>
+                <li>Funds typically arrive within 1–2 business days.</li>
+                <li>You will receive a confirmation email once completed.</li>
+              </ul>
+
+              <div>
+                <a class="btn" href="${
+                  process.env.NEXT_PUBLIC_APP_URL || ""
+                }/dashboard/organizer" target="_blank" rel="noopener noreferrer">View withdrawal status</a>
+              </div>
+
+              <p class="footnote">If you did not request this withdrawal, please contact support immediately.</p>
+              <p class="footnote">This is an automated message, please do not reply to this email.</p>
+            </div>
+            <div class="footer">
+              <div>© ${currentYear} Comforeve. All rights reserved.</div>
+              <div>You're receiving this because you have a Comforeve organizer account.</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+      Withdrawal request approved\n\n
+      Hi ${
+        organizerData.organizerName || "there"
+      }, your withdrawal request has been approved and is now being processed. You'll receive another email once the transfer completes.\n\n
+      Amount: ₦${organizerData.amount.toLocaleString()}\n
+      Reference: ${organizerData.withdrawalId}\n
+      Account name: ${organizerData.accountName}\n
+      Bank: ${organizerData.bankName}\n
+      Account number: ****${organizerData.bankAccount.slice(-4)}\n\n
+      What happens next?\n
+      - We have initiated processing with our payment partner.\n
+      - Funds typically arrive within 1–2 business days.\n
+      - You will receive a confirmation email once completed.\n\n
+      View status: ${
+        (process.env.NEXT_PUBLIC_APP_URL || "") + "/dashboard/organizer"
+      }\n\n
+      If you did not request this withdrawal, please contact support immediately.\n
+      Do not reply to this email.\n
+      © ${currentYear} Comforeve
+    `,
+  }),
+
+  withdrawalRejected: (organizerData: {
+    organizerEmail: string;
+    organizerName: string;
+    amount: number;
+    reason: string;
+    withdrawalId: string;
+  }) => ({
+    subject: "Your withdrawal request could not be processed",
+    html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Withdrawal Rejected</title>
+        <style>
+          body { margin:0; padding:0; background:#f6f7f9; color:#111827; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+            Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+          .wrapper { width:100%; background:#f6f7f9; padding:24px 0; }
+          .container { max-width:640px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.1); }
+          .header { background:#111827; color:#ffffff; padding:20px 24px; }
+          .brand { font-size:18px; font-weight:700; letter-spacing:.2px; }
+          .subbrand { font-size:12px; opacity:.9; margin-top:2px; }
+          .content { padding:24px; }
+          h1 { font-size:20px; margin:0 0 12px; }
+          p { margin:0 0 16px; line-height:1.55; }
+          .warn-badge { display:inline-block; background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; font-weight:600; font-size:12px; padding:4px 8px; border-radius:999px; }
+          .card { border:1px solid #e5e7eb; border-radius:10px; padding:16px; background:#ffffff; }
+          .details { width:100%; border-collapse:collapse; margin-top:8px; }
+          .details th { text-align:left; font-size:12px; color:#6b7280; padding:6px 0; font-weight:600; }
+          .details td { text-align:right; font-size:14px; color:#111827; padding:6px 0; font-weight:600; }
+          .muted { color:#6b7280; font-weight:500; }
+          .divider { height:1px; background:#e5e7eb; margin:16px 0; }
+          .btn { display:inline-block; background:#2563eb; color:#ffffff !important; text-decoration:none; padding:12px 18px; border-radius:8px; font-weight:600; font-size:14px; }
+          .footnote { font-size:12px; color:#6b7280; margin-top:16px; }
+          .footer { padding:16px 24px 24px; color:#6b7280; font-size:12px; text-align:center; }
+          .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="container" role="article" aria-label="Withdrawal rejected notification">
+            <div class="header">
+              <div class="brand">Comforeve</div>
+              <div class="subbrand">Event Ticketing Platform</div>
+            </div>
+            <div class="content">
+              <span class="warn-badge" aria-label="Rejected status">Rejected</span>
+              <h1>Withdrawal request couldn’t be processed</h1>
+              <p>Hi ${
+                organizerData.organizerName || "there"
+              }, your withdrawal request could not be processed at this time.</p>
+
+              <div class="card" aria-label="Withdrawal summary">
+                <table class="details" role="table" aria-label="Details">
+                  <tr>
+                    <th scope="row">Amount</th>
+                    <td>₦${organizerData.amount.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Reference</th>
+                    <td class="mono">${organizerData.withdrawalId}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Reason</th>
+                    <td>${organizerData.reason || "Not specified"}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <div class="divider" role="separator" aria-hidden="true"></div>
+
+              <p class="muted">What you can do</p>
+              <ul class="muted" style="margin:8px 0 16px 18px; padding:0;">
+                <li>Review the reason above and correct any issues.</li>
+                <li>Submit a new withdrawal request from your dashboard.</li>
+                <li>Contact support if you need clarification.</li>
+              </ul>
+
+              <div>
+                <a class="btn" href="${
+                  process.env.NEXT_PUBLIC_APP_URL || ""
+                }/dashboard/organizer" target="_blank" rel="noopener noreferrer">Submit a new request</a>
+              </div>
+
+              <p class="footnote">If you believe this decision was made in error, please contact support and include the reference shown above.</p>
+              <p class="footnote">This is an automated message, please do not reply to this email.</p>
+            </div>
+            <div class="footer">
+              <div>© ${currentYear} Comforeve. All rights reserved.</div>
+              <div>You're receiving this because you have a Comforeve organizer account.</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+      Withdrawal request couldn’t be processed\n\n
+      Hi ${
+        organizerData.organizerName || "there"
+      }, your withdrawal request could not be processed at this time.\n\n
+      Amount: ₦${organizerData.amount.toLocaleString()}\n
+      Reference: ${organizerData.withdrawalId}\n
+      Reason: ${organizerData.reason || "Not specified"}\n\n
+      What you can do\n
+      - Review the reason above and correct any issues.\n
+      - Submit a new withdrawal request from your dashboard.\n
+      - Contact support if you need clarification.\n\n
+      Dashboard: ${
+        (process.env.NEXT_PUBLIC_APP_URL || "") + "/dashboard/organizer"
+      }\n\n
+      If you believe this decision was made in error, please contact support and include the reference shown above.\n
+      Do not reply to this email.\n
+      © ${currentYear} Comforeve
+    `,
+  }),
+
+  withdrawalCompleted: (organizerData: {
+    organizerEmail: string;
+    organizerName: string;
+    amount: number;
+    accountName: string;
+    bankAccount: string;
+    bankName: string;
+    withdrawalId: string;
+    paystackRef?: string;
+    completedAt: string;
+  }) => ({
+    subject: "Your withdrawal has been completed",
+    html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Withdrawal Completed</title>
+        <style>
+          body { margin:0; padding:0; background:#f6f7f9; color:#111827; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+            Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji'; }
+          .wrapper { width:100%; background:#f6f7f9; padding:24px 0; }
+          .container { max-width:640px; margin:0 auto; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.1); }
+          .header { background:#111827; color:#ffffff; padding:20px 24px; }
+          .brand { font-size:18px; font-weight:700; letter-spacing:.2px; }
+          .subbrand { font-size:12px; opacity:.9; margin-top:2px; }
+          .content { padding:24px; }
+          h1 { font-size:20px; margin:0 0 12px; }
+          p { margin:0 0 16px; line-height:1.55; }
+          .ok-badge { display:inline-block; background:#eef2ff; color:#3730a3; border:1px solid #c7d2fe; font-weight:600; font-size:12px; padding:4px 8px; border-radius:999px; }
+          .card { border:1px solid #e5e7eb; border-radius:10px; padding:16px; background:#ffffff; }
+          .details { width:100%; border-collapse:collapse; margin-top:8px; }
+          .details th { text-align:left; font-size:12px; color:#6b7280; padding:6px 0; font-weight:600; }
+          .details td { text-align:right; font-size:14px; color:#111827; padding:6px 0; font-weight:600; }
+          .muted { color:#6b7280; font-weight:500; }
+          .divider { height:1px; background:#e5e7eb; margin:16px 0; }
+          .btn { display:inline-block; background:#2563eb; color:#ffffff !important; text-decoration:none; padding:12px 18px; border-radius:8px; font-weight:600; font-size:14px; }
+          .footnote { font-size:12px; color:#6b7280; margin-top:16px; }
+          .footer { padding:16px 24px 24px; color:#6b7280; font-size:12px; text-align:center; }
+          .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        </style>
+      </head>
+      <body>
+        <div class="wrapper">
+          <div class="container" role="article" aria-label="Withdrawal completed notification">
+            <div class="header">
+              <div class="brand">Comforeve</div>
+              <div class="subbrand">Event Ticketing Platform</div>
+            </div>
+            <div class="content">
+              <span class="ok-badge" aria-label="Completed status">Completed</span>
+              <h1>Withdrawal completed successfully</h1>
+              <p>Hi ${
+                organizerData.organizerName || "there"
+              }, your withdrawal has been completed and the funds have been transferred to your bank account.</p>
+
+              <div class="card" aria-label="Withdrawal summary">
+                <table class="details" role="table" aria-label="Details">
+                  <tr>
+                    <th scope="row">Amount</th>
+                    <td>₦${organizerData.amount.toLocaleString()}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Reference</th>
+                    <td class="mono">${organizerData.withdrawalId}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Completed</th>
+                    <td>${organizerData.completedAt}</td>
+                  </tr>
+                  ${
+                    organizerData.paystackRef
+                      ? `
+                  <tr>
+                    <th scope="row">Paystack Ref</th>
+                    <td class="mono">${organizerData.paystackRef}</td>
+                  </tr>`
+                      : ""
+                  }
+                  <tr>
+                    <th scope="row">Account name</th>
+                    <td>${organizerData.accountName}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Bank</th>
+                    <td>${organizerData.bankName}</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Account number</th>
+                    <td>****${organizerData.bankAccount.slice(-4)}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <div class="divider" role="separator" aria-hidden="true"></div>
+
+              <p class="muted">What next?</p>
+              <ul class="muted" style="margin:8px 0 16px 18px; padding:0;">
+                <li>Funds usually appear on statements within 24–48 hours, depending on your bank.</li>
+                <li>If you don't see the funds after 48 hours, contact your bank first, then reach out to our support with the reference above.</li>
+              </ul>
+
+              <div>
+                <a class="btn" href="${
+                  process.env.NEXT_PUBLIC_APP_URL || ""
+                }/dashboard/organizer" target="_blank" rel="noopener noreferrer">View in dashboard</a>
+              </div>
+
+              <p class="footnote">Thanks for using Comforeve. We’re here to help if you need anything.</p>
+              <p class="footnote">This is an automated message, please do not reply to this email.</p>
+            </div>
+            <div class="footer">
+              <div>© ${currentYear} Comforeve. All rights reserved.</div>
+              <div>You're receiving this because you have a Comforeve organizer account.</div>
+            </div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+      Withdrawal completed successfully\n\n
+      Hi ${
+        organizerData.organizerName || "there"
+      }, your withdrawal has been completed and the funds have been transferred to your bank account.\n\n
+      Amount: ₦${organizerData.amount.toLocaleString()}\n
+      Reference: ${organizerData.withdrawalId}\n
+      Completed: ${organizerData.completedAt}\n
+      ${
+        organizerData.paystackRef
+          ? `Paystack Ref: ${organizerData.paystackRef}\n`
+          : ""
+      }
+      Account name: ${organizerData.accountName}\n
+      Bank: ${organizerData.bankName}\n
+      Account number: ****${organizerData.bankAccount.slice(-4)}\n\n
+      What next?\n
+      - Funds usually appear on statements within 24–48 hours, depending on your bank.\n
+      - If you don't see the funds after 48 hours, contact your bank first, then reach out to our support with the reference above.\n\n
+      View: ${
+        (process.env.NEXT_PUBLIC_APP_URL || "") + "/dashboard/organizer"
+      }\n\n
+      Thanks for using Comforeve. Do not reply to this email.\n
+      © ${currentYear} Comforeve
+    `,
+  }),
 };
 
 // NextAuth email verification function
@@ -720,4 +1118,106 @@ export async function sendTestEmailWithDebug(email: string) {
     },
     theme: { colorScheme: "light" },
   });
+}
+
+// Send withdrawal approved notification
+export async function sendWithdrawalApprovedEmail(organizerData: {
+  organizerEmail: string;
+  organizerName: string;
+  amount: number;
+  accountName: string;
+  bankAccount: string;
+  bankName: string;
+  withdrawalId: string;
+}) {
+  const { subject, html, text } =
+    emailTemplates.withdrawalApproved(organizerData);
+
+  try {
+    const transporter = getTransporter();
+
+    await transporter.sendMail({
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
+      to: organizerData.organizerEmail,
+      subject,
+      html,
+      text,
+      replyTo: "noreply@comforeve.com",
+    });
+
+    console.log(
+      `Withdrawal approved email sent to ${organizerData.organizerEmail}`
+    );
+  } catch (error) {
+    console.error("Error sending withdrawal approved email:", error);
+    throw new Error("Failed to send withdrawal approved email");
+  }
+}
+
+// Send withdrawal rejected notification
+export async function sendWithdrawalRejectedEmail(organizerData: {
+  organizerEmail: string;
+  organizerName: string;
+  amount: number;
+  reason: string;
+  withdrawalId: string;
+}) {
+  const { subject, html, text } =
+    emailTemplates.withdrawalRejected(organizerData);
+
+  try {
+    const transporter = getTransporter();
+
+    await transporter.sendMail({
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
+      to: organizerData.organizerEmail,
+      subject,
+      html,
+      text,
+      replyTo: "noreply@comforeve.com",
+    });
+
+    console.log(
+      `Withdrawal rejected email sent to ${organizerData.organizerEmail}`
+    );
+  } catch (error) {
+    console.error("Error sending withdrawal rejected email:", error);
+    throw new Error("Failed to send withdrawal rejected email");
+  }
+}
+
+// Send withdrawal completed notification
+export async function sendWithdrawalCompletedEmail(organizerData: {
+  organizerEmail: string;
+  organizerName: string;
+  amount: number;
+  accountName: string;
+  bankAccount: string;
+  bankName: string;
+  withdrawalId: string;
+  paystackRef?: string;
+  completedAt: string;
+}) {
+  const { subject, html, text } =
+    emailTemplates.withdrawalCompleted(organizerData);
+
+  try {
+    const transporter = getTransporter();
+
+    await transporter.sendMail({
+      from: process.env.FROM_EMAIL || process.env.SMTP_USER || "",
+      to: organizerData.organizerEmail,
+      subject,
+      html,
+      text,
+      replyTo: "noreply@comforeve.com",
+    });
+
+    console.log(
+      `Withdrawal completed email sent to ${organizerData.organizerEmail}`
+    );
+  } catch (error) {
+    console.error("Error sending withdrawal completed email:", error);
+    throw new Error("Failed to send withdrawal completed email");
+  }
 }

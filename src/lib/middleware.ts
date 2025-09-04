@@ -71,7 +71,15 @@ const ORGANIZER_API_ROUTES = [
   "/api/events/[id]/analytics",
 ];
 
-const ADMIN_API_ROUTES = ["/api/admin/dashboard", "/api/users"];
+const ADMIN_API_ROUTES = [
+  "/api/admin/dashboard",
+  "/api/admin/withdrawals",
+  "/api/admin/withdrawals/bulk",
+  "/api/admin/platform-stats",
+  "/api/admin/organizers",
+  "/api/admin/events",
+  "/api/users",
+];
 
 function matchesPattern(pathname: string, patterns: string[]): boolean {
   return patterns.some((pattern) => {

@@ -2,29 +2,29 @@ import { Suspense } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { redirect } from "next/navigation";
-import OrganizerDashboardClient from "./OrganizerDashboardClient";
+import AdminDashboardClient from "./AdminDashboardClient";
 
-export default async function OrganizerDashboardPage() {
+export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
     redirect("/auth/login");
   }
 
-  if (session.user.role !== "ORGANIZER") {
+  if (session.user.role !== "ADMIN") {
     redirect("/");
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Suspense fallback={<OrganizerDashboardSkeleton />}>
-        <OrganizerDashboardClient />
+      <Suspense fallback={<AdminDashboardSkeleton />}>
+        <AdminDashboardClient />
       </Suspense>
     </div>
   );
 }
 
-function OrganizerDashboardSkeleton() {
+function AdminDashboardSkeleton() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="animate-pulse">

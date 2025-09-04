@@ -26,14 +26,14 @@ export async function GET(_request: NextRequest) {
     });
 
     // Calculate earnings from completed payments
-    let totalRevenue = 0;
-    let totalEarnings = 0;
+    let totalTicketRevenue = 0;
+    let totalWithdrawableRevenue = 0;
     let totalPlatformFees = 0;
 
     events.forEach((event) => {
       event.payments.forEach((payment) => {
-        totalRevenue += payment.amount;
-        totalEarnings += payment.organizerAmount;
+        totalTicketRevenue += payment.amount;
+        totalWithdrawableRevenue += payment.organizerAmount;
         totalPlatformFees += payment.platformFee;
       });
     });
@@ -48,7 +48,7 @@ export async function GET(_request: NextRequest) {
     });
 
     const pendingAmount = pendingWithdrawals._sum.amount || 0;
-    const availableBalance = totalEarnings - pendingAmount;
+    const availableBalance = totalWithdrawableRevenue - pendingAmount;
 
     // Get recent earnings (last 30 days)
     const thirtyDaysAgo = new Date();
@@ -86,8 +86,8 @@ export async function GET(_request: NextRequest) {
     }, {} as Record<string, number>);
 
     return NextResponse.json({
-      totalRevenue,
-      totalEarnings,
+      totalTicketRevenue,
+      totalWithdrawableRevenue,
       totalPlatformFees,
       availableBalance,
       pendingWithdrawals: pendingAmount,

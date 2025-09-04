@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create withdrawal request
+    // Create withdrawal request with PENDING status for admin approval
     const withdrawal = await db.payout.create({
       data: {
         amount,
@@ -149,68 +149,13 @@ export async function POST(request: NextRequest) {
         accountName: bankVerification.account_name,
         reason: reason || "Withdrawal request",
         organizerId: userId,
-        status: "PENDING",
+        status: "PENDING", // Always start as pending for admin approval
       },
     });
 
-    // Try to initiate transfer immediately
-    try {
-      // First, create recipient if not exists
-      const recipientResponse = await fetch(
-        "https://api.paystack.co/transferrecipient",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            type: "nuban",
-            name: bankVerification.account_name,
-            account_number: accountNumber,
-            bank_code: bankCode,
-          }),
-        }
-      );
-
-      if (recipientResponse.ok) {
-        const recipientData = await recipientResponse.json();
-
-        // Initiate transfer
-        const transferData = await initiateTransfer({
-          amount,
-          recipient: recipientData.data.recipient_code,
-          reason: reason || "Event ticket sales withdrawal",
-        });
-
-        // Update withdrawal with Paystack reference
-        await db.payout.update({
-          where: { id: withdrawal.id },
-          data: {
-            paystackRef: transferData.reference,
-            transferCode: transferData.transfer_code,
-            status: "PROCESSING",
-          },
-        });
-
-        return NextResponse.json({
-          message: "Withdrawal request submitted successfully",
-          withdrawal: {
-            ...withdrawal,
-            paystackRef: transferData.reference,
-            transferCode: transferData.transfer_code,
-            status: "PROCESSING",
-          },
-        });
-      }
-    } catch (transferError) {
-      console.error("Transfer initiation failed:", transferError);
-      // Withdrawal is still created but marked as pending
-      // It will be processed manually or retried later
-    }
-
     return NextResponse.json({
-      message: "Withdrawal request submitted successfully",
+      message:
+        "Withdrawal request submitted successfully and pending admin approval",
       withdrawal,
     });
   } catch (error) {

@@ -1,7 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
-import { exportAttendeesToCSV } from "@/lib/organizer/attendee-utils";
+import {
+  exportAttendeesToCSV,
+  exportAllAttendeesToCSV,
+} from "@/lib/organizer/attendee-utils";
 import { TicketStatus } from "@/generated/prisma";
 
 // Helper function to validate and convert status strings to TicketStatus enum
@@ -58,9 +61,7 @@ export async function GET(request: NextRequest) {
       csvContent = await exportAttendeesToCSV(eventId, userId, exportOptions);
     } else {
       // Export all events for the organizer
-      // For now, we'll export all attendees without event filtering
-      // You can enhance this to get all events and export them
-      csvContent = await exportAttendeesToCSV("", userId, exportOptions);
+      csvContent = await exportAllAttendeesToCSV(userId, exportOptions);
     }
 
     // Generate filename
@@ -82,12 +83,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-
-// if (!event) {
-// > 101 |       throw new Error(
-//       |            ^
-//   102 |         "Event not found or you don't have permission to access it"
-//   103 |       );
-//   104 |     }
-// Error exporting attendees: Error: Event not found or you don't have permission to access it

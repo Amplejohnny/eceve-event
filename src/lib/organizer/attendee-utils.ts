@@ -7,6 +7,8 @@ interface EventAttendee {
   attendeeName: string;
   attendeeEmail: string;
   attendeePhone: string | null;
+  eventTitle: string;
+  eventDate: Date;
   confirmationId: string;
   ticketTypeName: string;
   ticketPrice: number;
@@ -39,8 +41,8 @@ interface AttendeeExportSummary {
 
 // Export options
 interface ExportOptions {
-  includeName: boolean;           
-  includeEmail: boolean; 
+  includeName: boolean;
+  includeEmail: boolean;
   includePhone?: boolean;
   includePaymentRef?: boolean;
   statusFilter?: TicketStatus[];
@@ -79,7 +81,7 @@ export async function getEventAttendees(
   organizerId: string,
   options: ExportOptions = {
     includeName: false,
-    includeEmail: false
+    includeEmail: false,
   }
 ): Promise<{
   attendees: EventAttendee[];
@@ -164,6 +166,8 @@ export async function getEventAttendees(
       attendeeName: ticket.attendeeName,
       attendeeEmail: ticket.attendeeEmail,
       attendeePhone: options.includePhone ? ticket.attendeePhone : null,
+      eventTitle: event.title,
+      eventDate: event.date,
       confirmationId: ticket.confirmationId,
       ticketTypeName: ticket.ticketType.name,
       ticketPrice: ticket.price,
@@ -201,7 +205,7 @@ export async function exportAttendeesToCSV(
   organizerId: string,
   options: ExportOptions = {
     includeName: false,
-    includeEmail: false
+    includeEmail: false,
   }
 ): Promise<string> {
   const { attendees } = await getEventAttendees(eventId, organizerId, options);
@@ -240,6 +244,93 @@ export async function exportAttendeesToCSV(
       .map((field) => {
         // ✅ FIXED: Handle potential null/undefined values
         const safeField = field || "";
+        if (
+          safeField.includes(",") ||
+          safeField.includes('"') ||
+          safeField.includes("\n")
+        ) {
+          return `"${safeField.replace(/"/g, '""')}"`;
+        }
+        return safeField;
+      })
+      .join(",");
+  });
+
+  // Combine headers and rows
+  const csvContent = [headers.join(","), ...rows].join("\n");
+
+  return csvContent;
+}
+
+/**
+ * Export all attendees from all events for an organizer as CSV format
+ * @param organizerId - The organizer's user ID
+ * @param options - Export options
+ * @returns Promise containing CSV string
+ */
+export async function exportAllAttendeesToCSV(
+  organizerId: string,
+  options: ExportOptions = {
+    includeName: false,
+    includeEmail: false,
+  }
+): Promise<string> {
+  // Get all events for the organizer
+  const events = await db.event.findMany({
+    where: { organizerId },
+    include: { ticketTypes: true },
+  });
+
+  const allAttendees: EventAttendee[] = [];
+
+  for (const event of events) {
+    try {
+      const result = await getEventAttendees(event.id, organizerId, options);
+      allAttendees.push(...result.attendees);
+    } catch (error) {
+      console.warn(`Skipping event ${event.id} due to error:`, error);
+      continue;
+    }
+  }
+
+  // Define CSV headers for all events export
+  const headers = [
+    "Name",
+    "Email",
+    ...(options.includePhone ? ["Phone"] : []),
+    "Event Title",
+    "Event Date",
+    "Confirmation ID",
+    "Ticket Type",
+    "Price (₦)",
+    "Quantity",
+    "Status",
+    "Purchase Date",
+    ...(options.includePaymentRef ? ["Payment Reference"] : []),
+  ];
+
+  // Convert attendees to CSV rows
+  const rows = allAttendees.map((attendee) => {
+    const row = [
+      attendee.attendeeName,
+      attendee.attendeeEmail,
+      ...(options.includePhone ? [attendee.attendeePhone || ""] : []),
+      attendee.eventTitle,
+      attendee.eventDate.toISOString().split("T")[0],
+      attendee.confirmationId,
+      attendee.ticketTypeName,
+      attendee.ticketPrice.toString(),
+      attendee.quantity.toString(),
+      attendee.status,
+      attendee.purchaseDate.toISOString().split("T")[0], // Format as YYYY-MM-DD
+      ...(options.includePaymentRef ? [attendee.paymentReference || ""] : []),
+    ];
+
+    // Escape commas and quotes in CSV
+    return row
+      .map((field) => {
+        // ✅ FIXED: Normalize to string to avoid Date type issues
+        const safeField = String(field ?? "");
         if (
           safeField.includes(",") ||
           safeField.includes('"') ||
@@ -403,6 +494,8 @@ export async function searchEventAttendees(
     attendeePhone: ticket.attendeePhone,
     confirmationId: ticket.confirmationId,
     ticketTypeName: ticket.ticketType.name,
+    eventTitle: event.title,
+    eventDate: event.date,
     ticketPrice: ticket.price,
     quantity: ticket.quantity,
     status: ticket.status,
