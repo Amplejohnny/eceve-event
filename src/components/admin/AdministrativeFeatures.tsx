@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { RefreshCw, UsersIcon, CalendarIcon, EyeIcon } from "lucide-react";
+import { RefreshCw, UsersIcon, CalendarIcon } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 interface Organizer {

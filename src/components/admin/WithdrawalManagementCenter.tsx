@@ -76,10 +76,6 @@ export default function WithdrawalManagementCenter({
     (request) => filterStatus === "" || request.status === filterStatus
   );
 
-  const pendingRequests = filteredRequests.filter(
-    (request) => request.status === "PENDING"
-  );
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "COMPLETED":

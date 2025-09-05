@@ -24,7 +24,6 @@ interface PaymentMetadata {
     location: string;
   };
   paymentBreakdown: PaymentBreakdown;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
 
@@ -149,7 +148,7 @@ export async function POST(request: NextRequest) {
     const payment = await createPayment({
       paystackRef: reference,
       amount: paymentBreakdown.totalAmount,
-      platformFee: paymentBreakdown.paystackFee,
+      platformFee: paymentBreakdown.platformAmount,
       organizerAmount: paymentBreakdown.organizerAmount,
       customerEmail,
       eventId,

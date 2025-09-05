@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
-// import { calculatePaymentBreakdown } from "@/lib/payment-utils";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -14,31 +13,39 @@ export async function GET(_request: NextRequest) {
 
     const userId = session.user.id;
 
-    // Get all events by this organizer
+    // Get all events by this organizer with only payments that have tickets
     const events = await db.event.findMany({
       where: { organizerId: userId },
       include: {
         payments: {
-          where: { status: "COMPLETED" },
+          where: { 
+            status: "COMPLETED",
+            tickets: {
+              some: {} // Only include payments that have at least one ticket
+            }
+          },
           include: { tickets: true },
         },
       },
     });
 
-    // Calculate earnings from completed payments
+    // Calculate earnings from completed payments that have tickets only
     let totalTicketRevenue = 0;
     let totalWithdrawableRevenue = 0;
     let totalPlatformFees = 0;
 
     events.forEach((event) => {
       event.payments.forEach((payment) => {
-        totalTicketRevenue += payment.amount;
-        totalWithdrawableRevenue += payment.organizerAmount;
-        totalPlatformFees += payment.platformFee;
+        // Double-check that payment has tickets (additional safety)
+        if (payment.tickets.length > 0) {
+          totalTicketRevenue += payment.amount;
+          totalWithdrawableRevenue += payment.organizerAmount;
+          totalPlatformFees += payment.platformFee;
+        }
       });
     });
 
-    // Get pending withdrawals
+    // Get pending withdrawals (unchanged)
     const pendingWithdrawals = await db.payout.aggregate({
       where: {
         organizerId: userId,
@@ -50,7 +57,7 @@ export async function GET(_request: NextRequest) {
     const pendingAmount = pendingWithdrawals._sum.amount || 0;
     const availableBalance = totalWithdrawableRevenue - pendingAmount;
 
-    // Get recent earnings (last 30 days)
+    // Get recent earnings (last 30 days) - only payments with tickets
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -59,28 +66,48 @@ export async function GET(_request: NextRequest) {
         event: { organizerId: userId },
         status: "COMPLETED",
         paidAt: { gte: thirtyDaysAgo },
+        tickets: {
+          some: {} // Only payments with tickets
+        }
       },
+      include: {
+        tickets: true
+      }
     });
 
     const recentEarnings = recentPayments.reduce((sum, payment) => {
-      return sum + payment.organizerAmount;
+      // Additional check for tickets
+      if (payment.tickets.length > 0) {
+        return sum + payment.organizerAmount;
+      }
+      return sum;
     }, 0);
 
-    // Get monthly earnings for the last 6 months
-    const monthlyEarnings = await db.payment.groupBy({
-      by: ["paidAt"],
+    // Get monthly earnings for the last 6 months - only payments with tickets
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const monthlyPayments = await db.payment.findMany({
       where: {
         event: { organizerId: userId },
         status: "COMPLETED",
-        paidAt: { gte: new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000) },
+        paidAt: { gte: sixMonthsAgo },
+        tickets: {
+          some: {} // Only payments with tickets
+        }
       },
-      _sum: { organizerAmount: true },
+      select: {
+        paidAt: true,
+        organizerAmount: true,
+        tickets: true
+      }
     });
 
-    const monthlyData = monthlyEarnings.reduce((acc, payment) => {
-      const month = payment.paidAt?.toISOString().slice(0, 7); // YYYY-MM format
-      if (month) {
-        acc[month] = (acc[month] || 0) + (payment._sum.organizerAmount || 0);
+    const monthlyData = monthlyPayments.reduce((acc, payment) => {
+      // Additional check for tickets
+      if (payment.tickets.length > 0 && payment.paidAt) {
+        const month = payment.paidAt.toISOString().slice(0, 7); // YYYY-MM format
+        acc[month] = (acc[month] || 0) + payment.organizerAmount;
       }
       return acc;
     }, {} as Record<string, number>);
