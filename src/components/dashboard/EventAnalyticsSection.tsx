@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   UsersIcon,
   TicketIcon,
@@ -10,6 +10,16 @@ import {
 } from "@heroicons/react/24/outline";
 import { RefreshCw } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "react-hot-toast";
+
+interface Event {
+  id: string;
+  title: string;
+  date: Date;
+  slug: string;
+  attendeeCount: number;
+  totalRevenue: number;
+}
 
 interface EventAnalyticsSectionProps {
   attendeesData: any;
@@ -26,6 +36,34 @@ export default function EventAnalyticsSection({
   const [statusFilter, setStatusFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true);
+  const [exportingEventId, setExportingEventId] = useState<string | null>(null);
+  const [selectedEventFilter, setSelectedEventFilter] = useState("");
+
+  // Fetch organizer's events
+  const fetchEvents = async () => {
+    try {
+      setIsLoadingEvents(true);
+      const response = await fetch("/api/organizer/events");
+      
+      if (response.ok) {
+        const data = await response.json();
+        setEvents(data.events || []);
+      } else {
+        toast.error("Failed to load events");
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      toast.error("Failed to load events");
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -44,19 +82,35 @@ export default function EventAnalyticsSection({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Implement search functionality
     console.log("Searching for:", searchTerm);
   };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     onRefresh();
+    await fetchEvents(); // Also refresh events list
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  const handleExport = () => {
-    onExportAttendees();
+  const handleExportEvent = async (eventId: string) => {
+    try {
+      setExportingEventId(eventId);
+      await onExportAttendees(eventId);
+    } catch (error) {
+      console.error("Error exporting event:", error);
+    } finally {
+      setExportingEventId(null);
+    }
   };
+
+  const handleExportAll = () => {
+    onExportAttendees(); // Export all events (your original functionality)
+  };
+
+  // Filter attendees by selected event
+  const filteredAttendees = selectedEventFilter 
+    ? attendeesData?.attendees?.filter((attendee: any) => attendee.event.id === selectedEventFilter)
+    : attendeesData?.attendees;
 
   return (
     <div className="mb-8">
@@ -67,13 +121,89 @@ export default function EventAnalyticsSection({
         </h2>
         <div className="flex items-center space-x-3">
           <button
-            onClick={handleExport}
+            onClick={handleExportAll}
             className="flex cursor-pointer items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           >
             <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
-            Export CSV
+            Export All CSV
           </button>
         </div>
+      </div>
+
+      {/* Events Quick Export Section */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-medium text-gray-900">Quick Export by Event</h3>
+          <p className="text-sm text-gray-500 mt-1">Export CSV for specific events</p>
+        </div>
+        
+        {isLoadingEvents ? (
+          <div className="p-6">
+            <div className="animate-pulse space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center justify-between p-3 border rounded">
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-48"></div>
+                    <div className="h-3 bg-gray-200 rounded w-32"></div>
+                  </div>
+                  <div className="h-8 bg-gray-200 rounded w-24"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : events.length === 0 ? (
+          <div className="p-6 text-center">
+            <p className="text-gray-500">No events found. Create your first event to see analytics.</p>
+          </div>
+        ) : (
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {events.map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-gray-900 truncate">{event.title}</h4>
+                    <div className="mt-1 text-sm text-gray-500">
+                      <div>{new Date(event.date).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}</div>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span>{event.attendeeCount} attendees</span>
+                        <span>•</span>
+                        <span>₦{event.totalRevenue.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => handleExportEvent(event.id)}
+                    disabled={exportingEventId === event.id}
+                    className="ml-3 px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300 rounded-md transition-colors disabled:opacity-50 flex items-center space-x-1"
+                  >
+                    {exportingEventId === event.id ? (
+                      <>
+                        <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
+                          <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Exporting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ArrowDownTrayIcon className="h-3 w-3" />
+                        <span>Export</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Analytics Overview Cards */}
@@ -161,6 +291,20 @@ export default function EventAnalyticsSection({
 
           <div className="flex items-center space-x-3">
             <select
+              value={selectedEventFilter}
+              onChange={(e) => setSelectedEventFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              aria-label="Filter by event"
+            >
+              <option value="">All Events</option>
+              {events.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.title}
+                </option>
+              ))}
+            </select>
+
+            <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -222,8 +366,8 @@ export default function EventAnalyticsSection({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {attendeesData?.attendees?.length > 0 ? (
-                attendeesData.attendees.map((attendee: any) => (
+              {filteredAttendees?.length > 0 ? (
+                filteredAttendees.map((attendee: any) => (
                   <tr key={attendee.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>

@@ -103,9 +103,13 @@ export default function OrganizerDashboardClient() {
   };
 
   const handleExportAttendees = async (eventId?: string) => {
+    if (!eventId) {
+      toast.error("No event ID provided for export.");
+      return;
+    }
     try {
       const params = new URLSearchParams();
-      if (eventId) params.append("eventId", eventId);
+      params.append("eventId", eventId);
 
       const response = await fetch(`/api/organizer/attendees/export?${params}`);
 
@@ -114,7 +118,7 @@ export default function OrganizerDashboardClient() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `attendees-${eventId || "all"}-${
+        a.download = `attendees-${eventId}-${
           new Date().toISOString().split("T")[0]
         }.csv`;
         document.body.appendChild(a);
