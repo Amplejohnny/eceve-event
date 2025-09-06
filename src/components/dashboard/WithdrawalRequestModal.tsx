@@ -249,7 +249,7 @@ export default function WithdrawalRequestModal({
                   </label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1000"
                     value={formData.amount}
                     onChange={(e) =>
                       setFormData({ ...formData, amount: e.target.value })

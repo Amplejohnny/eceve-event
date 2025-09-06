@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { TicketStatus, EventType, TicketType } from "@/generated/prisma";
+import { fromKobo } from "../utils";
 
 // Interface for attendee data
 interface EventAttendee {
@@ -170,7 +171,7 @@ export async function getEventAttendees(
       eventDate: event.date,
       confirmationId: ticket.confirmationId,
       ticketTypeName: ticket.ticketType.name,
-      ticketPrice: ticket.price,
+      ticketPrice: fromKobo(ticket.price),
       quantity: ticket.quantity,
       status: ticket.status,
       purchaseDate: ticket.createdAt,
@@ -416,7 +417,7 @@ export async function getEventAttendeeStats(
     activeTickets: activeCount,
     usedTickets: usedCount,
     cancelledTickets: cancelledCount,
-    totalRevenue: revenueResult._sum.price || 0,
+    totalRevenue: fromKobo(revenueResult._sum.price || 0),
   };
 }
 
@@ -496,7 +497,7 @@ export async function searchEventAttendees(
     ticketTypeName: ticket.ticketType.name,
     eventTitle: event.title,
     eventDate: event.date,
-    ticketPrice: ticket.price,
+    ticketPrice: fromKobo(ticket.price),
     quantity: ticket.quantity,
     status: ticket.status,
     purchaseDate: ticket.createdAt,

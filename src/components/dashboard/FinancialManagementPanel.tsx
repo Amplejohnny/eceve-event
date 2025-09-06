@@ -8,7 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { TrendingUp, RefreshCw } from "lucide-react";
 import EarningsChart from "./EarningsChart";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, fromKobo } from "@/lib/utils";
 
 interface FinancialManagementPanelProps {
   earningsData: any;
@@ -228,7 +228,7 @@ export default function FinancialManagementPanel({
                       {new Date(withdrawal.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatCurrency(withdrawal.amount)}
+                      {formatCurrency(fromKobo(withdrawal.amount))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div>

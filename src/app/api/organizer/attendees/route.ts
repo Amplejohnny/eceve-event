@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 import type { Prisma, TicketStatus } from "@/generated/prisma";
+import { fromKobo } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -121,7 +122,7 @@ export async function GET(request: NextRequest) {
       attendeePhone: ticket.attendeePhone,
       confirmationId: ticket.confirmationId,
       quantity: ticket.quantity,
-      price: ticket.price,
+      price: fromKobo(ticket.price),
       status: ticket.status,
       purchaseDate: ticket.createdAt,
       usedAt: ticket.usedAt,
@@ -134,7 +135,7 @@ export async function GET(request: NextRequest) {
       ticketType: {
         id: ticket.ticketType.id,
         name: ticket.ticketType.name,
-        currentPrice: ticket.ticketType.price,
+        currentPrice: fromKobo(ticket.ticketType.price),
       },
       payment: ticket.payment
         ? {

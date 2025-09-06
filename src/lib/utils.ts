@@ -17,15 +17,12 @@ export function formatCurrency(
   amount: number,
   currency: string = "NGN"
 ): string {
-  // Convert from kobo to naira for display
-  const nairaAmount = amount / 100;
-
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency: currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(nairaAmount);
+  }).format(amount);
 }
 
 // Convert Naira to Kobo for Paystack
