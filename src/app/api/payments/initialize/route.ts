@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     const payment = await createPayment({
       paystackRef: reference,
-      amount: paymentBreakdown.totalAmount,
+      amount: paymentBreakdown.ticketSubtotal,
       platformFee: paymentBreakdown.platformAmount,
       organizerAmount: paymentBreakdown.organizerAmount,
       customerEmail,

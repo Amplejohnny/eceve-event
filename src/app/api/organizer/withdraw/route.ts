@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
+import { toKobo } from "@/lib/utils";
 
 // Paystack bank verification function
 async function verifyBankAccount(accountNumber: string, bankCode: string) {
@@ -24,39 +25,6 @@ async function verifyBankAccount(accountNumber: string, bankCode: string) {
     return data.data;
   } catch (error) {
     console.error("Bank verification error:", error);
-    throw error;
-  }
-}
-
-// Paystack transfer initiation function
-async function initiateTransfer(data: {
-  amount: number;
-  recipient: string;
-  reason: string;
-}) {
-  try {
-    const response = await fetch("https://api.paystack.co/transfer", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        source: "balance",
-        amount: data.amount * 100, // Convert to kobo
-        recipient: data.recipient,
-        reason: data.reason,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Transfer initiation failed");
-    }
-
-    const result = await response.json();
-    return result.data;
-  } catch (error) {
-    console.error("Transfer initiation error:", error);
     throw error;
   }
 }
@@ -94,11 +62,14 @@ export async function POST(request: NextRequest) {
       where: {
         event: { organizerId: userId },
         status: "COMPLETED",
+        tickets: {
+          some: {}, // Only payments with tickets
+        },
       },
       _sum: { organizerAmount: true },
     });
 
-    const totalEarnings = earnings._sum.organizerAmount || 0;
+    const totalEarnings = (earnings._sum.organizerAmount || 0) / 100;
 
     const pendingWithdrawals = await db.payout.aggregate({
       where: {
@@ -108,12 +79,14 @@ export async function POST(request: NextRequest) {
       _sum: { amount: true },
     });
 
-    const pendingAmount = pendingWithdrawals._sum.amount || 0;
+    const pendingAmount = (pendingWithdrawals._sum.amount || 0) / 100; // Convert to naira
     const availableBalance = totalEarnings - pendingAmount;
 
     if (amount > availableBalance) {
       return NextResponse.json(
-        { error: "Insufficient balance" },
+        {
+          error: `Insufficient balance. Available: ₦${availableBalance.toLocaleString()}, Requested: ₦${amount.toLocaleString()}`,
+        },
         { status: 400 }
       );
     }
@@ -143,13 +116,13 @@ export async function POST(request: NextRequest) {
     // Create withdrawal request with PENDING status for admin approval
     const withdrawal = await db.payout.create({
       data: {
-        amount,
+        amount: toKobo(amount),
         bankAccount: accountNumber,
         bankCode,
         accountName: bankVerification.account_name,
         reason: reason || "Withdrawal request",
         organizerId: userId,
-        status: "PENDING", // Always start as pending for admin approval
+        status: "PENDING",
       },
     });
 

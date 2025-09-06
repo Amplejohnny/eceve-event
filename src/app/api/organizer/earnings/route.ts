@@ -18,11 +18,11 @@ export async function GET(_request: NextRequest) {
       where: { organizerId: userId },
       include: {
         payments: {
-          where: { 
+          where: {
             status: "COMPLETED",
             tickets: {
-              some: {} // Only include payments that have at least one ticket
-            }
+              some: {}, // Only include payments that have at least one ticket
+            },
           },
           include: { tickets: true },
         },
@@ -67,12 +67,12 @@ export async function GET(_request: NextRequest) {
         status: "COMPLETED",
         paidAt: { gte: thirtyDaysAgo },
         tickets: {
-          some: {} // Only payments with tickets
-        }
+          some: {}, // Only payments with tickets
+        },
       },
       include: {
-        tickets: true
-      }
+        tickets: true,
+      },
     });
 
     const recentEarnings = recentPayments.reduce((sum, payment) => {
@@ -93,24 +93,37 @@ export async function GET(_request: NextRequest) {
         status: "COMPLETED",
         paidAt: { gte: sixMonthsAgo },
         tickets: {
-          some: {} // Only payments with tickets
-        }
+          some: {}, // Only payments with tickets
+        },
       },
       select: {
         paidAt: true,
         organizerAmount: true,
-        tickets: true
-      }
+        tickets: true,
+      },
     });
 
     const monthlyData = monthlyPayments.reduce((acc, payment) => {
       // Additional check for tickets
       if (payment.tickets.length > 0 && payment.paidAt) {
         const month = payment.paidAt.toISOString().slice(0, 7); // YYYY-MM format
-        acc[month] = (acc[month] || 0) + payment.organizerAmount;
+        acc[month] = (acc[month] || 0) + (payment.organizerAmount / 100);
       }
       return acc;
     }, {} as Record<string, number>);
+
+    // Fill in missing months with 0 for better chart display
+    const currentDate = new Date();
+    const sixMonthsAgoDate = new Date();
+    sixMonthsAgoDate.setMonth(currentDate.getMonth() - 5); // Last 6 months including current
+
+    const completeMonthlyData: Record<string, number> = {};
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(sixMonthsAgoDate);
+      date.setMonth(sixMonthsAgoDate.getMonth() + i);
+      const monthKey = date.toISOString().slice(0, 7);
+      completeMonthlyData[monthKey] = monthlyData[monthKey] || 0;
+    }
 
     return NextResponse.json({
       totalTicketRevenue,
@@ -119,7 +132,7 @@ export async function GET(_request: NextRequest) {
       availableBalance,
       pendingWithdrawals: pendingAmount,
       recentEarnings,
-      monthlyData,
+      monthlyData: completeMonthlyData,
       currency: "NGN",
     });
   } catch (error) {

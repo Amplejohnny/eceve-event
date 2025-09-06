@@ -68,7 +68,11 @@ export default function WithdrawalRequestModal({
     if (!formData.amount || parseFloat(formData.amount) <= 0) {
       newErrors.amount = "Please enter a valid amount";
     } else if (parseFloat(formData.amount) > availableBalance) {
-      newErrors.amount = "Amount exceeds available balance";
+      newErrors.amount = `Requested amount (₦${parseFloat(
+        formData.amount
+      ).toLocaleString()}) exceeds your available balance (${formatCurrency(
+        availableBalance
+      )})`;
     }
 
     if (!formData.bankCode) {
@@ -88,9 +92,12 @@ export default function WithdrawalRequestModal({
   };
 
   const verifyBankAccount = async () => {
-    if (!formData.accountNumber || !formData.bankCode) {
-      toast.error("Please fill in account number and select bank first");
-      return;
+    // Clear previous errors
+    setErrors({});
+
+    // Validate all fields first
+    if (!validateForm()) {
+      return; // Stop if validation fails
     }
 
     setIsVerifying(true);
@@ -140,12 +147,12 @@ export default function WithdrawalRequestModal({
         },
         body: JSON.stringify({
           ...formData,
-          amount: parseFloat(formData.amount),
+          amount: parseFloat(formData.amount), // Keep as naira
+          accountName: verificationResult.accountName, // Use verified name
         }),
       });
 
       if (response.ok) {
-        // const result = await response.json();
         toast.success("Withdrawal request submitted successfully!");
         onSuccess();
       } else {
@@ -242,6 +249,7 @@ export default function WithdrawalRequestModal({
                   </label>
                   <input
                     type="number"
+                    step="0.01"
                     value={formData.amount}
                     onChange={(e) =>
                       setFormData({ ...formData, amount: e.target.value })
@@ -253,7 +261,9 @@ export default function WithdrawalRequestModal({
                     max={availableBalance}
                   />
                   {errors.amount && (
-                    <p className="mt-1 text-sm text-red-600">{errors.amount}</p>
+                    <p className="mt-1 text-sm text-red-600 font-medium">
+                      {errors.amount}
+                    </p>
                   )}
                 </div>
 
@@ -359,7 +369,7 @@ export default function WithdrawalRequestModal({
               <div className="flex justify-end space-x-3 pt-6">
                 <button
                   onClick={onClose}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="px-4 cursor-pointer py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Cancel
                 </button>
@@ -368,7 +378,7 @@ export default function WithdrawalRequestModal({
                   disabled={
                     isVerifying || !formData.accountNumber || !formData.bankCode
                   }
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 cursor-pointer py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isVerifying ? "Verifying..." : "Verify Account"}
                 </button>
@@ -407,7 +417,11 @@ export default function WithdrawalRequestModal({
                   <div className="flex justify-between">
                     <span className="text-gray-600">Amount:</span>
                     <span className="font-medium">
-                      {formatCurrency(parseFloat(formData.amount))}
+                      ₦
+                      {parseFloat(formData.amount).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </span>
                   </div>
                   <div className="flex justify-between">
