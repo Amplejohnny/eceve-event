@@ -516,7 +516,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
     return true;
   },
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   validateField: (field: string, value: any) => {
     const { setError, clearError } = get();
 

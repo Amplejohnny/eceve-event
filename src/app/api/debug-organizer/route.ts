@@ -53,7 +53,6 @@ export async function GET() {
         userExists: !!user,
         eventExists: !!event,
         organizerExists: !!event?.organizer,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         organizerHasImage: !!(event?.organizer as any)?.image,
       },
     });

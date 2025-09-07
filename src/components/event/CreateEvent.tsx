@@ -333,7 +333,6 @@ const CreateEvent: React.FC = () => {
     event.target.value = "";
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleInputChange = (field: string, value: any) => {
     // Update the form data
     updateFormData({ [field]: value });
