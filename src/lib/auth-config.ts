@@ -22,18 +22,33 @@ if (missingVars.length > 0) {
   console.warn(`Missing environment variables: ${missingVars.join(", ")}`);
 }
 
+// Helper function to get admin emails (supports both single and multiple)
+function getAdminEmails(): string[] {
+  return process.env.ADMIN_EMAILS && process.env.ADMIN_EMAILS.trim()
+    ? process.env.ADMIN_EMAILS.split(",").map((e) => e.trim().toLowerCase())
+    : process.env.ADMIN_EMAIL
+    ? [process.env.ADMIN_EMAIL.toLowerCase()]
+    : [];
+}
+
+// Helper function to check if email is admin
+function isAdminEmail(email: string): boolean {
+  const adminEmails = getAdminEmails();
+  return adminEmails.includes(email.toLowerCase());
+}
+
 // Helper function to check and upgrade admin user
 async function checkAndUpgradeAdmin(email: string) {
-  if (email === process.env.ADMIN_EMAIL) {
+  if (isAdminEmail(email)) {
     const user = await db.user.findUnique({
-      where: { email },
+      where: { email: email.toLowerCase() },
       select: { id: true, role: true, emailVerified: true, isActive: true },
     });
 
     if (user && user.role !== "ADMIN") {
       console.log(`Upgrading user ${email} to ADMIN role`);
       await db.user.update({
-        where: { email },
+        where: { email: email.toLowerCase() },
         data: {
           role: "ADMIN",
           emailVerified: user.emailVerified || new Date(),
@@ -140,8 +155,8 @@ export const authOptions: NextAuthOptions = {
 
         // Handle email provider sign-ins (ONLY for email verification after registration)
         if (account?.provider === "email") {
-          // Check if this is the admin email
-          if (user.email === process.env.ADMIN_EMAIL) {
+          // Check if this is an admin email
+          if (isAdminEmail(user.email)) {
             const existingUser = await db.user.findUnique({
               where: { email: user.email },
             });
@@ -217,34 +232,9 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (dbUser) {
-          // Check if this user should be admin
-          const adminEmails =
-            process.env.ADMIN_EMAILS?.split(",").map((e) =>
-              e.trim().toLowerCase()
-            ) ||
-            (process.env.ADMIN_EMAIL
-              ? [process.env.ADMIN_EMAIL.toLowerCase()]
-              : []);
-
-          if (
-            adminEmails.includes(dbUser.email.toLowerCase()) &&
-            dbUser.role !== "ADMIN"
-          ) {
-            await db.user.update({
-              where: { id: dbUser.id },
-              data: {
-                role: "ADMIN",
-                emailVerified: dbUser.emailVerified || new Date(),
-                isActive: true,
-              },
-            });
-            token.role = "ADMIN";
-          } else {
-            token.role = dbUser.role;
-          }
-
+          token.id = dbUser.id;
+          token.role = dbUser.role;
           token.emailVerified = dbUser.emailVerified;
-          token.name = dbUser.name;
         }
       }
 
@@ -256,10 +246,7 @@ export const authOptions: NextAuthOptions = {
 
         if (dbUser) {
           // Check if this user should be admin
-          if (
-            dbUser.email === process.env.ADMIN_EMAIL &&
-            dbUser.role !== "ADMIN"
-          ) {
+          if (isAdminEmail(dbUser.email) && dbUser.role !== "ADMIN") {
             await db.user.update({
               where: { id: dbUser.id },
               data: {
@@ -320,7 +307,7 @@ export const authOptions: NextAuthOptions = {
       console.log(`User created: ${user.email}`);
 
       // Check if this is admin email during user creation
-      if (user.email && user.email === process.env.ADMIN_EMAIL) {
+      if (user.email && isAdminEmail(user.email)) {
         console.log(`Admin user detected during creation: ${user.email}`);
         await checkAndUpgradeAdmin(user.email);
       }
