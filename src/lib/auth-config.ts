@@ -22,6 +22,30 @@ if (missingVars.length > 0) {
   console.warn(`Missing environment variables: ${missingVars.join(", ")}`);
 }
 
+// Helper function to check and upgrade admin user
+async function checkAndUpgradeAdmin(email: string) {
+  if (email === process.env.ADMIN_EMAIL) {
+    const user = await db.user.findUnique({
+      where: { email },
+      select: { id: true, role: true, emailVerified: true, isActive: true },
+    });
+
+    if (user && user.role !== "ADMIN") {
+      console.log(`Upgrading user ${email} to ADMIN role`);
+      await db.user.update({
+        where: { email },
+        data: {
+          role: "ADMIN",
+          emailVerified: user.emailVerified || new Date(),
+          isActive: true,
+        },
+      });
+      return true;
+    }
+  }
+  return false;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(db) as Adapter,
   session: {
@@ -51,6 +75,9 @@ export const authOptions: NextAuthOptions = {
         const email = credentials.email.toLowerCase().trim();
 
         try {
+          // Check and upgrade admin before getting user
+          await checkAndUpgradeAdmin(email);
+
           // Since validation is already done by the API route,
           // we just need to get the user for session creation
           const user = await db.user.findUnique({
@@ -182,25 +209,70 @@ export const authOptions: NextAuthOptions = {
           return token;
         }
 
+        // Check and upgrade admin user if needed
+        await checkAndUpgradeAdmin(user.email);
+
         const dbUser = await db.user.findUnique({
           where: { email: user.email },
         });
 
         if (dbUser) {
-          token.id = dbUser.id;
-          token.role = dbUser.role;
+          // Check if this user should be admin
+          const adminEmails =
+            process.env.ADMIN_EMAILS?.split(",").map((e) =>
+              e.trim().toLowerCase()
+            ) ||
+            (process.env.ADMIN_EMAIL
+              ? [process.env.ADMIN_EMAIL.toLowerCase()]
+              : []);
+
+          if (
+            adminEmails.includes(dbUser.email.toLowerCase()) &&
+            dbUser.role !== "ADMIN"
+          ) {
+            await db.user.update({
+              where: { id: dbUser.id },
+              data: {
+                role: "ADMIN",
+                emailVerified: dbUser.emailVerified || new Date(),
+                isActive: true,
+              },
+            });
+            token.role = "ADMIN";
+          } else {
+            token.role = dbUser.role;
+          }
+
           token.emailVerified = dbUser.emailVerified;
+          token.name = dbUser.name;
         }
       }
 
-      // Handle session updates
-      if (trigger === "update") {
+      // Handle session updates and check for admin upgrades
+      if (trigger === "update" || !token.role) {
         const dbUser = await db.user.findUnique({
           where: { id: token.id as string },
         });
 
         if (dbUser) {
-          token.role = dbUser.role;
+          // Check if this user should be admin
+          if (
+            dbUser.email === process.env.ADMIN_EMAIL &&
+            dbUser.role !== "ADMIN"
+          ) {
+            await db.user.update({
+              where: { id: dbUser.id },
+              data: {
+                role: "ADMIN",
+                emailVerified: dbUser.emailVerified || new Date(),
+                isActive: true,
+              },
+            });
+            token.role = "ADMIN";
+          } else {
+            token.role = dbUser.role;
+          }
+
           token.emailVerified = dbUser.emailVerified;
           token.name = dbUser.name;
         }
@@ -246,6 +318,12 @@ export const authOptions: NextAuthOptions = {
   events: {
     async createUser({ user }) {
       console.log(`User created: ${user.email}`);
+
+      // Check if this is admin email during user creation
+      if (user.email && user.email === process.env.ADMIN_EMAIL) {
+        console.log(`Admin user detected during creation: ${user.email}`);
+        await checkAndUpgradeAdmin(user.email);
+      }
     },
     async signIn({ user, account }) {
       console.log(`User signed in: ${user.email} via ${account?.provider}`);
