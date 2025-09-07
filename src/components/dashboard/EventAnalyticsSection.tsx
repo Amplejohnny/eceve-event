@@ -40,13 +40,15 @@ export default function EventAnalyticsSection({
   const [isLoadingEvents, setIsLoadingEvents] = useState(true);
   const [exportingEventId, setExportingEventId] = useState<string | null>(null);
   const [selectedEventFilter, setSelectedEventFilter] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any>(null);
 
   // Fetch organizer's events
   const fetchEvents = async () => {
     try {
       setIsLoadingEvents(true);
       const response = await fetch("/api/organizer/events");
-      
+
       if (response.ok) {
         const data = await response.json();
         setEvents(data.events || []);
@@ -65,6 +67,45 @@ export default function EventAnalyticsSection({
     fetchEvents();
   }, []);
 
+  const applyFilters = async (
+    search: string,
+    status: string,
+    eventId: string
+  ) => {
+    try {
+      setIsSearching(true);
+
+      const params = new URLSearchParams({
+        page: "1",
+        limit: "50",
+      });
+
+      if (search.trim()) params.append("search", search);
+      if (status) params.append("status", status);
+      if (eventId) params.append("eventId", eventId);
+
+      const response = await fetch(`/api/organizer/attendees?${params}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        if (search.trim() || status || eventId) {
+          setSearchResults(data);
+        } else {
+          setSearchResults(null);
+          // Trigger refresh of main attendees data
+          onRefresh();
+        }
+      } else {
+        toast.error("Failed to filter attendees");
+      }
+    } catch (error) {
+      console.error("Error filtering attendees:", error);
+      toast.error("Failed to filter attendees");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "ACTIVE":
@@ -80,9 +121,83 @@ export default function EventAnalyticsSection({
     }
   };
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Searching for:", searchTerm);
+
+    if (!searchTerm.trim()) {
+      // If search term is empty, reset to show all attendees
+      setSearchResults(null);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+
+      // Build search parameters
+      const params = new URLSearchParams({
+        search: searchTerm,
+        page: "1", // Reset to first page when searching
+        limit: "50", // Show more results when searching
+      });
+
+      // Add filters if they exist
+      if (statusFilter) {
+        params.append("status", statusFilter);
+      }
+
+      if (selectedEventFilter) {
+        params.append("eventId", selectedEventFilter);
+      }
+
+      const response = await fetch(`/api/organizer/attendees?${params}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data);
+        toast.success(
+          `Found ${data.attendees.length} attendees matching "${searchTerm}"`
+        );
+      } else {
+        toast.error("Failed to search attendees");
+      }
+    } catch (error) {
+      console.error("Error searching attendees:", error);
+      toast.error("Failed to search attendees");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
+    setSearchResults(null);
+    setStatusFilter("");
+    setSelectedEventFilter("");
+    onRefresh();
+  };
+
+  const handleStatusFilter = async (status: string) => {
+    setStatusFilter(status);
+
+    // If there's an active search, re-run the search with the new status filter
+    if (searchResults) {
+      await applyFilters(searchTerm, status, selectedEventFilter);
+    } else {
+      // If no search is active, fetch filtered data from API
+      await applyFilters("", status, selectedEventFilter);
+    }
+  };
+
+  const handleEventFilter = async (eventId: string) => {
+    setSelectedEventFilter(eventId);
+
+    // If there's an active search, re-run the search with the new event filter
+    if (searchResults) {
+      await applyFilters(searchTerm, statusFilter, eventId);
+    } else {
+      // If no search is active, fetch filtered data from API
+      await applyFilters("", statusFilter, eventId);
+    }
   };
 
   const handleRefresh = async () => {
@@ -95,7 +210,7 @@ export default function EventAnalyticsSection({
   const handleExportEvent = async (eventId: string) => {
     try {
       setExportingEventId(eventId);
-      await onExportAttendees(eventId);
+      onExportAttendees(eventId);
     } catch (error) {
       console.error("Error exporting event:", error);
     } finally {
@@ -104,12 +219,12 @@ export default function EventAnalyticsSection({
   };
 
   const handleExportAll = () => {
-    onExportAttendees(); // Export all events (your original functionality)
+    onExportAttendees();
   };
 
   // Filter attendees by selected event
-  const filteredAttendees = selectedEventFilter 
-    ? attendeesData?.attendees?.filter((attendee: any) => attendee.event.id === selectedEventFilter)
+  const displayedAttendees = searchResults
+    ? searchResults.attendees
     : attendeesData?.attendees;
 
   return (
@@ -133,15 +248,49 @@ export default function EventAnalyticsSection({
       {/* Events Quick Export Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Quick Export by Event</h3>
-          <p className="text-sm text-gray-500 mt-1">Export CSV for specific events</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">
+                Attendee Management
+              </h3>
+              {(searchResults || statusFilter || selectedEventFilter) && (
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                  {searchTerm && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      Search: "{searchTerm}"
+                    </span>
+                  )}
+                  {statusFilter && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Status: {statusFilter}
+                    </span>
+                  )}
+                  {selectedEventFilter && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      Event:{" "}
+                      {events.find((e) => e.id === selectedEventFilter)?.title}
+                    </span>
+                  )}
+                  <button
+                    onClick={clearSearch}
+                    className="text-xs text-blue-600 hover:text-blue-700 underline"
+                  >
+                    Clear all filters
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        
+
         {isLoadingEvents ? (
           <div className="p-6">
             <div className="animate-pulse space-y-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between p-3 border rounded">
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3 border rounded"
+                >
                   <div className="space-y-2 flex-1">
                     <div className="h-4 bg-gray-200 rounded w-48"></div>
                     <div className="h-3 bg-gray-200 rounded w-32"></div>
@@ -153,7 +302,9 @@ export default function EventAnalyticsSection({
           </div>
         ) : events.length === 0 ? (
           <div className="p-6 text-center">
-            <p className="text-gray-500">No events found. Create your first event to see analytics.</p>
+            <p className="text-gray-500">
+              No events found. Create your first event to see analytics.
+            </p>
           </div>
         ) : (
           <div className="p-6">
@@ -164,13 +315,17 @@ export default function EventAnalyticsSection({
                   className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-gray-900 truncate">{event.title}</h4>
+                    <h4 className="font-medium text-gray-900 truncate">
+                      {event.title}
+                    </h4>
                     <div className="mt-1 text-sm text-gray-500">
-                      <div>{new Date(event.date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}</div>
+                      <div>
+                        {new Date(event.date).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
                       <div className="flex items-center space-x-2 mt-1">
                         <span>{event.attendeeCount} attendees</span>
                         <span>•</span>
@@ -178,17 +333,32 @@ export default function EventAnalyticsSection({
                       </div>
                     </div>
                   </div>
-                  
+
                   <button
                     onClick={() => handleExportEvent(event.id)}
                     disabled={exportingEventId === event.id}
-                    className="ml-3 px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300 rounded-md transition-colors disabled:opacity-50 flex items-center space-x-1"
+                    className="ml-3 cursor-pointer px-3 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-200 hover:border-blue-300 rounded-md transition-colors disabled:opacity-50 flex items-center space-x-1"
                   >
                     {exportingEventId === event.id ? (
                       <>
-                        <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25"></circle>
-                          <path fill="currentColor" className="opacity-75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <svg
+                          className="animate-spin h-3 w-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                            className="opacity-25"
+                          ></circle>
+                          <path
+                            fill="currentColor"
+                            className="opacity-75"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
                         </svg>
                         <span>Exporting...</span>
                       </>
@@ -269,7 +439,7 @@ export default function EventAnalyticsSection({
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <form onSubmit={handleSearch} className="flex-1">
-            <div className="flex">
+            <div className="flex gap-x-0.5">
               <div className="relative flex-1">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
@@ -282,17 +452,53 @@ export default function EventAnalyticsSection({
               </div>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white font-medium rounded-r-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                disabled={isSearching}
+                className="px-4 rounded-md cursor-pointer py-2 bg-blue-600 text-white font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400 flex items-center space-x-1"
               >
-                Search
+                {isSearching ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        className="opacity-25"
+                      ></circle>
+                      <path
+                        fill="currentColor"
+                        className="opacity-75"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    <span>Searching...</span>
+                  </>
+                ) : (
+                  <span>Search</span>
+                )}
               </button>
+              {searchResults && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="px-3 py-2 cursor-pointer text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-r-md transition-colors"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </form>
 
           <div className="flex items-center space-x-3">
             <select
               value={selectedEventFilter}
-              onChange={(e) => setSelectedEventFilter(e.target.value)}
+              onChange={(e) => handleEventFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               aria-label="Filter by event"
             >
@@ -306,7 +512,7 @@ export default function EventAnalyticsSection({
 
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              onChange={(e) => handleStatusFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               aria-label="Filter by status"
             >
@@ -320,7 +526,7 @@ export default function EventAnalyticsSection({
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className="flex items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="flex cursor-pointer items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               title="Refresh"
             >
               <RefreshCw
@@ -334,9 +540,24 @@ export default function EventAnalyticsSection({
       {/* Attendees Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">
-            Attendee Management
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900">
+              Attendee Management
+            </h3>
+            {searchResults && (
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">
+                  Showing search results for "{searchTerm}"
+                </span>
+                <button
+                  onClick={clearSearch}
+                  className="text-xs text-blue-600 hover:text-blue-700 underline"
+                >
+                  Show all attendees
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -366,8 +587,8 @@ export default function EventAnalyticsSection({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAttendees?.length > 0 ? (
-                filteredAttendees.map((attendee: any) => (
+              {displayedAttendees?.length > 0 ? (
+                displayedAttendees.map((attendee: any) => (
                   <tr key={attendee.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
