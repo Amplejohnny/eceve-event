@@ -17,6 +17,7 @@ import {
 import { useSession } from "next-auth/react";
 import { useEventStore } from "@/store/eventStore";
 import Image from "next/image";
+import { getEventImageUrl } from "@/lib/utils";
 
 interface EventData {
   id: string;
@@ -133,19 +134,13 @@ const EventCard: React.FC<EventCardProps> = ({
       <div className="bg-white rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
         {/* Thumbnail */}
         <div className="relative h-44 md:h-48 lg:h-52 bg-gray-200">
-          {event.imageUrl ? (
-            <Image
-              src={event.imageUrl}
-              alt={event.title}
-              className="w-full h-full object-cover"
-              width={800}
-              height={240}
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100">
-              <Calendar className="h-10 w-10 text-gray-400" />
-            </div>
-          )}
+          <Image
+            src={getEventImageUrl(event.imageUrl)}
+            alt={event.title}
+            className="w-full h-full object-cover"
+            width={800}
+            height={240}
+          />
 
           {/* Date Badge */}
           <div className="absolute top-3 left-3 bg-white shadow-md rounded-md px-2 py-1 text-center">

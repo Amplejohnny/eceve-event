@@ -165,7 +165,6 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
 
   useEffect(() => {
-
     if (!slug) {
       router.push("/");
       return;
@@ -279,16 +278,14 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
       <div className="min-h-screen bg-gray-50">
         {/* Header Banner */}
         <div className="relative h-64 md:h-80 bg-gradient-to-r from-red-600 to-green-600">
-          {eventToShow.imageUrl && (
-            <Image
-              src={getEventImageUrl(eventToShow.imageUrl)}
-              alt={eventToShow.title}
-              title={eventToShow.title}
-              fill
-              className="object-cover"
-              priority
-            />
-          )}
+          <Image
+            src={getEventImageUrl(eventToShow.imageUrl)}
+            alt={eventToShow.title}
+            title={eventToShow.title}
+            fill
+            className="object-cover"
+            priority
+          />
         </div>
 
         <div className="max-w-6xl mx-auto px-4 py-8">
