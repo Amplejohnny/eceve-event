@@ -239,7 +239,7 @@ const CreateEvent: React.FC = () => {
     setImageUploadError("");
 
     try {
-      // Validate file on frontend first
+      // Enhanced frontend validation with better error messages
       const allowedTypes = [
         "image/jpeg",
         "image/jpg",
@@ -248,13 +248,25 @@ const CreateEvent: React.FC = () => {
       ];
       if (!allowedTypes.includes(file.type)) {
         throw new Error(
-          "Invalid file type. Only JPEG, PNG, and WebP are allowed."
+          `Invalid file type "${file.type}". Only JPEG, PNG, and WebP images are allowed.`
         );
       }
 
       const maxSize = 5 * 1024 * 1024; // 5MB
+      const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+
       if (file.size > maxSize) {
-        throw new Error("File size too large. Maximum size is 5MB.");
+        throw new Error(
+          `File size too large. Your file is ${fileSizeMB}MB but the maximum allowed size is 5MB. Please compress your image or choose a smaller file.`
+        );
+      }
+
+      // Additional validation for very small files
+      if (file.size < 1024) {
+        // Less than 1KB
+        throw new Error(
+          "File seems to be corrupted or too small. Please choose a valid image file."
+        );
       }
 
       // Create FormData for file upload
@@ -264,6 +276,7 @@ const CreateEvent: React.FC = () => {
       // console.log("Uploading image...", {
       //   name: file.name,
       //   size: file.size,
+      //   sizeMB: fileSizeMB,
       //   type: file.type,
       // });
 
@@ -275,14 +288,33 @@ const CreateEvent: React.FC = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to upload image");
+
+        // Handle specific error codes from backend
+        switch (errorData.code) {
+          case "FILE_TOO_LARGE":
+            throw new Error(
+              `File too large! Your image is ${errorData.details?.fileSizeMB}MB, but maximum allowed is 5MB. Please compress your image or choose a smaller file.`
+            );
+          case "INVALID_TYPE":
+            throw new Error(
+              `Invalid file type "${errorData.details?.received}". Only JPEG, PNG, and WebP images are allowed.`
+            );
+          case "STORAGE_ERROR":
+            throw new Error(
+              "Failed to save image to storage. Please check your internet connection and try again."
+            );
+          default:
+            throw new Error(errorData.error || "Failed to upload image");
+        }
       }
 
       const result = await response.json();
       // console.log("Image upload successful:", result);
 
       if (!result.imageUrl) {
-        throw new Error("No image URL returned from server");
+        throw new Error(
+          "Upload succeeded but no image URL was returned. Please try again."
+        );
       }
 
       // Update form data with the server URL
@@ -319,7 +351,33 @@ const CreateEvent: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Clear previous errors
+    setImageUploadError("");
+
     try {
+      // Pre-validation before upload attempt
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        setImageUploadError(
+          `Invalid file type "${file.type}". Please select a JPEG, PNG, or WebP image.`
+        );
+        return;
+      }
+
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        setImageUploadError(
+          `File too large! Your image is ${fileSizeMB}MB, but maximum allowed is 5MB. Please compress your image or choose a smaller file.`
+        );
+        return;
+      }
+
       const imageUrl = await handleImageUpload(file);
       // Make sure both bannerImage and imageUrl are set
       updateFormData({
@@ -328,9 +386,9 @@ const CreateEvent: React.FC = () => {
       });
     } catch (error) {
       console.error("Failed to upload image:", error);
+    } finally {
+      event.target.value = "";
     }
-
-    event.target.value = "";
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -982,6 +1040,42 @@ const CreateEvent: React.FC = () => {
               <div>
                 <h2 className="text-lg font-semibold mb-4">Event Banner</h2>
 
+                {/* File size info banner */}
+                <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg
+                        className="w-5 h-5 text-blue-600 mt-0.5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-medium text-blue-800">
+                        Image Requirements
+                      </h4>
+                      <div className="text-sm text-blue-700 mt-1">
+                        <p>
+                          • Maximum file size: <strong>5MB</strong>
+                        </p>
+                        <p>
+                          • Supported formats: <strong>JPEG, PNG, WebP</strong>
+                        </p>
+                        <p>
+                          • Recommended minimum size:{" "}
+                          <strong>1792 × 1024 pixels</strong>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div
                   className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200 ${
                     imageUploadError
@@ -1001,6 +1095,9 @@ const CreateEvent: React.FC = () => {
                       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto"></div>
                       <p className="text-yellow-600 font-medium">
                         Uploading image...
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Please wait while we process your image
                       </p>
                     </div>
                   ) : formData.imageUrl ? (
@@ -1055,7 +1152,11 @@ const CreateEvent: React.FC = () => {
                       <p className="text-sm text-gray-500 mb-4">
                         Upload images must be at least 1792 pixels wide by 1024
                         pixels high. Valid file formats: JPG, PNG, WebP. Max
-                        size: 5MB.
+                        size: <strong>5MB</strong>.
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Tip: Compress large images before uploading for faster
+                        processing
                       </p>
                     </div>
                   )}
@@ -1071,11 +1172,60 @@ const CreateEvent: React.FC = () => {
                   className="hidden"
                 />
 
-                {/* Error Display */}
+                {/* Enhanced Error Display */}
                 {imageUploadError && (
-                  <div className="mt-4 flex items-center text-red-600 text-sm bg-red-50 p-3 rounded-md border border-red-200">
-                    <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-                    {imageUploadError}
+                  <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="w-5 h-5 text-red-600 mr-3 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-red-800 mb-1">
+                          Upload Failed
+                        </h4>
+                        <p className="text-sm text-red-700">
+                          {imageUploadError}
+                        </p>
+
+                        {/* Helpful tips based on error type */}
+                        {imageUploadError
+                          .toLowerCase()
+                          .includes("file too large") && (
+                          <div className="mt-2 text-xs text-red-600">
+                            <p className="font-medium">
+                              💡 Tips to reduce file size:
+                            </p>
+                            <ul className="list-disc list-inside ml-2 mt-1 space-y-1">
+                              <li>
+                                Use online image compressors like TinyPNG or
+                                Squoosh
+                              </li>
+                              <li>
+                                Reduce image dimensions (recommended:
+                                1792×1024px)
+                              </li>
+                              <li>Save as JPEG with lower quality (80-85%)</li>
+                            </ul>
+                          </div>
+                        )}
+
+                        {imageUploadError
+                          .toLowerCase()
+                          .includes("invalid file type") && (
+                          <div className="mt-2 text-xs text-red-600">
+                            <p className="font-medium">💡 Supported formats:</p>
+                            <p className="ml-2 mt-1">
+                              JPEG (.jpg, .jpeg), PNG (.png), or WebP (.webp)
+                            </p>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => setImageUploadError("")}
+                          className="mt-3 text-sm text-red-700 hover:text-red-900 font-medium underline"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1083,7 +1233,13 @@ const CreateEvent: React.FC = () => {
                 {formData.imageUrl && !imageUploadError && (
                   <div className="mt-4 flex items-center text-green-600 text-sm bg-green-50 p-3 rounded-md border border-green-200">
                     <CheckIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-                    Image uploaded successfully!
+                    <span>
+                      Image uploaded successfully! File size:{" "}
+                      {formData.bannerImage
+                        ? (formData.bannerImage.size / (1024 * 1024)).toFixed(2)
+                        : ""}
+                      MB
+                    </span>
                   </div>
                 )}
 
