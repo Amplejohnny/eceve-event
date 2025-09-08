@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,9 +15,7 @@ export async function POST(request: NextRequest) {
     const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        {
-          error: "Invalid file type. Only JPEG, PNG, and WebP are allowed.",
-        },
+        { error: "Invalid file type. Only JPEG, PNG, and WebP are allowed." },
         { status: 400 }
       );
     }
@@ -27,15 +24,10 @@ export async function POST(request: NextRequest) {
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
-        {
-          error: "File size too large. Maximum size is 5MB.",
-        },
+        { error: "File size too large. Maximum size is 5MB." },
         { status: 400 }
       );
     }
-
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
 
     // Generate unique filename
     const timestamp = Date.now();
@@ -43,21 +35,35 @@ export async function POST(request: NextRequest) {
     const fileExtension = file.name.split(".").pop();
     const fileName = `event-${timestamp}-${randomString}.${fileExtension}`;
 
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "events");
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch {
-      // Directory might already exist, that's okay
-      console.log("Upload directory already exists or was created");
+    // Initialize Supabase client (use service role key for server-side)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Convert file to buffer (Supabase expects ArrayBuffer or Blob)
+    const arrayBuffer = await file.arrayBuffer();
+
+    // Upload to Supabase Storage
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("events")
+      .upload(fileName, arrayBuffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Supabase upload error:", uploadError);
+      throw uploadError;
     }
 
-    // Write file
-    const filePath = path.join(uploadDir, fileName);
-    await writeFile(filePath, buffer);
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from("events")
+      .getPublicUrl(fileName);
 
-    // Return the public URL
-    const imageUrl = `/uploads/events/${fileName}`;
+    const imageUrl = urlData.publicUrl;
 
     console.log("Image uploaded successfully:", {
       fileName,
@@ -75,9 +81,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error uploading image:", error);
     return NextResponse.json(
-      {
-        error: "Internal server error during image upload",
-      },
+      { error: "Internal server error during image upload" },
       { status: 500 }
     );
   }

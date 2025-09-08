@@ -51,6 +51,12 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/api/**",
       },
+      {
+        protocol: "https",
+        hostname: "lnxeoxmihfnywklmridh.supabase.co",
+        port: "",
+        pathname: "/**",
+      },
     ],
   },
 
