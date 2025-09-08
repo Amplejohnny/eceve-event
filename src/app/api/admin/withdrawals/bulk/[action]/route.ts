@@ -9,7 +9,7 @@ import {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { action: string } }
+  { params }: { params: Promise<{ action: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -22,7 +22,7 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { action } = params;
+    const { action } = await params;
 
     if (!["approve", "reject"].includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -135,9 +135,9 @@ export async function POST(
       withdrawals: updatedWithdrawals,
     });
   } catch (error) {
-    console.error(`Error bulk ${params.action}ing withdrawals:`, error);
+    console.error(`Error bulk ${(await params).action}ing withdrawals:`, error);
     return NextResponse.json(
-      { error: `Failed to bulk ${params.action} withdrawals` },
+      { error: `Failed to bulk ${(await params).action} withdrawals` },
       { status: 500 }
     );
   }

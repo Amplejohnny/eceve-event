@@ -70,8 +70,11 @@ async function initiatePaystackTransfer(data: {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { withdrawalId: string; action: string } }
+  context: { params: Promise<{ withdrawalId: string; action: string }> }
 ) {
+  // Declare action and withdrawalId in outer scope for catch block access
+  let action: string | undefined = undefined;
+  let withdrawalId: string | undefined = undefined;
   try {
     const session = await getServerSession(authOptions);
 
@@ -83,7 +86,12 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { withdrawalId, action } = params;
+    // Await the params
+    const params = await context.params;
+    withdrawalId = params.withdrawalId;
+    action = params.action;
+
+    // const { withdrawalId, action } = await context.params;
 
     if (!["approve", "reject"].includes(action)) {
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
@@ -251,9 +259,9 @@ export async function POST(
       transferCode,
     });
   } catch (error) {
-    console.error(`Error ${params.action}ing withdrawal:`, error);
+    console.error(`Error ${action}ing withdrawal:`, error);
     return NextResponse.json(
-      { error: `Failed to ${params.action} withdrawal` },
+      { error: `Failed to ${action} withdrawal` },
       { status: 500 }
     );
   }
