@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
 
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -15,7 +15,18 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // GET STATUS FILTER FROM QUERY PARAMS
+    const { searchParams } = new URL(request.url);
+    const statusFilter = searchParams.get("status");
+
+    // BUILD WHERE CLAUSE WITH OPTIONAL STATUS FILTERING
+    const whereClause: any = {};
+    if (statusFilter && statusFilter.trim() !== "") {
+      whereClause.status = statusFilter;
+    }
+
     const events = await db.event.findMany({
+      where: whereClause,
       select: {
         id: true,
         title: true,

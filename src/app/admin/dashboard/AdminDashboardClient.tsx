@@ -74,6 +74,32 @@ export default function AdminDashboardClient() {
     fetchDashboardData();
   }, [refreshKey]);
 
+  const handleRefreshWithFilters = async (statusFilter?: string) => {
+    try {
+      const url = statusFilter
+        ? `/api/admin/events?status=${statusFilter}`
+        : "/api/admin/events";
+
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+
+        // Update only the events part of dashboardData
+        setDashboardData((prev) =>
+          prev
+            ? {
+                ...prev,
+                events: data.events || [],
+              }
+            : null
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching filtered events:", error);
+      toast.error("Failed to filter events");
+    }
+  };
+
   const handleWithdrawalApproval = async (
     withdrawalId: string,
     action: "approve" | "reject"
@@ -151,8 +177,8 @@ export default function AdminDashboardClient() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
         <p className="text-gray-600 mt-2">
-          Welcome back, <b>{session?.user?.name}</b>! Manage platform operations and
-          monitor financial activities.
+          Welcome back, <b>{session?.user?.name}</b>! Manage platform operations
+          and monitor financial activities.
         </p>
       </div>
 
@@ -175,6 +201,7 @@ export default function AdminDashboardClient() {
         organizers={dashboardData?.organizers || []}
         events={dashboardData?.events || []}
         onRefresh={() => setRefreshKey((prev) => prev + 1)}
+        onRefreshWithFilters={handleRefreshWithFilters}
       />
     </div>
   );
