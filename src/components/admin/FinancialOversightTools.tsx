@@ -51,7 +51,7 @@ export default function FinancialOversightTools({
   onRefresh,
 }: FinancialOversightToolsProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState("30");
+  const [selectedPeriod, setSelectedPeriod] = useState("all");
   const [platformStats, setPlatformStats] = useState<PlatformStats | null>(
     initialPlatformStats || null
   );
@@ -126,6 +126,7 @@ export default function FinancialOversightTools({
             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             aria-label="Select time period"
           >
+            <option value="all">All time</option>
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
             <option value="90">Last 90 days</option>
@@ -168,7 +169,11 @@ export default function FinancialOversightTools({
                       ? formatCurrency(platformStats.totalRevenue)
                       : "₦0"}
                   </p>
-                  <p className="text-xs text-gray-500">All time</p>
+                  <p className="text-xs text-gray-500">
+                    {selectedPeriod === "all"
+                      ? "All time"
+                      : `Last ${selectedPeriod} days`}
+                  </p>
                 </div>
               </div>
             </div>
@@ -188,7 +193,13 @@ export default function FinancialOversightTools({
                       ? formatCurrency(platformStats.totalOrganizerAmount)
                       : "₦0"}
                   </p>
-                  <p className="text-xs text-gray-500">93% of revenue</p>
+                  <p className="text-xs text-gray-500">
+                    93% of revenue (
+                    {selectedPeriod === "all"
+                      ? "All time"
+                      : `Last ${selectedPeriod} days`}
+                    )
+                  </p>
                 </div>
               </div>
             </div>
@@ -209,7 +220,11 @@ export default function FinancialOversightTools({
                       : "₦0"}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {calculatePlatformFeePercentage()}% of total revenue
+                    {calculatePlatformFeePercentage()}% of total revenue (
+                    {selectedPeriod === "all"
+                      ? "All time"
+                      : `Last ${selectedPeriod} days`}
+                    )
                   </p>
                 </div>
               </div>
@@ -230,7 +245,13 @@ export default function FinancialOversightTools({
                       ? formatCurrency(platformStats.totalPayouts)
                       : "₦0"}
                   </p>
-                  <p className="text-xs text-gray-500">To organizers</p>
+                  <p className="text-xs text-gray-500">
+                    To organizers (
+                    {selectedPeriod === "all"
+                      ? "All time"
+                      : `Last ${selectedPeriod} days`}
+                    )
+                  </p>
                 </div>
               </div>
             </div>
