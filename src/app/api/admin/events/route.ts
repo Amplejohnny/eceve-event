@@ -15,7 +15,6 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get all events with their performance metrics
     const events = await db.event.findMany({
       select: {
         id: true,
@@ -37,11 +36,15 @@ export async function GET(_request: NextRequest) {
           },
         },
         payments: {
-          where: { status: "COMPLETED" },
+          where: {
+            status: "COMPLETED",
+            tickets: {
+              some: {},
+            },
+          },
           select: {
             amount: true,
           },
-          take: 1, // Just need one to check if there are any
         },
       },
       orderBy: {
@@ -49,7 +52,6 @@ export async function GET(_request: NextRequest) {
       },
     });
 
-    // Calculate metrics for each event
     const eventsWithMetrics = events.map((event) => {
       const ticketsSold = event.tickets.reduce((sum, ticket) => {
         return sum + ticket.quantity;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { RefreshCw, UsersIcon, CalendarIcon } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, fromKobo } from "@/lib/utils";
 
 interface Organizer {
   id: string;
@@ -284,7 +284,7 @@ export default function AdministrativeFeatures({
                           {organizer.eventsCount}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {formatCurrency(organizer.totalRevenue)}
+                          {formatCurrency(fromKobo(organizer.totalRevenue))}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {new Date(organizer.createdAt).toLocaleDateString()}
@@ -379,7 +379,7 @@ export default function AdministrativeFeatures({
                           {event.ticketsSold}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {formatCurrency(event.totalRevenue)}
+                          {formatCurrency(fromKobo(event.totalRevenue))}
                         </td>
                       </tr>
                     ))

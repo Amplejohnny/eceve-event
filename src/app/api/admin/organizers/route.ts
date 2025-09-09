@@ -15,7 +15,6 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get all organizers with their performance metrics
     const organizers = await db.user.findMany({
       where: { role: "ORGANIZER" },
       select: {
@@ -28,7 +27,12 @@ export async function GET(_request: NextRequest) {
           select: {
             id: true,
             payments: {
-              where: { status: "COMPLETED" },
+              where: {
+                status: "COMPLETED",
+                tickets: {
+                  some: {},
+                },
+              },
               select: {
                 amount: true,
                 organizerAmount: true,
@@ -42,7 +46,6 @@ export async function GET(_request: NextRequest) {
       },
     });
 
-    // Calculate metrics for each organizer
     const organizersWithMetrics = organizers.map((organizer) => {
       const eventsCount = organizer.events.length;
       const totalRevenue = organizer.events.reduce((sum, event) => {
