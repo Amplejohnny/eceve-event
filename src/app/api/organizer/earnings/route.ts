@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-config";
 import { db } from "@/lib/db";
+import { fromKobo } from "@/lib/utils";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -38,9 +39,9 @@ export async function GET(_request: NextRequest) {
       event.payments.forEach((payment) => {
         // Double-check that payment has tickets (additional safety)
         if (payment.tickets.length > 0) {
-          totalTicketRevenue += payment.amount / 100;
-          totalWithdrawableRevenue += payment.organizerAmount / 100;
-          totalPlatformFees += payment.platformFee / 100;
+          totalTicketRevenue += fromKobo(payment.amount);
+          totalWithdrawableRevenue += fromKobo(payment.organizerAmount);
+          totalPlatformFees += fromKobo(payment.platformFee);
         }
       });
     });
@@ -54,7 +55,7 @@ export async function GET(_request: NextRequest) {
       _sum: { amount: true },
     });
 
-    const pendingAmount = (pendingWithdrawals._sum.amount || 0) / 100;
+    const pendingAmount = fromKobo(pendingWithdrawals._sum.amount || 0);
     const availableBalance = totalWithdrawableRevenue - pendingAmount;
 
     // Get recent earnings (last 30 days) - only payments with tickets
@@ -78,7 +79,7 @@ export async function GET(_request: NextRequest) {
     const recentEarnings = recentPayments.reduce((sum, payment) => {
       // Additional check for tickets
       if (payment.tickets.length > 0) {
-        return sum + (payment.organizerAmount / 100);
+        return sum + fromKobo(payment.organizerAmount);
       }
       return sum;
     }, 0);
@@ -107,7 +108,7 @@ export async function GET(_request: NextRequest) {
       // Additional check for tickets
       if (payment.tickets.length > 0 && payment.paidAt) {
         const month = payment.paidAt.toISOString().slice(0, 7); // YYYY-MM format
-        acc[month] = (acc[month] || 0) + payment.organizerAmount / 100;
+        acc[month] = (acc[month] || 0) + fromKobo(payment.organizerAmount);
       }
       return acc;
     }, {} as Record<string, number>);

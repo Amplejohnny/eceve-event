@@ -12,6 +12,7 @@ interface AdminDashboardData {
   platformStats: {
     totalRevenue: number;
     totalPlatformFees: number;
+    totalOrganizerAmount: number;
     totalPayouts: number;
     pendingObligations: number;
     platformBalance: number;

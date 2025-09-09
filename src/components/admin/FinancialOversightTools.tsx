@@ -4,22 +4,24 @@ import { useState } from "react";
 import {
   RefreshCw,
   TrendingUp,
-  DollarSign,
   BanknoteIcon,
   ChartBarIcon,
+  Users,
 } from "lucide-react";
+import { FaNairaSign } from "react-icons/fa6";
 import { formatCurrency } from "@/lib/utils";
 
 interface PlatformStats {
   totalRevenue: number;
   totalPlatformFees: number;
+  totalOrganizerAmount: number;
   totalPayouts: number;
   pendingObligations: number;
   platformBalance: number;
 }
 
 interface FinancialOversightToolsProps {
-  platformStats: PlatformStats | null |undefined;
+  platformStats: PlatformStats | null | undefined;
   onRefresh: () => void;
 }
 
@@ -46,7 +48,7 @@ export default function FinancialOversightTools({
 
   const calculateNetRevenue = () => {
     if (!platformStats) return 0;
-    return platformStats.totalRevenue - platformStats.totalPlatformFees;
+    return platformStats.totalRevenue - platformStats.totalOrganizerAmount;
   };
 
   return (
@@ -82,7 +84,7 @@ export default function FinancialOversightTools({
       </div>
 
       {/* Financial Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {/* Total Platform Revenue */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center">
@@ -103,11 +105,31 @@ export default function FinancialOversightTools({
           </div>
         </div>
 
+        {/* Organizer Amount */}
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <Users className="h-8 w-8 text-orange-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">
+                Organizer Earnings
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {platformStats
+                  ? formatCurrency(platformStats.totalOrganizerAmount)
+                  : "₦0"}
+              </p>
+              <p className="text-xs text-gray-500">93% of revenue</p>
+            </div>
+          </div>
+        </div>
+
         {/* Platform Fees */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <DollarSign className="h-8 w-8 text-blue-600" />
+              <FaNairaSign className="h-8 w-8 text-blue-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">
@@ -181,17 +203,19 @@ export default function FinancialOversightTools({
               </span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">Platform Fees (7%)</span>
-              <span className="text-sm font-medium text-red-600">
+              <span className="text-sm text-gray-600">
+                Organizer Earnings (93%)
+              </span>
+              <span className="text-sm font-medium text-orange-600">
                 -
                 {platformStats
-                  ? formatCurrency(platformStats.totalPlatformFees)
+                  ? formatCurrency(platformStats.totalOrganizerAmount)
                   : "₦0"}
               </span>
             </div>
             <div className="flex justify-between items-center border-t pt-2">
               <span className="text-sm font-medium text-gray-900">
-                Net Revenue
+                Net Revenue (Platform Fees)
               </span>
               <span className="text-sm font-medium text-green-600">
                 {formatCurrency(calculateNetRevenue())}
