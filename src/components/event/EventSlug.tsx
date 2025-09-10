@@ -686,9 +686,9 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
                     setIsDeleteConfirmOpen(false);
                     if (data?.softDeleted) {
                       // Stay on page or redirect to my-events with notice
-                      router.push("/my-events");
+                      router.push("/");
                     } else {
-                      router.push("/my-events");
+                      router.push("/");
                     }
                   } catch (e) {
                     console.error(e);
