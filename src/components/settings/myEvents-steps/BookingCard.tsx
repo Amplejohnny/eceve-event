@@ -6,7 +6,8 @@ import {
   getErrorMessage,
   truncateText,
   getRelativeTime,
-  getEventShareUrl
+  getEventShareUrl,
+  fromKobo
 } from "@/lib/utils";
 import Image from "next/image";
 
@@ -166,7 +167,7 @@ export default function BookingCard({
                       {ticket.ticketType.name}
                     </span>
                     <p className="text-gray-600">
-                      {formatCurrency(ticket.price)} × {ticket.quantity}
+                      {formatCurrency(fromKobo(ticket.price))} × {ticket.quantity}
                     </p>
                   </div>
                   <div>
@@ -174,7 +175,7 @@ export default function BookingCard({
                       {ticket.ticketType.name}
                     </span>
                     <p className="text-gray-600">
-                      {formatCurrency(ticket.price)} ×{" "}
+                      {formatCurrency(fromKobo(ticket.price))} ×{" "}
                       {ticket.quantity ?? "Unlimited"}
                     </p>
                   </div>
@@ -182,8 +183,8 @@ export default function BookingCard({
                     <span className="font-medium text-gray-900">
                       Total:{" "}
                       {ticket.quantity
-                        ? formatCurrency(ticket.price * ticket.quantity)
-                        : formatCurrency(ticket.price)}
+                        ? formatCurrency(fromKobo(ticket.price * ticket.quantity))
+                        : formatCurrency(fromKobo(ticket.price))}
                     </span>
                     <p className="text-gray-600">
                       Booked {getRelativeTime(ticket.createdAt)}
