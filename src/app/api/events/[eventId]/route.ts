@@ -1,6 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-config";
 
 interface EventWithRelations {
   id: string;
@@ -95,7 +97,7 @@ const transformEventDataWithCounts = (
       : null,
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),
-  };
+  } as any;
 
   return transformed;
 };
@@ -163,6 +165,22 @@ export async function GET(
 
     const transformedEvent = transformEventDataWithCounts(event, soldCountMap);
 
+    // Optionally include sales info
+    const url = new URL(request.url);
+    const withSales = url.searchParams.get("withSales");
+    if (withSales === "1") {
+      const [ticketsCount, paymentsCount] = await Promise.all([
+        db.ticket.count({
+          where: { eventId: event.id, status: { in: ["ACTIVE", "USED"] } },
+        }),
+        db.payment.count({ where: { eventId: event.id, status: "COMPLETED" } }),
+      ]);
+      (transformedEvent as any).sales = {
+        tickets: ticketsCount,
+        completedPayments: paymentsCount,
+      };
+    }
+
     return NextResponse.json(transformedEvent);
   } catch (error) {
     console.error("API Error:", error);
@@ -176,6 +194,75 @@ export async function GET(
       }
     }
 
+    return createErrorResponse("Internal server error", 500);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ eventId: string }> }
+) {
+  const { eventId } = await params;
+
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return createErrorResponse("Unauthorized", 401);
+    }
+
+    if (!eventId) {
+      return createErrorResponse("Event ID is required", 400);
+    }
+
+    const searchById = looksLikeId(eventId);
+
+    const event = await db.event.findUnique({
+      where: searchById ? { id: eventId } : { slug: eventId },
+      select: { id: true, organizerId: true },
+    });
+
+    if (!event) {
+      return createErrorResponse("Event not found", 404);
+    }
+
+    if (event.organizerId !== session.user.id) {
+      return createErrorResponse(
+        "Forbidden: Only the organizer can delete",
+        403
+      );
+    }
+
+    // Check for existing tickets/payments (purchases)
+    const [ticketsCount, paymentsCount] = await Promise.all([
+      db.ticket.count({
+        where: { eventId: event.id, status: { in: ["ACTIVE", "USED"] } },
+      }),
+      db.payment.count({ where: { eventId: event.id, status: "COMPLETED" } }),
+    ]);
+
+    const hasSales = ticketsCount > 0 || paymentsCount > 0;
+
+    if (hasSales) {
+      // Soft delete: keep records for audit; hide and cancel the event
+      await db.event.update({
+        where: { id: event.id },
+        data: { status: "CANCELLED", isPublic: false },
+      });
+      return NextResponse.json({ success: true, softDeleted: true });
+    }
+
+    // No sales: hard delete everything related then the event
+    await db.$transaction([
+      db.eventFavorite.deleteMany({ where: { eventId: event.id } }),
+      db.ticket.deleteMany({ where: { eventId: event.id } }),
+      db.payment.deleteMany({ where: { eventId: event.id } }),
+      db.ticketType.deleteMany({ where: { eventId: event.id } }),
+      db.event.delete({ where: { id: event.id } }),
+    ]);
+
+    return NextResponse.json({ success: true, softDeleted: false });
+  } catch (error) {
+    console.error("Delete event error:", error);
     return createErrorResponse("Internal server error", 500);
   }
 }

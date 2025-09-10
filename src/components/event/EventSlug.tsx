@@ -163,6 +163,12 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
   const [imageError, setImageError] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [hasSales, setHasSales] = useState<{
+    tickets: number;
+    payments: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!slug) {
@@ -197,8 +203,7 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
     };
 
     fetchEvent();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, router, loadEvent, setCurrentEvent]);
+  }, [slug, router, loadEvent, setCurrentEvent, initialEvent]);
 
   const handleFavoriteToggle = (): void => {
     if (!session?.user) {
@@ -217,10 +222,34 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
     setImageError(false);
   }, [currentEvent?.organizer?.image]);
 
+  const eventToShow = currentEvent || initialEvent;
+
+  useEffect(() => {
+    const fetchSales = async (): Promise<void> => {
+      try {
+        if (!eventToShow?.id) return;
+        const res = await fetch(`/api/events/${eventToShow.id}?withSales=1`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.sales) {
+          setHasSales({
+            tickets: data.sales.tickets || 0,
+            payments: data.sales.completedPayments || 0,
+          });
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchSales();
+  }, [eventToShow?.id]);
+
   const eventUrl = typeof window !== "undefined" ? window.location.href : "";
   const isActuallyLoading = localLoading || isLoading;
 
-  const eventToShow = currentEvent || initialEvent;
+  const isOrganizer = Boolean(
+    session?.user?.id && eventToShow?.organizer?.id === session.user.id
+  );
 
   if (isActuallyLoading) {
     return (
@@ -371,35 +400,46 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="font-medium text-gray-900 mb-4">Hosted by</h3>
 
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-r from-red-600 to-green-600">
-                    {eventToShow.organizer?.image && !imageError ? (
-                      <Image
-                        src={eventToShow.organizer.image}
-                        alt={eventToShow.organizer?.name || "Organizer"}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                        onError={() => {
-                          setImageError(true);
-                        }}
-                      />
-                    ) : (
-                      <span className="text-white font-semibold text-lg">
-                        {eventToShow.organizer?.name?.charAt(0) || "O"}
-                      </span>
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
-                      {eventToShow.organizer?.name || "Event Organizer"}
-                    </p>
-                    {eventToShow.organizer?.email && (
-                      <p className="text-sm text-gray-500">
-                        {eventToShow.organizer.email}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-r from-red-600 to-green-600">
+                      {eventToShow.organizer?.image && !imageError ? (
+                        <Image
+                          src={eventToShow.organizer.image}
+                          alt={eventToShow.organizer?.name || "Organizer"}
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover"
+                          onError={() => {
+                            setImageError(true);
+                          }}
+                        />
+                      ) : (
+                        <span className="text-white font-semibold text-lg">
+                          {eventToShow.organizer?.name?.charAt(0) || "O"}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {eventToShow.organizer?.name || "Event Organizer"}
                       </p>
-                    )}
+                      {eventToShow.organizer?.email && (
+                        <p className="text-sm text-gray-500">
+                          {eventToShow.organizer.email}
+                        </p>
+                      )}
+                    </div>
                   </div>
+
+                  {isOrganizer && (
+                    <button
+                      onClick={() => setIsDeleteConfirmOpen(true)}
+                      className="inline-flex cursor-pointer items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    >
+                      Delete Event
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -589,6 +629,89 @@ const EventSlugPage = ({ initialEvent }: EventSlugPageProps): JSX.Element => {
         eventUrl={eventUrl}
         eventTitle={(currentEvent || initialEvent)?.title || ""}
       />
+
+      {/* Delete Confirm Modal */}
+      {isDeleteConfirmOpen && eventToShow && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold">Delete this event?</h3>
+              <button
+                title="Close"
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            {hasSales && (hasSales.tickets > 0 || hasSales.payments > 0) ? (
+              <>
+                <p className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3 mb-3">
+                  Warning: This event has existing purchases (tickets:{" "}
+                  {hasSales.tickets}, completed payments: {hasSales.payments}).
+                </p>
+                <p className="text-sm text-gray-600 mb-5">
+                  Deleting will not remove purchased records. Instead, the event
+                  will be cancelled and hidden from the public. Are you sure you
+                  want to proceed?
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-gray-600 mb-5">
+                This action cannot be undone. All tickets and associated data
+                will be removed. Are you sure you want to permanently delete "
+                {eventToShow.title}"?
+              </p>
+            )}
+            <div className="flex flex-col sm:flex-row gap-3 justify-end">
+              <button
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                className="inline-flex cursor-pointer items-center justify-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!eventToShow) return;
+                  try {
+                    setIsDeleting(true);
+                    const res = await fetch(`/api/events/${eventToShow.id}`, {
+                      method: "DELETE",
+                    });
+                    if (!res.ok) {
+                      const err = await res.json().catch(() => ({} as any));
+                      throw new Error(err.error || "Failed to delete event");
+                    }
+                    const data = await res.json().catch(() => ({} as any));
+                    setIsDeleteConfirmOpen(false);
+                    if (data?.softDeleted) {
+                      // Stay on page or redirect to my-events with notice
+                      router.push("/my-events");
+                    } else {
+                      router.push("/my-events");
+                    }
+                  } catch (e) {
+                    console.error(e);
+                    alert(
+                      e instanceof Error ? e.message : "Failed to delete event"
+                    );
+                  } finally {
+                    setIsDeleting(false);
+                  }
+                }}
+                disabled={isDeleting}
+                className="inline-flex cursor-pointer items-center justify-center px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+              >
+                {isDeleting
+                  ? "Processing…"
+                  : hasSales && (hasSales.tickets > 0 || hasSales.payments > 0)
+                  ? "Cancel & Hide"
+                  : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };
