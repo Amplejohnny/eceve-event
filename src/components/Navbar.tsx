@@ -184,7 +184,7 @@ const Navbar: React.FC = () => {
                       </Link>
 
                       <Link
-                        href="/favorites"
+                        href="#"
                         className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
                         onClick={() => setIsProfileDropdownOpen(false)}
                       >
@@ -377,7 +377,7 @@ const Navbar: React.FC = () => {
                           </Link>
 
                           <Link
-                            href="/favorites"
+                            href="#"
                             className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
                             onClick={() => setIsMobileMenuOpen(false)}
                           >
