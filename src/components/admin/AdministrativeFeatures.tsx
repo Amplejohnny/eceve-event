@@ -33,6 +33,7 @@ interface AdministrativeFeaturesProps {
   events: Event[];
   onRefresh: () => void;
   onRefreshWithFilters?: (statusFilter?: string) => void;
+  onTriggerUpdateEvents?: () => Promise<void> | void;
 }
 
 export default function AdministrativeFeatures({
@@ -40,8 +41,10 @@ export default function AdministrativeFeatures({
   events,
   onRefresh,
   onRefreshWithFilters,
+  onTriggerUpdateEvents,
 }: AdministrativeFeaturesProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isUpdatingEvents, setIsUpdatingEvents] = useState(false);
   const [activeTab, setActiveTab] = useState<"organizers" | "events">(
     "organizers"
   );
@@ -52,6 +55,16 @@ export default function AdministrativeFeatures({
     setIsRefreshing(true);
     onRefresh();
     setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
+  const handleUpdateEventsClick = async () => {
+    if (!onTriggerUpdateEvents) return;
+    try {
+      setIsUpdatingEvents(true);
+      await onTriggerUpdateEvents();
+    } finally {
+      setIsUpdatingEvents(false);
+    }
   };
 
   const filteredOrganizers = organizers.filter(
@@ -99,16 +112,27 @@ export default function AdministrativeFeatures({
         <h2 className="text-2xl font-semibold text-gray-900">
           Administrative Features
         </h2>
-        <button
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="flex cursor-pointer items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          title="Refresh"
-        >
-          <RefreshCw
-            className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
-          />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="flex cursor-pointer items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            title="Refresh"
+          >
+            <RefreshCw
+              className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
+            />
+          </button>
+          {onTriggerUpdateEvents && (
+            <button
+              onClick={handleUpdateEventsClick}
+              disabled={isUpdatingEvents}
+              className="inline-flex cursor-pointer items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {isUpdatingEvents ? "Updating…" : "Update Event Statuses"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -314,7 +338,9 @@ export default function AdministrativeFeatures({
                           {formatCurrency(fromKobo(organizer.totalRevenue))}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(organizer.createdAt).toLocaleDateString()}
+                          {new Date(organizer.createdAt).toLocaleDateString(
+                            "en-GB"
+                          )}
                         </td>
                       </tr>
                     ))
@@ -400,7 +426,7 @@ export default function AdministrativeFeatures({
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(event.date).toLocaleDateString()}
+                          {new Date(event.date).toLocaleDateString("en-GB")}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {event.ticketsSold}

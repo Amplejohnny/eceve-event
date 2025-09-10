@@ -225,7 +225,9 @@ export default function FinancialManagementPanel({
                 withdrawalsData.withdrawals.map((withdrawal: any) => (
                   <tr key={withdrawal.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(withdrawal.createdAt).toLocaleDateString()}
+                      {new Date(withdrawal.createdAt).toLocaleDateString(
+                        "en-GB"
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {formatCurrency(fromKobo(withdrawal.amount))}

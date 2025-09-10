@@ -558,3 +558,61 @@ export async function refundTicket(ticketId: string) {
     },
   });
 }
+
+// Compute effective end datetime helpers for events
+export type EventTimeLike = {
+  date: Date;
+  endDate?: Date | null;
+  startTime: string; // HH:MM
+  endTime?: string | null; // HH:MM
+  status?: "DRAFT" | "ACTIVE" | "CANCELLED" | "COMPLETED" | "SUSPENDED";
+};
+
+function buildDateTime(baseDate: Date, timeString: string): Date {
+  const [hours, minutes] = timeString.split(":").map((v) => parseInt(v, 10));
+  const d = new Date(baseDate);
+  d.setHours(hours || 0, minutes || 0, 0, 0);
+  return d;
+}
+
+function endOfDay(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
+
+export function computeEventEffectiveEnd(event: EventTimeLike): Date {
+  const hasEndDate = !!event.endDate;
+  const hasEndTime = !!event.endTime && event.endTime.trim() !== "";
+
+  // Prefer explicit endDate if provided
+  if (hasEndDate) {
+    if (hasEndTime) {
+      return buildDateTime(event.endDate as Date, event.endTime as string);
+    }
+    // No endTime: use end of the endDate day
+    return endOfDay(event.endDate as Date);
+  }
+
+  // No endDate: fall back to start date
+  if (hasEndTime) {
+    return buildDateTime(event.date, event.endTime as string);
+  }
+  // Neither endDate nor endTime: complete at end of the start date
+  return endOfDay(event.date);
+}
+
+export function shouldMarkEventCompleted(
+  event: EventTimeLike,
+  now: Date = new Date()
+): boolean {
+  // Never override explicitly cancelled/suspended/completed events
+  if (
+    event.status &&
+    ["CANCELLED", "COMPLETED", "SUSPENDED"].includes(event.status)
+  ) {
+    return false;
+  }
+  const effectiveEnd = computeEventEffectiveEnd(event);
+  return effectiveEnd.getTime() < now.getTime();
+}

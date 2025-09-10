@@ -153,6 +153,26 @@ export default function AdminDashboardClient() {
     }
   };
 
+  const handleTriggerEventStatusUpdate = async () => {
+    try {
+      const res = await fetch("/api/admin/maintenance/update-events", {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to update event statuses");
+      }
+      const data = await res.json();
+      toast.success(
+        `Updated ${data.completed} events (checked ${data.checked}).`
+      );
+      setRefreshKey((prev) => prev + 1);
+    } catch (error) {
+      console.error("Error updating event statuses:", error);
+      toast.error(error instanceof Error ? error.message : "Update failed");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -202,6 +222,7 @@ export default function AdminDashboardClient() {
         events={dashboardData?.events || []}
         onRefresh={() => setRefreshKey((prev) => prev + 1)}
         onRefreshWithFilters={handleRefreshWithFilters}
+        onTriggerUpdateEvents={handleTriggerEventStatusUpdate}
       />
     </div>
   );

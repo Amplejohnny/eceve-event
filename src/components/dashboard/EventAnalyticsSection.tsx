@@ -647,7 +647,9 @@ export default function EventAnalyticsSection({
                           {attendee.event.title}
                         </div>
                         <div className="text-sm text-gray-500">
-                          {new Date(attendee.event.date).toLocaleDateString()}
+                          {new Date(attendee.event.date).toLocaleDateString(
+                            "en-GB"
+                          )}
                         </div>
                       </div>
                     </td>
@@ -670,7 +672,9 @@ export default function EventAnalyticsSection({
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(attendee.purchaseDate).toLocaleDateString()}
+                      {new Date(attendee.purchaseDate).toLocaleDateString(
+                        "en-GB"
+                      )}
                     </td>
                   </tr>
                 ))

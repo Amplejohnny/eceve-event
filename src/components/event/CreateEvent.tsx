@@ -1504,10 +1504,12 @@ const CreateEvent: React.FC = () => {
                     {/* Date & Time */}
                     <div className="flex flex-wrap items-center text-gray-600">
                       <Calendar className="w-4 h-4 mr-2" />
-                      <span>{formData.date?.toLocaleDateString()}</span>
+                      <span>{formData.date?.toLocaleDateString("en-GB")}</span>
                       {formData.endDate && <span className="mx-2">-</span>}
                       {formData.endDate && (
-                        <span>{formData.endDate.toLocaleDateString()}</span>
+                        <span>
+                          {formData.endDate.toLocaleDateString("en-GB")}
+                        </span>
                       )}
 
                       {formData.startTime && (
