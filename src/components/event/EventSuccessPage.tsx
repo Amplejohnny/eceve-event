@@ -16,7 +16,6 @@ import {
   ExternalLink,
   ChevronDown,
   ChevronUp,
-  Edit,
 } from "lucide-react";
 import { FaXTwitter, FaFacebookF } from "react-icons/fa6";
 import { getEventUrl, fromKobo, getEventImageUrl } from "@/lib/utils";
@@ -140,10 +139,6 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
   const handleViewEvent = (): void => {
     router.push(`/events/${event.slug}`);
-  };
-
-  const handleEditEvent = (): void => {
-    router.push(`/events/${event.id}/edit`);
   };
 
   const handleGoHome = (): void => {
@@ -385,14 +380,6 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
           </button>
 
           <button
-            onClick={handleEditEvent}
-            className="flex items-center cursor-pointer justify-center px-6 py-4 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-          >
-            <Edit className="w-5 h-5 mr-2" />
-            Edit Event
-          </button>
-
-          <button
             onClick={handleCopyLink}
             className="flex items-center cursor-pointer justify-center px-6 py-4 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1"
           >
@@ -506,9 +493,6 @@ const EventSuccessPage: React.FC<EventSuccessPageProps> = ({ event }) => {
 
         {/* Footer Notes */}
         <div className="text-center mt-8 space-y-2">
-          <p className="text-gray-500 text-sm">
-            You can always edit your event details from your dashboard
-          </p>
           <p className="text-gray-400 text-xs">Event ID: {event.id}</p>
         </div>
       </div>
