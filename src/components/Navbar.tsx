@@ -173,29 +173,33 @@ const Navbar: React.FC = () => {
               {/* Profile Actions */}
               {isEmailVerified ? (
                 <>
-                  <Link
-                    href="/my-events"
-                    className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
-                    onClick={() => setIsProfileDropdownOpen(false)}
-                  >
-                    My Events
-                  </Link>
+                  {userRole !== "ADMIN" && (
+                    <>
+                      <Link
+                        href="/my-events"
+                        className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+                        onClick={() => setIsProfileDropdownOpen(false)}
+                      >
+                        My Events
+                      </Link>
 
-                  <Link
-                    href="/favorites"
-                    className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
-                    onClick={() => setIsProfileDropdownOpen(false)}
-                  >
-                    Favorites
-                  </Link>
+                      <Link
+                        href="/favorites"
+                        className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+                        onClick={() => setIsProfileDropdownOpen(false)}
+                      >
+                        Favorites
+                      </Link>
 
-                  <Link
-                    href="/profile-settings"
-                    className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
-                    onClick={() => setIsProfileDropdownOpen(false)}
-                  >
-                    Account Settings
-                  </Link>
+                      <Link
+                        href="/profile-settings"
+                        className="w-full block px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-100 transition-colors duration-200"
+                        onClick={() => setIsProfileDropdownOpen(false)}
+                      >
+                        Account Settings
+                      </Link>
+                    </>
+                  )}
 
                   {/* Dashboard - for ADMIN and ORGANIZER */}
                   {dashboardInfo && (
@@ -362,29 +366,33 @@ const Navbar: React.FC = () => {
                   {/* Profile actions */}
                   {isEmailVerified ? (
                     <>
-                      <Link
-                        href="/my-events"
-                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        My Events
-                      </Link>
+                      {userRole !== "ADMIN" && (
+                        <>
+                          <Link
+                            href="/my-events"
+                            className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            My Events
+                          </Link>
 
-                      <Link
-                        href="/favorites"
-                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Favorites
-                      </Link>
+                          <Link
+                            href="/favorites"
+                            className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            Favorites
+                          </Link>
 
-                      <Link
-                        href="/profile-settings"
-                        className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        Account Settings
-                      </Link>
+                          <Link
+                            href="/profile-settings"
+                            className="text-white hover:text-yellow-400 transition-colors duration-200 text-left py-2"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                          >
+                            Account Settings
+                          </Link>
+                        </>
+                      )}
 
                       {/* Dashboard - for ADMIN and ORGANIZER */}
                       {((): React.JSX.Element | null => {
