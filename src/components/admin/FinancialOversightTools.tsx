@@ -154,7 +154,7 @@ export default function FinancialOversightTools({
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="flex items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            className="flex cursor-pointer items-center justify-center w-10 h-10 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             title="Refresh"
           >
             <RefreshCw
