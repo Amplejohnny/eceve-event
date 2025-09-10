@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { RefreshCw, CheckCircleIcon, XCircleIcon } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, fromKobo } from "@/lib/utils";
 
 interface WithdrawalRequest {
   id: string;
@@ -271,7 +271,7 @@ export default function WithdrawalManagementCenter({
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatCurrency(request.amount)}
+                      {formatCurrency(fromKobo(request.amount))}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
@@ -300,14 +300,14 @@ export default function WithdrawalManagementCenter({
                         <div className="flex space-x-2">
                           <button
                             onClick={() => onApprove(request.id, "approve")}
-                            className="text-green-600 hover:text-green-900"
+                            className="text-green-600 cursor-pointer hover:text-green-900"
                             title="Approve"
                           >
                             <CheckCircleIcon className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => onApprove(request.id, "reject")}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-red-600 cursor-pointer hover:text-red-900"
                             title="Reject"
                           >
                             <XCircleIcon className="w-5 h-5" />

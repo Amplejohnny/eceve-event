@@ -7,6 +7,7 @@ import {
   sendWithdrawalRejectedEmail,
   sendWithdrawalCompletedEmail,
 } from "@/lib/email";
+import { fromKobo } from "@/lib/utils";
 
 // Paystack transfer initiation function
 async function initiatePaystackTransfer(data: {
@@ -170,7 +171,7 @@ export async function POST(
           await sendWithdrawalApprovedEmail({
             organizerEmail: withdrawal.organizer.email,
             organizerName: withdrawal.organizer.name || "Organizer",
-            amount: withdrawal.amount,
+            amount: fromKobo(withdrawal.amount),
             accountName: withdrawal.accountName!,
             bankAccount: withdrawal.bankAccount!,
             bankName: withdrawal.bankCode!,
@@ -191,7 +192,7 @@ export async function POST(
           await sendWithdrawalApprovedEmail({
             organizerEmail: withdrawal.organizer.email,
             organizerName: withdrawal.organizer.name || "Organizer",
-            amount: withdrawal.amount,
+            amount: fromKobo(withdrawal.amount),
             accountName: withdrawal.accountName!,
             bankAccount: withdrawal.bankAccount!,
             bankName: withdrawal.bankCode!,
@@ -211,7 +212,7 @@ export async function POST(
         await sendWithdrawalRejectedEmail({
           organizerEmail: withdrawal.organizer.email,
           organizerName: withdrawal.organizer.name || "Organizer",
-          amount: withdrawal.amount,
+          amount: fromKobo(withdrawal.amount),
           reason: "Rejected by admin",
           withdrawalId: withdrawal.id,
         });
@@ -239,7 +240,7 @@ export async function POST(
         await sendWithdrawalCompletedEmail({
           organizerEmail: withdrawal.organizer.email,
           organizerName: withdrawal.organizer.name || "Organizer",
-          amount: withdrawal.amount,
+          amount: fromKobo(withdrawal.amount),
           accountName: withdrawal.accountName!,
           bankAccount: withdrawal.bankAccount!,
           bankName: withdrawal.bankCode!,

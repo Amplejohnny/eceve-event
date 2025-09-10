@@ -6,6 +6,7 @@ import {
   sendWithdrawalApprovedEmail,
   sendWithdrawalRejectedEmail,
 } from "@/lib/email";
+import { fromKobo } from "@/lib/utils";
 
 export async function POST(
   request: NextRequest,
@@ -101,7 +102,7 @@ export async function POST(
             await sendWithdrawalApprovedEmail({
               organizerEmail: withdrawal.organizer.email,
               organizerName: withdrawal.organizer.name || "Organizer",
-              amount: withdrawal.amount,
+              amount: fromKobo(withdrawal.amount),
               accountName: withdrawal.accountName,
               bankAccount: withdrawal.bankAccount,
               bankName: withdrawal.bankCode,
@@ -112,7 +113,7 @@ export async function POST(
           await sendWithdrawalRejectedEmail({
             organizerEmail: withdrawal.organizer.email,
             organizerName: withdrawal.organizer.name || "Organizer",
-            amount: withdrawal.amount,
+            amount: fromKobo(withdrawal.amount),
             reason: "Bulk rejected by admin",
             withdrawalId: withdrawal.id,
           });
