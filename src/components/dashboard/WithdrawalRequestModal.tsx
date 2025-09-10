@@ -272,23 +272,46 @@ export default function WithdrawalRequestModal({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Bank
                   </label>
-                  <select
-                    value={formData.bankCode}
-                    onChange={(e) =>
-                      setFormData({ ...formData, bankCode: e.target.value })
-                    }
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                      errors.bankCode ? "border-red-500" : "border-gray-300"
-                    }`}
-                    aria-label="Select bank"
-                  >
-                    <option value="">Select a bank</option>
-                    {banks.map((bank) => (
-                      <option key={bank.id} value={bank.code}>
-                        {bank.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={formData.bankCode}
+                      onChange={(e) =>
+                        setFormData({ ...formData, bankCode: e.target.value })
+                      }
+                      className={`appearance-none bg-white w-full px-4 py-2.5 pr-10 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium text-gray-700 cursor-pointer hover:border-gray-400 transition-colors ${
+                        errors.bankCode
+                          ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                          : "border-gray-300"
+                      }`}
+                      aria-label="Select bank"
+                    >
+                      <option value="">Select a bank</option>
+                      {banks.map((bank) => (
+                        <option key={bank.id} value={bank.code}>
+                          {bank.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Custom dropdown arrow */}
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <svg
+                        className={`w-4 h-4 ${
+                          errors.bankCode ? "text-red-500" : "text-gray-500"
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </div>
+                  </div>
                   {errors.bankCode && (
                     <p className="mt-1 text-sm text-red-600">
                       {errors.bankCode}
