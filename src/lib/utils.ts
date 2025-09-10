@@ -94,21 +94,6 @@ export function formatTime(timeString: string): string {
   });
 }
 
-// Format phone number
-export function formatPhone(phone: string): string {
-  const cleaned = phone.replace(/\D/g, "");
-
-  if (cleaned.startsWith("234")) {
-    return `+${cleaned}`;
-  }
-
-  if (cleaned.startsWith("0") && cleaned.length === 11) {
-    return `+234${cleaned.slice(1)}`;
-  }
-
-  return phone;
-}
-
 // Phone validation (Nigerian format)
 export function isValidPhone(phone: string): boolean {
   const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
@@ -144,18 +129,6 @@ export function truncateText(text: string, maxLength: number = 100): string {
   return text.slice(0, maxLength).trim() + "...";
 }
 
-export function getUserAvatarUrl(imageUrl?: string, email?: string): string {
-  if (imageUrl) return imageUrl;
-
-  if (email) {
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-      email
-    )}&color=fff&size=128`;
-  }
-
-  return `https://ui-avatars.com/api/?name=pp&background=6B7280&color=fff&size=128`;
-}
-
 // Image utilities
 export function getEventImageUrl(
   imageUrl?: string,
@@ -189,14 +162,6 @@ export function getEventImageUrl(
   }
 
   return `https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=1200&h=630&auto=format&fit=crop&q=80&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MjB8fGV2ZW50c3xlbnwwfHwwfHx8MA%3D%3D`;
-}
-
-//To call different fallback images
-export function getEventImage(
-  imageUrl?: string | null,
-  fallbackUrl: string = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&h=400&fit=crop"
-): string {
-  return imageUrl && imageUrl.trim() !== "" ? imageUrl : fallbackUrl;
 }
 
 export function generateConfirmationId(): string {
@@ -371,22 +336,6 @@ export function debounce<T extends (...args: never[]) => unknown>(
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
-}
-
-// Random utilities
-export function getRandomColor(): string {
-  const colors = [
-    "bg-red-100 text-red-800",
-    "bg-blue-100 text-blue-800",
-    "bg-green-100 text-green-800",
-    "bg-yellow-100 text-yellow-800",
-    "bg-purple-100 text-purple-800",
-    "bg-pink-100 text-pink-800",
-    "bg-indigo-100 text-indigo-800",
-    "bg-gray-100 text-gray-800",
-  ];
-
-  return colors[Math.floor(Math.random() * colors.length)];
 }
 
 // Validation utilities

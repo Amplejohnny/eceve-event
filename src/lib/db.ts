@@ -57,25 +57,6 @@ export async function deleteUser(id: string) {
   });
 }
 
-export async function getUserTickets(userId: string) {
-  return await db.ticket.findMany({
-    where: { userId },
-    include: {
-      event: {
-        select: {
-          id: true,
-          title: true,
-          date: true,
-          location: true,
-          imageUrl: true,
-          slug: true,
-        },
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-}
-
 export async function getPlatformAnalytics() {
   const [totalUsers, totalEvents, totalTickets, totalRevenue] =
     await Promise.all([
