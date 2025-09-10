@@ -74,14 +74,14 @@ A comprehensive dashboard for event organizers to manage their events, track ear
 
 ### Security Features
 
-- **Role-based Access Control**: Only organizers and admins can access
+- **Role-based Access Control**: Only organizers can access
 - **Encrypted Bank Details**: Sensitive data encrypted at rest
 - **Rate Limiting**: Protection against abuse
 - **Input Validation**: Comprehensive form validation
 
 ### Payment Integration
 
-- **Paystack Transfer API**: Automated organizer payouts
+- **Paystack Transfer API**: Automated organizer payouts needing Admin approval
 - **Bank Account Verification**: Real-time validation
 - **Webhook Processing**: Payment status updates
 - **Fallback System**: Manual processing when needed
@@ -105,7 +105,7 @@ A comprehensive dashboard for event organizers to manage their events, track ear
 
 ### Accessing the Dashboard
 
-1. Login as an organizer or admin
+1. Login as an organizer
 2. Click on your profile avatar
 3. Select "Dashboard" from the dropdown menu
 4. Navigate to `/dashboard/organizer`

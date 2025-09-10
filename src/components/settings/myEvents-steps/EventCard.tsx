@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Users, Eye, Share2, Edit } from "lucide-react";
+import { Calendar, MapPin, Users, Eye, Share2 } from "lucide-react";
 import {
   formatDateBook,
   formatCurrency,
@@ -9,6 +9,7 @@ import {
   isEventActive,
   isEventPast,
   getEventShareUrl,
+  fromKobo,
 } from "@/lib/utils";
 import Image from "next/image";
 
@@ -212,16 +213,20 @@ export default function EventCard({
                   <div>
                     <div className="group relative">
                       <span className="font-medium text-gray-900 cursor-help">
-                        {formatCurrency(revenue.netRevenue)}
+                        {formatCurrency(fromKobo(revenue.netRevenue))}
                       </span>
                       {/* Fixed tooltip positioning */}
                       <div className="absolute top-full right-0 mt-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 whitespace-nowrap z-50 shadow-lg min-w-max">
-                        <div>Gross: {formatCurrency(revenue.grossRevenue)}</div>
                         <div>
-                          Platform Fee: -{" "}{formatCurrency(revenue.platformFee)}
+                          Gross:{" "}
+                          {formatCurrency(fromKobo(revenue.grossRevenue))}
+                        </div>
+                        <div>
+                          Platform Fee: -{" "}
+                          {formatCurrency(fromKobo(revenue.platformFee))}
                         </div>
                         <div className="border-t border-gray-600 pt-1 mt-1">
-                          Net: {formatCurrency(revenue.netRevenue)}
+                          Net: {formatCurrency(fromKobo(revenue.netRevenue))}
                         </div>
                       </div>
                     </div>
@@ -253,7 +258,7 @@ export default function EventCard({
                 <Share2 className="w-3.5 h-3.5" />
                 Share
               </button>
-              <button
+              {/* <button
                 aria-label={`Edit ${event.title}`}
                 onClick={() =>
                   window.open(`/dashboard/events/${event.id}/edit`, "_blank")
@@ -262,7 +267,7 @@ export default function EventCard({
               >
                 <Edit className="w-3.5 h-3.5" />
                 Edit
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
@@ -282,7 +287,7 @@ export default function EventCard({
                         {ticketType.name}
                       </p>
                       <p className="text-[11px] text-gray-600">
-                        {formatCurrency(ticketType.price)}
+                        {formatCurrency(fromKobo(ticketType.price))}
                       </p>
                     </div>
                     <div className="text-right">
