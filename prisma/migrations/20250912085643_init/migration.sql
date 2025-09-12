@@ -21,17 +21,21 @@ CREATE TABLE "users" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "name" TEXT,
+    "password" TEXT,
+    "emailVerified" TIMESTAMPTZ(6),
     "role" "Role" NOT NULL DEFAULT 'USER',
-    "emailVerified" TIMESTAMP(3),
     "image" TEXT,
     "bio" TEXT,
     "location" TEXT,
     "website" TEXT,
     "twitter" TEXT,
     "instagram" TEXT,
+    "linkedin" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "resetToken" TEXT,
+    "resetTokenExpiry" TIMESTAMPTZ(6),
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -44,15 +48,16 @@ CREATE TABLE "events" (
     "eventType" "EventType" NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3),
+    "startTime" TEXT NOT NULL,
+    "endTime" TEXT,
     "location" TEXT NOT NULL,
     "venue" TEXT,
     "address" TEXT,
     "latitude" DOUBLE PRECISION,
     "longitude" DOUBLE PRECISION,
     "tags" TEXT[],
-    "category" TEXT,
+    "category" TEXT NOT NULL,
     "imageUrl" TEXT,
-    "ticketTypes" JSONB NOT NULL,
     "maxAttendees" INTEGER,
     "isPublic" BOOLEAN NOT NULL DEFAULT true,
     "status" "EventStatus" NOT NULL DEFAULT 'ACTIVE',
@@ -67,7 +72,6 @@ CREATE TABLE "events" (
 -- CreateTable
 CREATE TABLE "tickets" (
     "id" TEXT NOT NULL,
-    "ticketType" TEXT NOT NULL,
     "price" INTEGER NOT NULL,
     "quantity" INTEGER NOT NULL DEFAULT 1,
     "attendeeName" TEXT NOT NULL,
@@ -78,13 +82,29 @@ CREATE TABLE "tickets" (
     "notes" TEXT,
     "status" "TicketStatus" NOT NULL DEFAULT 'ACTIVE',
     "usedAt" TIMESTAMP(3),
+    "cancelledAt" TIMESTAMP(3),
+    "refundedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "eventId" TEXT NOT NULL,
+    "ticketTypeId" TEXT NOT NULL,
     "userId" TEXT,
     "paymentId" TEXT,
 
     CONSTRAINT "tickets_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ticket_types" (
+    "id" TEXT NOT NULL,
+    "name" VARCHAR(100) NOT NULL,
+    "price" INTEGER NOT NULL,
+    "quantity" INTEGER,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "eventId" TEXT NOT NULL,
+
+    CONSTRAINT "ticket_types_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -177,19 +197,100 @@ CREATE TABLE "verification_tokens" (
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
+CREATE INDEX "users_role_idx" ON "users"("role");
+
+-- CreateIndex
+CREATE INDEX "users_isActive_idx" ON "users"("isActive");
+
+-- CreateIndex
+CREATE INDEX "users_createdAt_idx" ON "users"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "users_resetToken_idx" ON "users"("resetToken");
+
+-- CreateIndex
+CREATE INDEX "users_resetTokenExpiry_idx" ON "users"("resetTokenExpiry");
+
+-- CreateIndex
+CREATE INDEX "users_role_isActive_idx" ON "users"("role", "isActive");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "events_slug_key" ON "events"("slug");
+
+-- CreateIndex
+CREATE INDEX "events_organizerId_idx" ON "events"("organizerId");
+
+-- CreateIndex
+CREATE INDEX "events_status_idx" ON "events"("status");
+
+-- CreateIndex
+CREATE INDEX "events_date_idx" ON "events"("date");
+
+-- CreateIndex
+CREATE INDEX "events_eventType_idx" ON "events"("eventType");
+
+-- CreateIndex
+CREATE INDEX "events_isPublic_idx" ON "events"("isPublic");
+
+-- CreateIndex
+CREATE INDEX "events_status_isPublic_idx" ON "events"("status", "isPublic");
+
+-- CreateIndex
+CREATE INDEX "events_date_status_idx" ON "events"("date", "status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "tickets_confirmationId_key" ON "tickets"("confirmationId");
 
 -- CreateIndex
+CREATE INDEX "tickets_eventId_idx" ON "tickets"("eventId");
+
+-- CreateIndex
+CREATE INDEX "tickets_ticketTypeId_idx" ON "tickets"("ticketTypeId");
+
+-- CreateIndex
+CREATE INDEX "tickets_userId_idx" ON "tickets"("userId");
+
+-- CreateIndex
+CREATE INDEX "tickets_status_idx" ON "tickets"("status");
+
+-- CreateIndex
+CREATE INDEX "tickets_attendeeEmail_idx" ON "tickets"("attendeeEmail");
+
+-- CreateIndex
+CREATE INDEX "tickets_eventId_status_idx" ON "tickets"("eventId", "status");
+
+-- CreateIndex
+CREATE INDEX "tickets_ticketTypeId_status_idx" ON "tickets"("ticketTypeId", "status");
+
+-- CreateIndex
+CREATE INDEX "ticket_types_eventId_idx" ON "ticket_types"("eventId");
+
+-- CreateIndex
+CREATE INDEX "ticket_types_eventId_price_idx" ON "ticket_types"("eventId", "price");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "payments_paystackRef_key" ON "payments"("paystackRef");
+
+-- CreateIndex
+CREATE INDEX "payments_eventId_idx" ON "payments"("eventId");
+
+-- CreateIndex
+CREATE INDEX "payments_status_idx" ON "payments"("status");
+
+-- CreateIndex
+CREATE INDEX "payments_customerEmail_idx" ON "payments"("customerEmail");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "event_favorites_userId_eventId_key" ON "event_favorites"("userId", "eventId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "payouts_paystackRef_key" ON "payouts"("paystackRef");
+
+-- CreateIndex
+CREATE INDEX "payouts_organizerId_idx" ON "payouts"("organizerId");
+
+-- CreateIndex
+CREATE INDEX "payouts_status_idx" ON "payouts"("status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "accounts_provider_providerAccountId_key" ON "accounts"("provider", "providerAccountId");
@@ -210,10 +311,16 @@ ALTER TABLE "events" ADD CONSTRAINT "events_organizerId_fkey" FOREIGN KEY ("orga
 ALTER TABLE "tickets" ADD CONSTRAINT "tickets_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "events"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "tickets" ADD CONSTRAINT "tickets_ticketTypeId_fkey" FOREIGN KEY ("ticketTypeId") REFERENCES "ticket_types"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "tickets" ADD CONSTRAINT "tickets_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "tickets" ADD CONSTRAINT "tickets_paymentId_fkey" FOREIGN KEY ("paymentId") REFERENCES "payments"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ticket_types" ADD CONSTRAINT "ticket_types_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "events"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "payments" ADD CONSTRAINT "payments_eventId_fkey" FOREIGN KEY ("eventId") REFERENCES "events"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
