@@ -15,7 +15,7 @@ const Footer = (): React.JSX.Element => {
               <Link href="#">About Us</Link>
             </li>
             <li>
-              <Link href="#">Contact Us</Link>
+              <Link href="mailto:comforeve@gmail.com">Contact Us</Link>
             </li>
             <li>
               <Link href="#">Careers</Link>
